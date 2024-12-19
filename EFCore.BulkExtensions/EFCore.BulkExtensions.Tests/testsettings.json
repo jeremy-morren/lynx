@@ -1,8 +1,0 @@
-{
-  "ConnectionStrings": {
-    "SqlServer": "Server=(LocalDB)\\MSSQLLocalDB;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;",
-    "Sqlite": "Data Source={databaseName}.db",
-    "PostgreSql": "Server=localhost;Port=5432;Database={databaseName};User Id=postgres;Password=postgres;",
-    "MySql": "Server=localhost;Database={databaseName};Uid=root;Pwd=MySQL22;AllowLoadLocalInfile=true;"
-  }
-}
