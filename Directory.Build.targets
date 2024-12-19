@@ -1,0 +1,10 @@
+<Project>
+    <PropertyGroup>
+        <PackageVersion>8.1.2-lynx</PackageVersion>
+        <PackageOutputPath>$(MSBuildThisFileDirectory)Packages</PackageOutputPath>
+        <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+
+        <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+</Project>

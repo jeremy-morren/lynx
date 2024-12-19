@@ -1,0 +1,10 @@
+<Project>
+    <!-- This file is only used by Lynx -->
+    <PropertyGroup>
+        <PackageReadmeFile>Readme.md</PackageReadmeFile>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <None Include="$(MSBuildThisFileDirectory)Readme.md" Pack="true" PackagePath="" />
+    </ItemGroup>
+</Project>
