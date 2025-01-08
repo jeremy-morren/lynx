@@ -1,8 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace Lynx.ForeignKeys;
+namespace Lynx.EfCore;
 
-public static class ReferencingEntities
+internal static class ReferencingEntities
 {
     /// <summary>
     /// Gets all entities that reference the specified entity type (including deep references).
@@ -10,9 +10,9 @@ public static class ReferencingEntities
     /// <remarks>
     /// A referencing entity is an entity that can include the target entity in a query (including through a chain of references).
     /// </remarks>
-    public static IEnumerable<IEntityType> GetReferencingEntities(IModel model, Type entityType)
+    internal static IEnumerable<IEntityType> GetReferencingEntities(IModel model, Type entityType)
     {
-        var target = GetEntityType(model, entityType);
+        var target = model.GetEntityType(entityType);
         // Recurse
         return GetReferencingEntitiesInternal(model, target, [target]).Distinct();
     }
@@ -32,7 +32,6 @@ public static class ReferencingEntities
             
             if (navigations.Count == 0)
                 continue;
-            
             visited.Add(type);
             
             // This entity references target.
@@ -42,7 +41,4 @@ public static class ReferencingEntities
                 yield return child;
         }
     }
-
-    private static IEntityType GetEntityType(IModel model, Type entityType) =>
-        IncludeRelatedEntities.GetEntityType(model, entityType);
 }

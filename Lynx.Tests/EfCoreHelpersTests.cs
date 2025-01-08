@@ -1,10 +1,10 @@
-﻿using Lynx.ForeignKeys;
+﻿using Lynx.EfCore;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.Tests;
 
-public class ForeignKeysTests
+public class EfCoreHelpersTests
 {
     [Fact]
     public void IncludeEntitiesShouldRecurse()
@@ -107,22 +107,47 @@ public class ForeignKeysTests
 
         //Entity1: referenced by Entity2
 
-        ReferencingEntities.GetReferencingEntities(model, typeof(Entity1))
+        model.GetReferencingEntities(typeof(Entity1))
             .Select(e => e.ClrType)
             .Should().BeEquivalentTo([typeof(Entity2)]);
         
         //Entity2: referenced by Entity1
-        ReferencingEntities.GetReferencingEntities(model, typeof(Entity2))
+        model.GetReferencingEntities(typeof(Entity2))
             .Select(e => e.ClrType)
             .Should().BeEquivalentTo([typeof(Entity1)]);
         
         //Entity3 and Child: referenced by Entity1 and Entity2
-        ReferencingEntities.GetReferencingEntities(model, typeof(Entity3))
+        model.GetReferencingEntities(typeof(Entity3))
             .Select(e => e.ClrType)
             .Should().BeEquivalentTo([typeof(Entity1), typeof(Entity2)]);
         
         //Alone: not referenced by any entity
-        ReferencingEntities.GetReferencingEntities(model, typeof(Alone)).ShouldBeEmpty();
+        model.GetReferencingEntities(typeof(Alone)).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetEntityIdValue()
+    {
+        var options = new DbContextOptionsBuilder()
+            .UseInMemoryDatabase(nameof(GetEntityIdValue))
+            .Options;
+
+        using var context = new TestContext(options);
+        var model = context.Model;
+
+        var x = Entity1.New(5);
+
+        model.GetEntityKey(x).ShouldBe(5);
+        model.GetEntityKey(x.Entity2).ShouldBe(5);
+        model.GetEntityKey(x.Entity2.Entity3).ShouldBe(5);
+
+        var alone = Alone.New(6);
+        model.GetEntityKey(alone)
+            .ShouldBeEquivalentTo(new Dictionary<string, object>()
+            {
+                {nameof(Alone.Id1), 6},
+                {nameof(Alone.Id2), 6}
+            });
     }
 
     private class TestContext(DbContextOptions options) : DbContext(options)
@@ -140,7 +165,8 @@ public class ForeignKeysTests
                 b.OwnsMany(x => x.OwnedList);
             });
 
-            modelBuilder.Entity<Alone>();
+            modelBuilder.Entity<Alone>()
+                .HasKey(x => new { x.Id1, x.Id2 });
         }
     }
 
@@ -196,8 +222,18 @@ public class ForeignKeysTests
     
     private class Child : EntityBase {}
 
-    private class Alone : EntityBase
+    private class Alone
     {
-        public static Alone New(int id) => new() { Id = id };
+        public required int Id1 { get; init; }
+
+        public int Id2
+        {
+            get => Id1;
+            // EF Core requires a setter
+            // ReSharper disable once ValueParameterNotUsed
+            init {}
+        }
+        
+        public static Alone New(int id) => new() { Id1 = id };
     }
 }

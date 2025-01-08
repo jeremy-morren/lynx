@@ -1,9 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace Lynx.ForeignKeys;
+namespace Lynx.EfCore;
 
 internal static class IncludeRelatedEntities
 {
@@ -11,7 +8,7 @@ internal static class IncludeRelatedEntities
     /// Gets all properties that should be included for the entity type.
     /// </summary>
     public static IEnumerable<string> GetIncludeProperties(IModel model, Type entityType) =>
-        GetIncludePropertiesInternal(GetEntityType(model, entityType), null);
+        GetIncludePropertiesInternal(model.GetEntityType(entityType), null);
     
     private static IEnumerable<string> GetIncludePropertiesInternal(IEntityType entityType, IForeignKey? parentKey) =>
         GetNavigations(entityType, parentKey)
@@ -30,7 +27,7 @@ internal static class IncludeRelatedEntities
     /// </summary>
     public static IEnumerable<INavigation> GetNavigations(IModel model, Type entityType, IForeignKey? parentKey)
     {
-        return GetNavigations(GetEntityType(model, entityType), parentKey);
+        return GetNavigations(model.GetEntityType(entityType), parentKey);
     }
 
     private static IEnumerable<INavigation> GetNavigations(IEntityType entity, IForeignKey? parentKey)
@@ -42,14 +39,4 @@ internal static class IncludeRelatedEntities
             .Where(nav => nav.ForeignKey != parentKey 
                           && nav is { IsCollection: false, ForeignKey.IsOwnership: false });
     }
-    
-    public static DbContext GetDbContext(IQueryable query)
-    {
-        if (query is not IInfrastructure<IServiceProvider> src)
-            throw new InvalidOperationException("Query is not an EF Core query");
-        return src.Instance.GetRequiredService<ICurrentDbContext>().Context;
-    }
-    
-    public static IEntityType GetEntityType(IModel model, Type entityType) => 
-        model.FindEntityType(entityType) ?? throw new InvalidOperationException($"Type {entityType} not registered in model");
 }
