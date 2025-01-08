@@ -1,9 +1,10 @@
-﻿using Microsoft.Data.Sqlite;
+﻿using Lynx.ForeignKeys;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.Tests;
 
-public class IncludeRelatedEntitiesQueryableExtensionsTests
+public class ForeignKeysTests
 {
     [Fact]
     public void IncludeEntitiesShouldRecurse()
@@ -20,6 +21,7 @@ public class IncludeRelatedEntitiesQueryableExtensionsTests
             context.Database.EnsureCreated();
             
             context.Set<Entity1>().AddRange(Entity1.New(1), Entity1.New(2));
+            context.Set<Alone>().AddRange(Alone.New(1), Alone.New(2));
             context.SaveChanges();
         }
         
@@ -49,6 +51,9 @@ public class IncludeRelatedEntitiesQueryableExtensionsTests
 
             var e3 = context.Set<Entity3>().IncludeAll().ToList();
             e3.Should().HaveCount(2);
+            
+            var alone = context.Set<Alone>().IncludeAll();
+            alone.Should().HaveCount(2);
         }
     }
 
@@ -70,10 +75,10 @@ public class IncludeRelatedEntitiesQueryableExtensionsTests
     }
     
     [Fact]
-    public void ShadowPropertiesShouldBeIgnored()
+    public void IncludeShadowPropertiesShouldBeIgnored()
     {
         var options = new DbContextOptionsBuilder()
-            .UseInMemoryDatabase(nameof(ShadowPropertiesShouldBeIgnored))
+            .UseInMemoryDatabase(nameof(IncludeShadowPropertiesShouldBeIgnored))
             .Options;
 
         using var context = new TestContext(options);
@@ -90,6 +95,36 @@ public class IncludeRelatedEntitiesQueryableExtensionsTests
         IncludeRelatedEntities.GetNavigations(model, typeof(Entity3), null).ShouldBeEmpty();
     }
 
+    [Fact]
+    public void GetReferencingEntities()
+    {
+        var options = new DbContextOptionsBuilder()
+            .UseInMemoryDatabase(nameof(GetReferencingEntities))
+            .Options;
+
+        using var context = new TestContext(options);
+        var model = context.Model;
+
+        //Entity1: referenced by Entity2
+
+        ReferencingEntities.GetReferencingEntities(model, typeof(Entity1))
+            .Select(e => e.ClrType)
+            .Should().BeEquivalentTo([typeof(Entity2)]);
+        
+        //Entity2: referenced by Entity1
+        ReferencingEntities.GetReferencingEntities(model, typeof(Entity2))
+            .Select(e => e.ClrType)
+            .Should().BeEquivalentTo([typeof(Entity1)]);
+        
+        //Entity3 and Child: referenced by Entity1 and Entity2
+        ReferencingEntities.GetReferencingEntities(model, typeof(Entity3))
+            .Select(e => e.ClrType)
+            .Should().BeEquivalentTo([typeof(Entity1), typeof(Entity2)]);
+        
+        //Alone: not referenced by any entity
+        ReferencingEntities.GetReferencingEntities(model, typeof(Alone)).ShouldBeEmpty();
+    }
+
     private class TestContext(DbContextOptions options) : DbContext(options)
     {
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -104,6 +139,8 @@ public class IncludeRelatedEntitiesQueryableExtensionsTests
                 b.OwnsOne(x => x.Owned1);
                 b.OwnsMany(x => x.OwnedList);
             });
+
+            modelBuilder.Entity<Alone>();
         }
     }
 
@@ -158,4 +195,9 @@ public class IncludeRelatedEntitiesQueryableExtensionsTests
     }
     
     private class Child : EntityBase {}
+
+    private class Alone : EntityBase
+    {
+        public static Alone New(int id) => new() { Id = id };
+    }
 }

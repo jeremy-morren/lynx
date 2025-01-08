@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Lynx;
+namespace Lynx.ForeignKeys;
 
 internal static class IncludeRelatedEntities
 {

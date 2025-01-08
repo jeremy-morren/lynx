@@ -1,14 +1,9 @@
 ﻿using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.Extensions.DependencyInjection;
 
-namespace Lynx;
+namespace Lynx.ForeignKeys;
 
-/// <summary>
-/// Includes all related entities in the query.
-/// </summary>
 public static class IncludeRelatedEntitiesQueryableExtensions
 {
     /// <summary>
