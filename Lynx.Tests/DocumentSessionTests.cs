@@ -1,3 +1,4 @@
+using Lynx.DocumentStore;
 using Moq;
 
 // ReSharper disable MethodHasAsyncOverload

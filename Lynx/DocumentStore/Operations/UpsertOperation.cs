@@ -1,7 +1,7 @@
 ﻿using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 
-namespace Lynx;
+namespace Lynx.DocumentStore.Operations;
 
 /// <summary>
 /// Represents an operation to upsert entities to the database.

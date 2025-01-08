@@ -1,9 +1,10 @@
 ﻿using System.Collections;
 using System.Data;
 using System.Linq.Expressions;
+using Lynx.DocumentStore.Operations;
 using Microsoft.EntityFrameworkCore;
 
-namespace Lynx;
+namespace Lynx.DocumentStore;
 
 /// <summary>
 /// Lynx document store session.

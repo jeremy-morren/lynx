@@ -1,4 +1,4 @@
-﻿using Lynx.DbContextExtensions;
+﻿using Lynx.DocumentStore;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Moq;

@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 
-namespace Lynx;
+namespace Lynx.DocumentStore;
 
 /// <summary>
 /// Represents a unit of work (a collection of operations to be applied to the database).

@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
-namespace Lynx.DbContextExtensions;
+namespace Lynx.DocumentStore;
 
 public static class DocumentListenerDbContextOptionsExtensions
 {

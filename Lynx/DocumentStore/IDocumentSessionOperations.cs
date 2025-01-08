@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace Lynx;
+namespace Lynx.DocumentStore;
 
 /// <summary>
 /// Represents a lynx database operation that will be applied to the database.

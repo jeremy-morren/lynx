@@ -1,7 +1,7 @@
 ﻿using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 
-namespace Lynx;
+namespace Lynx.DocumentStore.Operations;
 
 /// <summary>
 /// Operation to delete entities from the database.

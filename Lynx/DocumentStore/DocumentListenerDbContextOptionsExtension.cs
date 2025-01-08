@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Lynx.DbContextExtensions;
+namespace Lynx.DocumentStore;
 
 /// <summary>
 /// An extension for adding a document session listener to the database context.
