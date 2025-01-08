@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace Lynx.NpgsqlBackupRestore;
+namespace Npgsql.BackupRestore;
 
 internal static class ShortCmdRunner
 {

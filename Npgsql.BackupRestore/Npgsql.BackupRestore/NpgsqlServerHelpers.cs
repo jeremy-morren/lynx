@@ -1,7 +1,8 @@
 ﻿using System.Data;
+using JetBrains.Annotations;
 using Npgsql;
 
-namespace Lynx.NpgsqlBackupRestore;
+namespace Npgsql.BackupRestore;
 
 [PublicAPI]
 public static class NpgsqlServerHelpers
@@ -13,7 +14,11 @@ public static class NpgsqlServerHelpers
         return await GetServerVersion(connection, ct);
     }
     
-    public 
+    public static async Task<Version> GetServerVersion(NpgsqlDataSource dataSource, CancellationToken ct)
+    {
+        await using var connection = new NpgsqlConnection(dataSource.ConnectionString);
+        return await GetServerVersion(connection, ct);
+    }
     
     public static async Task<Version> GetServerVersion(NpgsqlConnection connection, CancellationToken ct)
     {

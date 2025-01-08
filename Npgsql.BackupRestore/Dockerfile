@@ -19,11 +19,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY EFCore.BulkExtensions/ EFCore.BulkExtensions/
-COPY Lynx/Lynx.csproj Lynx/
-COPY Lynx.NpgsqlBackupRestore/Lynx.NpgsqlBackupRestore.csproj Lynx.NpgsqlBackupRestore/
-COPY Lynx.Tests/Lynx.Tests.csproj Lynx.Tests/
-RUN dotnet restore Lynx.Tests/Lynx.Tests.csproj
+COPY Npgsql.BackupRestore/Npgsql.BackupRestore.csproj Npgsql.BackupRestore/
+COPY Npgsql.BackupRestore.Tests/Npgsql.BackupRestore.Tests.csproj Npgsql.BackupRestore.Tests/
+RUN dotnet restore Npgsql.BackupRestore.Tests/Npgsql.BackupRestore.Tests.csproj
 
 COPY . .
-ENTRYPOINT [ "dotnet", "test", "Lynx.Tests/Lynx.Tests.csproj", "--logger=\"console;verbosity=detailed\"" ]
+ENTRYPOINT [ "dotnet", "test", "Npgsql.BackupRestore.Tests/Npgsql.BackupRestore.Tests.csproj", "--logger=\"console;verbosity=detailed\"" ]

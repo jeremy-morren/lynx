@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 
-namespace Lynx.NpgsqlBackupRestore;
+namespace Npgsql.BackupRestore;
 
 /// <summary>
 /// Finds the PostgreSQL tools on the system.
@@ -40,27 +40,27 @@ public static partial class PgToolFinder
     /// Finds the latest version of the PostgreSQL tool with the specified name.
     /// </summary>
     /// <param name="toolName">Postgres tool name</param>
-    /// <param name="minVersion">Minimum required version</param>
+    /// <param name="version">Required version (matches major version, requires minor version equal or later)</param>
     /// <returns></returns>
-    public static string FindPgTool(string toolName, Version minVersion)
+    public static string FindPgTool(string toolName, Version version)
     {
         var files = (
                 from file in FindPgTool(toolName)
-                let version = GetToolVersion(file)
-                orderby version descending
+                let v = GetToolVersion(file)
+                orderby v descending
                 select new
                 {
-                    Version = version,
+                    Version = v,
                     File = file,
                 })
             .ToList();
         
-        var latest = files.FirstOrDefault(f => f.Version >= minVersion);
+        var latest = files.FirstOrDefault(f => f.Version.Major == version.Major && f.Version >= version);
         if (latest != null)
             return latest.File;
 
         var versions = string.Join(", ", files.Select(f => f.Version.ToString()));
-        throw new InvalidOperationException($"Could not find the PostgreSQL tool {toolName} with version >= {minVersion}. Found versions: {versions}");
+        throw new InvalidOperationException($"Could not find the PostgreSQL tool {toolName} with version = {version.Major}.* and version >= {version}. Found versions: {versions}");
     }
     
     /// <summary>
@@ -108,7 +108,7 @@ public static partial class PgToolFinder
     
     public static Version GetToolVersion(string tool)
     {
-        var version = ShortCmdRunner.Run(tool, "--version");
+        var version = ShortCmdRunner.Run(tool, "--version").TrimEnd();
 
         var match = PgToolVersionRegex().Match(version);
         if (match.Success && Version.TryParse(match.Value, out var v))

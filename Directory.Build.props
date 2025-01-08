@@ -5,6 +5,6 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <None Include="$(MSBuildThisFileDirectory)Readme.md" Pack="true" PackagePath="" />
+        <None Include="$(MSBuildThisFileDirectory)Readme.md" Pack="true" PackagePath="" Visible="false" />
     </ItemGroup>
 </Project>
