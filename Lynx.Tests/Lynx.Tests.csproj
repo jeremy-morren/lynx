@@ -9,6 +9,8 @@
         <IsTestProject>true</IsTestProject>
         
         <GenerateDocumentationFile>false</GenerateDocumentationFile>
+        
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
 
     <ItemGroup>
@@ -30,6 +32,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Lynx.NpgsqlBackupRestore\Lynx.NpgsqlBackupRestore.csproj" />
       <ProjectReference Include="..\Lynx\Lynx.csproj" />
     </ItemGroup>
 

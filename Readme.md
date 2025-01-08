@@ -10,3 +10,7 @@ context.Store(new Person { Name = "John Doe" });
 context.DeleteWhere<Person>(p => p.Name == "Jane Doe");
 context.SaveChanges();
 ```
+
+### Lynx PGBackup/Restore
+
+`Lynx.NpgsqlBackupRestore` is a C# wrapper for pg_dump/pg_restore.
