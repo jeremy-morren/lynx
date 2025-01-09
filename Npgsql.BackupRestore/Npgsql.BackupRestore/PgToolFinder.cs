@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using Npgsql.BackupRestore.Commands;
 
 namespace Npgsql.BackupRestore;
 

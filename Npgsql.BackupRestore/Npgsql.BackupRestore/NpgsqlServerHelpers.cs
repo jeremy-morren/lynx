@@ -4,10 +4,8 @@ using Npgsql;
 
 namespace Npgsql.BackupRestore;
 
-[PublicAPI]
-public static class NpgsqlServerHelpers
+internal static class NpgsqlServerHelpers
 {
-    
     public static async Task<Version> GetServerVersion(string connectionString, CancellationToken ct)
     {
         await using var connection = new NpgsqlConnection(connectionString);
@@ -16,7 +14,7 @@ public static class NpgsqlServerHelpers
     
     public static async Task<Version> GetServerVersion(NpgsqlDataSource dataSource, CancellationToken ct)
     {
-        await using var connection = new NpgsqlConnection(dataSource.ConnectionString);
+        await using var connection = await dataSource.OpenConnectionAsync(ct);
         return await GetServerVersion(connection, ct);
     }
     

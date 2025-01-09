@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace Npgsql.BackupRestore;
+namespace Npgsql.BackupRestore.Commands;
 
 internal static class ShortCmdRunner
 {
@@ -35,7 +35,7 @@ internal static class ShortCmdRunner
         }
         
         if (process.ExitCode != 0)
-            throw new InvalidOperationException($"Process {cmd} {string.Join(" ", args)} failed. Exit code: {process.ExitCode}. Error: {error}");
+            throw new PgToolCommandFailedException(cmd, args, process.ExitCode, error);
 
         return output;
     }

@@ -9,8 +9,6 @@
         <IsTestProject>true</IsTestProject>
         
         <GenerateDocumentationFile>false</GenerateDocumentationFile>
-        
-        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
 
     <ItemGroup>
