@@ -18,8 +18,8 @@ public class PgBackupTests(ITestOutputHelper output) : PgToolTestsBase
     }
 
     [Theory]
-    [MemberData(nameof(GetFileBackupOptions))]
-    public async Task BackupToFile(PgBackupOptions options)
+    [MemberData(nameof(GetBackupOptions))]
+    public async Task Backup(PgBackupOptions options)
     {
         var file = Path.GetTempFileName();
         DeleteFile(file);
@@ -30,6 +30,12 @@ public class PgBackupTests(ITestOutputHelper output) : PgToolTestsBase
             await PgBackup.BackupAsync(ConnString, options);
             new FileInfo(file).Exists.ShouldBeTrue();
             new FileInfo(file).Length.ShouldBePositive();
+
+            options.FileName = null;
+            using var ms = new MemoryStream();
+            await PgBackup.BackupAsync(ConnString, options, ms);
+            ms.Length.ShouldBe(new FileInfo(file).Length);
+            
             var kb = new FileInfo(file).Length / 1024d;
             output.WriteLine($"{kb:#,0.##} KiB");
         }
@@ -39,7 +45,7 @@ public class PgBackupTests(ITestOutputHelper output) : PgToolTestsBase
         }
     }
 
-    public static TheoryData<PgBackupOptions> GetFileBackupOptions() => new()
+    public static TheoryData<PgBackupOptions> GetBackupOptions() => new()
     {
         new PgBackupOptions()
         {

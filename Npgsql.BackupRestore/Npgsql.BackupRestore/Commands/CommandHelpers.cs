@@ -57,8 +57,13 @@ internal static class CommandHelpers
     /// See https://www.postgresql.org/docs/current/libpq-envars.html#LIBPQ-ENVARS
     /// </remarks>
     [SuppressMessage("ReSharper", "StringLiteralTypo")]
-    public static Dictionary<string, string?> GetEnvVariables(NpgsqlConnectionStringBuilder builder)
+    public static Dictionary<string, string?> GetEnvVariables(string connectionString)
     {
+        var builder = new NpgsqlConnectionStringBuilder(connectionString);
+        if (string.IsNullOrEmpty(builder.Password) 
+            && string.IsNullOrEmpty(builder.Passfile)
+            && string.IsNullOrEmpty(builder.SslCertificate))
+            throw new InvalidOperationException($"Password, passfile, or SSL certificate must be specified in the connection string. Consider setting {nameof(builder.PersistSecurityInfo)} to true");
         var values = new (string Name, object? Value)[]
         {
             ("PGHOST", builder.Host),

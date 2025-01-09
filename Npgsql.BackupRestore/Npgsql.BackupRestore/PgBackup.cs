@@ -1,7 +1,12 @@
-﻿using Npgsql.BackupRestore.Commands;
+﻿using JetBrains.Annotations;
+using Npgsql.BackupRestore.Commands;
 
 namespace Npgsql.BackupRestore;
 
+/// <summary>
+/// Methods to backup a PostgreSQL database (using <c>pg_dump</c>)
+/// </summary>
+[PublicAPI]
 public static class PgBackup
 {
     /// <summary>
@@ -17,18 +22,88 @@ public static class PgBackup
     {
         ArgumentNullException.ThrowIfNull(connectionString);
         ArgumentNullException.ThrowIfNull(options);
+
+        connectionString = PersistSecurityInfo(connectionString);
+        
+        await using var connection = new NpgsqlConnection(connectionString);
+        await BackupAsync(connection, options, cancellationToken);
+    }
+
+    /// <summary>
+    /// Runs a pg_dump command to backup a PostgreSQL database to a stream
+    /// </summary>
+    /// <param name="connectionString"></param>
+    /// <param name="options"></param>
+    /// <param name="destination">Destination stream</param>
+    /// <param name="cancellationToken"></param>
+    public static async Task BackupAsync(
+        string connectionString,
+        PgBackupOptions options,
+        Stream destination,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(connectionString);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(destination);
+        
+        connectionString = PersistSecurityInfo(connectionString);
+        
+        await using var connection = new NpgsqlConnection(connectionString);
+        await BackupAsync(connection, options, destination, cancellationToken);
+    }
+
+    /// <summary>
+    /// Runs a pg_dump command to backup a PostgreSQL database to a file
+    /// </summary>
+    /// <param name="connection"></param>
+    /// <param name="options"></param>
+    /// <param name="cancellationToken"></param>
+    public static async Task BackupAsync(
+        NpgsqlConnection connection,
+        PgBackupOptions options,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(options);
         
         if (options.FileName == null)
             throw new ArgumentException("FileName must be set", nameof(options));
         
-        var version = await NpgsqlServerHelpers.GetServerVersion(connectionString, cancellationToken);
+        var version = await NpgsqlServerHelpers.GetServerVersion(connection, cancellationToken);
         // Get pg_dump that matches the server version
         var pgDump = PgToolFinder.FindPgTool(ToolName, version);
-        var builder = new NpgsqlConnectionStringBuilder(connectionString);
+        var args = CommandHelpers.GetArgs(options, OptionNames).ToList();
+        var env = CommandHelpers.GetEnvVariables(connection.ConnectionString);
+        await LongCmdRunner.RunAsync(pgDump, args, env, null, null, cancellationToken);
+    }
+
+    /// <summary>
+    /// Runs a pg_dump command to backup a PostgreSQL database to a stream
+    /// </summary>
+    /// <param name="connection"></param>
+    /// <param name="options"></param>
+    /// <param name="destination">Destination stream</param>
+    /// <param name="cancellationToken"></param>
+    public static async Task BackupAsync(
+        NpgsqlConnection connection,
+        PgBackupOptions options,
+        Stream destination,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(destination);
+        
+        if (options.FileName != null)
+            throw new ArgumentException("FileName must be null", nameof(options));
+        
+        var version = await NpgsqlServerHelpers.GetServerVersion(connection, cancellationToken);
+        // Get pg_dump that matches the server version
+        var pgDump = PgToolFinder.FindPgTool(ToolName, version);
         
         var args = CommandHelpers.GetArgs(options, OptionNames).ToList();
-        var env = CommandHelpers.GetEnvVariables(builder);
-        await LongCmdRunner.RunAsync(pgDump, args, env, null, null, cancellationToken);
+        var env = CommandHelpers.GetEnvVariables(connection.ConnectionString);
+        await LongCmdRunner.RunAsync(pgDump, args, env, null, destination, cancellationToken);
     }
     
     internal const string ToolName = "pg_dump";
@@ -54,4 +129,13 @@ public static class PgBackup
         { nameof(PgBackupOptions.ExcludeTable), "--exclude-table" },
         { nameof(PgBackupOptions.NoPrivileges), "--no-privileges" },
     };
+    
+    internal static string PersistSecurityInfo(string connectionString)
+    {
+        return new NpgsqlConnectionStringBuilder(connectionString)
+        {
+            //Ensure we can extract the password from the connection string below
+            PersistSecurityInfo = true
+        }.ConnectionString;
+    }
 }

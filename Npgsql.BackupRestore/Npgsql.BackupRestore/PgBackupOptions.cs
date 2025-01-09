@@ -22,16 +22,6 @@ public class PgBackupOptions
     public PgBackupFormat? Format { get; set; }
     
     /// <summary>
-    /// Use this many parallel jobs to dump (<c>--jobs</c> option)
-    /// </summary>
-    public int? Jobs { get; set; }
-    
-    /// <summary>
-    /// Verbose mode (<c>--verbose</c> switch)
-    /// </summary>
-    public bool? Verbose { get; set; }
-    
-    /// <summary>
     /// Compression level for compressed formats (<c>--compress</c> option)
     /// </summary>
     public int? Compression { get; set; }
@@ -100,6 +90,16 @@ public class PgBackupOptions
     /// Do not dump privileges (grant/revoke) (<c>--no-privileges</c> switch)
     /// </summary>
     public bool? NoPrivileges { get; set; }
+    
+    /// <summary>
+    /// Use this many parallel jobs to dump (<c>--jobs</c> option)
+    /// </summary>
+    public int? Jobs { get; set; }
+    
+    /// <summary>
+    /// Verbose mode (<c>--verbose</c> switch)
+    /// </summary>
+    public bool? Verbose { get; set; }
 }
 
 /// <summary>
