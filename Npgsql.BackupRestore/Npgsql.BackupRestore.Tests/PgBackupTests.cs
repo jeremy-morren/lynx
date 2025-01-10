@@ -1,7 +1,4 @@
 ﻿using System.Data;
-using System.Diagnostics.CodeAnalysis;
-using System.Text.RegularExpressions;
-using Npgsql.BackupRestore.Commands;
 using Xunit.Abstractions;
 
 namespace Npgsql.BackupRestore.Tests;
@@ -28,13 +25,13 @@ public class PgBackupTests(ITestOutputHelper output) : PgToolTestsBase
         options.FileName = file;
         try
         {
-            await PgBackup.BackupAsync(ConnString, options);
+            await PgBackup.BackupAsync(ConnString,  options, Database);
             new FileInfo(file).Exists.ShouldBeTrue();
             new FileInfo(file).Length.ShouldBePositive();
 
             options.FileName = null;
             using var ms = new MemoryStream();
-            await PgBackup.BackupAsync(ConnString, options, ms);
+            await PgBackup.BackupAsync(ConnString, options, Database, ms);
             ms.Length.ShouldBe(new FileInfo(file).Length);
             
             var kb = new FileInfo(file).Length / 1024d;
@@ -74,7 +71,7 @@ public class PgBackupTests(ITestOutputHelper output) : PgToolTestsBase
                           FROM information_schema.tables
                           WHERE table_type = 'BASE TABLE'
                           GROUP BY table_schema
-                          ORDER BY table_count ASC
+                          ORDER BY table_count
                           LIMIT 1
                           """;
         var result = cmd.ExecuteScalar();

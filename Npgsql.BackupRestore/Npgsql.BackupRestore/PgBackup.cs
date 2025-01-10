@@ -14,19 +14,22 @@ public static class PgBackup
     /// </summary>
     /// <param name="connectionString"></param>
     /// <param name="options"></param>
+    /// <param name="database">Database to backup</param>
     /// <param name="cancellationToken"></param>
     public static async Task BackupAsync(
         string connectionString,
         PgBackupOptions options,
+        string database,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(connectionString);
+        ArgumentException.ThrowIfNullOrEmpty(connectionString);
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentException.ThrowIfNullOrEmpty(database);
 
         connectionString = PersistSecurityInfo(connectionString);
         
         await using var connection = new NpgsqlConnection(connectionString);
-        await BackupAsync(connection, options, cancellationToken);
+        await BackupAsync(connection, options, database, cancellationToken);
     }
 
     /// <summary>
@@ -34,22 +37,25 @@ public static class PgBackup
     /// </summary>
     /// <param name="connectionString"></param>
     /// <param name="options"></param>
+    /// <param name="database">Database to backup</param>
     /// <param name="destination">Destination stream</param>
     /// <param name="cancellationToken"></param>
     public static async Task BackupAsync(
         string connectionString,
         PgBackupOptions options,
+        string database,
         Stream destination,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(connectionString);
+        ArgumentException.ThrowIfNullOrEmpty(connectionString);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(destination);
+        ArgumentException.ThrowIfNullOrEmpty(database);
         
         connectionString = PersistSecurityInfo(connectionString);
         
         await using var connection = new NpgsqlConnection(connectionString);
-        await BackupAsync(connection, options, destination, cancellationToken);
+        await BackupAsync(connection, options, database, destination, cancellationToken);
     }
 
     /// <summary>
@@ -57,14 +63,17 @@ public static class PgBackup
     /// </summary>
     /// <param name="connection"></param>
     /// <param name="options"></param>
+    /// <param name="database">Database to backup</param>
     /// <param name="cancellationToken"></param>
     public static async Task BackupAsync(
         NpgsqlConnection connection,
         PgBackupOptions options,
+        string database,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentException.ThrowIfNullOrEmpty(database);
         
         if (options.FileName == null)
             throw new ArgumentException("FileName must be set", nameof(options));
@@ -72,7 +81,7 @@ public static class PgBackup
         var version = await NpgsqlServerHelpers.GetServerVersion(connection, cancellationToken);
         // Get pg_dump that matches the server version
         var pgDump = PgToolFinder.FindPgTool(ToolName, version);
-        var args = CommandHelpers.GetArgs(options, OptionNames).ToList();
+        var args = CommandHelpers.GetArgs(options, OptionNames).Append(database).ToList();
         var env = CommandHelpers.GetEnvVariables(connection.ConnectionString);
         await LongCmdRunner.RunAsync(pgDump, args, env, null, null, cancellationToken);
     }
@@ -82,17 +91,20 @@ public static class PgBackup
     /// </summary>
     /// <param name="connection"></param>
     /// <param name="options"></param>
+    /// <param name="database">Database to backup</param>
     /// <param name="destination">Destination stream</param>
     /// <param name="cancellationToken"></param>
     public static async Task BackupAsync(
         NpgsqlConnection connection,
         PgBackupOptions options,
+        string database,
         Stream destination,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(destination);
+        ArgumentException.ThrowIfNullOrEmpty(database);
         
         if (options.FileName != null)
             throw new ArgumentException("FileName must be null", nameof(options));
@@ -101,7 +113,7 @@ public static class PgBackup
         // Get pg_dump that matches the server version
         var pgDump = PgToolFinder.FindPgTool(ToolName, version);
         
-        var args = CommandHelpers.GetArgs(options, OptionNames).ToList();
+        var args = CommandHelpers.GetArgs(options, OptionNames).Append(database).ToList();
         var env = CommandHelpers.GetEnvVariables(connection.ConnectionString);
         await LongCmdRunner.RunAsync(pgDump, args, env, null, destination, cancellationToken);
     }

@@ -2,6 +2,7 @@
 
 namespace Npgsql.BackupRestore.Tests;
 
+[Collection("PgRestoreTests")]
 public class PgRestoreTests : PgToolTestsBase
 {
     [Fact]
@@ -13,7 +14,7 @@ public class PgRestoreTests : PgToolTestsBase
         var optionNames = GetOptionNames(PgToolFinder.FindPgTool(PgRestore.ToolName)[0]);
         Assert.All(PgRestore.OptionNames.Values, k => optionNames.ShouldContain(k));
     }
-
+    
     [Theory]
     [InlineData("Backup.bin", PgBackupFormat.Custom)]
     [InlineData("Backup.tar", PgBackupFormat.Tar)]
@@ -21,22 +22,24 @@ public class PgRestoreTests : PgToolTestsBase
     [InlineData("Backup.tar", null)]
     public async Task BackupRestore(string filename, PgBackupFormat? format)
     {
-        var ct = new CancellationTokenSource(TimeSpan.FromSeconds(5)).Token;
+        var database = $"{nameof(BackupRestore)}_{filename.Replace('.', '_')}_{format}".ToLowerInvariant();
+        var ct = new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token;
         
         filename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TestFiles", filename);
         File.Exists(filename).ShouldBeTrue();
         
-        const string dbName = "efcore_test";
-        DropDatabase(ConnString, dbName);
+        DropDatabase(ConnString, database);
+        ExecuteNonQuery(ConnString, $"CREATE DATABASE \"{database}\"");
 
         var options = new PgRestoreOptions()
         {
-            InputFile = filename,
+            Database = database,
             Format = format,
             ExitOnError = true
         };
-        await PgRestore.RestoreAsync(ConnString, options, ct);
-        ExecuteScalar($"{ConnString};Database={dbName}", "select count(*) from public.\"Child\"");
+        await PgRestore.RestoreAsync(ConnString, options, filename, ct);
+        
+        ExecuteScalar($"{ConnString};Database={database}", "select count(*) from public.\"Child\"");
     }
 
     private static object? ExecuteScalar(string connString, string sql)

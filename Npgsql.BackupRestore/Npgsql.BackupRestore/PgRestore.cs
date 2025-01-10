@@ -4,28 +4,35 @@ namespace Npgsql.BackupRestore;
 
 public static class PgRestore
 {
-    public static async Task RestoreAsync(string connectionString, PgRestoreOptions options, CancellationToken cancellationToken = default)
+    public static async Task RestoreAsync(
+        string connectionString, 
+        PgRestoreOptions options, 
+        string filename,
+        CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(connectionString);
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentException.ThrowIfNullOrEmpty(filename);
         
         connectionString = PgBackup.PersistSecurityInfo(connectionString);
 
         await using var connection = new NpgsqlConnection(connectionString);
-        await RestoreAsync(connection, options, cancellationToken);
+        await RestoreAsync(connection, options, filename, cancellationToken);
     }
     
-    public static async Task RestoreAsync(NpgsqlConnection connection, PgRestoreOptions options, CancellationToken cancellationToken = default)
+    public static async Task RestoreAsync(
+        NpgsqlConnection connection, 
+        PgRestoreOptions options, 
+        string filename,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentException.ThrowIfNullOrEmpty(filename);
         
-        if (options.InputFile == null)
-            throw new ArgumentException("Input file must be specified", nameof(options));
-
         var version = await NpgsqlServerHelpers.GetServerVersion(connection, cancellationToken);
         var tool = PgToolFinder.FindPgTool(ToolName, version);
-        var args = CommandHelpers.GetArgs(options, OptionNames).ToList();
+        var args = CommandHelpers.GetArgs(options, OptionNames).Append(filename).ToList();
         var env = CommandHelpers.GetEnvVariables(connection.ConnectionString);
         await LongCmdRunner.RunAsync(tool, args, env, null, null, cancellationToken);
     }
@@ -35,7 +42,6 @@ public static class PgRestore
     internal static readonly Dictionary<string, string> OptionNames = new()
     {
         { nameof(PgRestoreOptions.Database), "--dbname" },
-        { nameof(PgRestoreOptions.InputFile), "--file" },
         { nameof(PgRestoreOptions.Format), "--format" },
         { nameof(PgRestoreOptions.DataOnly), "--data-only" },
         { nameof(PgRestoreOptions.Clean), "--clean" },

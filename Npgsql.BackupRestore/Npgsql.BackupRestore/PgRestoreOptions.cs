@@ -17,11 +17,6 @@ public class PgRestoreOptions
     public string? Database { get; set; }
     
     /// <summary>
-    /// Input file name (<c>--file</c> option)
-    /// </summary>
-    public string? InputFile { get; set; }
-    
-    /// <summary>
     /// backup file format (should be determined automatically) (<c>--format</c> option)
     /// </summary>
     public PgBackupFormat? Format { get; set; }
