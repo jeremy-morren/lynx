@@ -29,6 +29,9 @@ public class PgBackupOptions
     /// <summary>
     /// Dump only the data, not the schema (<c>--data-only</c> switch)
     /// </summary>
+    /// <remarks>
+    /// Dump only the data, not the schema (data definitions). Table data, large objects, and sequence values are dumped.
+    /// </remarks>
     public bool? DataOnly { get; set; }
     
     /// <summary>
@@ -44,11 +47,40 @@ public class PgBackupOptions
     /// <summary>
     /// Clean (drop) database objects before recreating them (<c>--clean</c> switch)
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Output commands to DROP all the dumped database objects prior to outputting the commands for creating them.
+    /// This option is useful when the restore is to overwrite an existing database.
+    /// If any of the objects do not exist in the destination database, ignorable error messages will be reported during restore,
+    /// unless <see cref="UseIfExists"/> is <c>true</c>.
+    /// </para>
+    /// <para>
+    /// This option is ignored when <see cref="Format"/> is not <see cref="PgBackupFormat.Plain"/>.
+    /// For the archive formats, specify the option in <see cref="PgRestoreOptions.Clean"/>
+    /// </para>
+    /// </remarks>
     public bool? Clean { get; set; }
     
     /// <summary>
     /// Include commands to create database in dump (<c>--create</c> switch)
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Begin the output with a command to create the database itself and reconnect to the created database.
+    /// (With a script of this form, it doesn't matter which database in the destination installation you connect to before running the script.)
+    /// If <see cref="Clean"/> is also specified, the script drops and recreates the target database before reconnecting to it.
+    /// </para>
+    /// <para>
+    /// With <see cref="Create"/>, the output also includes the database's comment if any,
+    /// and any configuration variable settings that are specific to this database, that is, any
+    /// ALTER DATABASE ... SET ... and ALTER ROLE ... IN DATABASE ... SET ... commands that mention this database.
+    /// Access privileges for the database itself are also dumped, unless <see cref="NoPrivileges"/> is specified.
+    /// </para>
+    /// <para>
+    /// This option is ignored when <see cref="Format"/> is not <see cref="PgBackupFormat.Plain"/>.
+    /// For the archive formats, specify the option in <see cref="PgRestoreOptions.Create"/>
+    /// </para>
+    /// </remarks>
     public bool? Create { get; set; }
     
     /// <summary>
@@ -105,6 +137,11 @@ public class PgBackupOptions
     /// Dump data as INSERT commands with column names, rather than COPY (<c>--column-inserts</c> switch)
     /// </summary>
     public bool? ColumnInserts { get; set; }
+    
+    /// <summary>
+    /// use IF EXISTS when dropping objects (<c>--if-exists</c> switch)
+    /// </summary>
+    public bool? UseIfExists { get; set; }
     
     /// <summary>
     /// Verbose mode (<c>--verbose</c> switch)
