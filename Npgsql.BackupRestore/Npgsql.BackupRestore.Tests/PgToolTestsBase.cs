@@ -25,18 +25,6 @@ public class PgToolTestsBase
         return optionNames;
     }
     
-    protected static void DeleteFile(string file)
-    {
-        try
-        {
-            File.Delete(file);
-        }
-        catch (FileNotFoundException)
-        {
-            // ignored
-        }
-    }
-    
     protected static string GetSchemaWithTables()
     {
         using var conn = new NpgsqlConnection(FullConnString);
@@ -98,6 +86,23 @@ public class PgToolTestsBase
         catch (NpgsqlException e) when (e.SqlState == "3D000")
         {
             // Database doesn't exist, ignore
+        }
+    }
+    
+    protected static void DeleteFileOrDirectory(string path)
+    {
+        try
+        {
+            Directory.Delete(path, true);
+            File.Delete(path);
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // ignored
+        }
+        catch (FileNotFoundException)
+        {
+            // ignored
         }
     }
 }

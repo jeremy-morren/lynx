@@ -62,6 +62,15 @@ public class CmdRunnerTests
         ex.Message.ShouldBe(shortEx.Message);
     }
 
+    [Fact]
+    public async Task FailLongCommandWithStdIn()
+    {
+        // Should fail with a command exception, not a stream write exception
+        using var stdIn = new MemoryStream(Guid.NewGuid().ToByteArray());
+        using var stdOut = new MemoryStream();
+        await Assert.ThrowsAsync<PgToolCommandFailedException>(() =>
+            LongCmdRunner.RunAsync(Gzip, ["--non-existing-option"], [], stdIn, stdOut, default));
+    }
     
     private static string Gzip
     {

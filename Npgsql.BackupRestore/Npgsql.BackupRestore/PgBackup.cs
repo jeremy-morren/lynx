@@ -81,7 +81,7 @@ public static class PgBackup
         var version = await NpgsqlServerHelpers.GetServerVersion(connection, cancellationToken);
         // Get pg_dump that matches the server version
         var pgDump = PgToolFinder.FindPgTool(ToolName, version);
-        var args = CommandHelpers.GetArgs(options, OptionNames).Append(database).ToList();
+        var args = CommandHelpers.GetArgs(options, OptionNames).Append(database);
         var env = CommandHelpers.GetEnvVariables(connection.ConnectionString);
         await LongCmdRunner.RunAsync(pgDump, args, env, null, null, cancellationToken);
     }
@@ -113,7 +113,7 @@ public static class PgBackup
         // Get pg_dump that matches the server version
         var pgDump = PgToolFinder.FindPgTool(ToolName, version);
         
-        var args = CommandHelpers.GetArgs(options, OptionNames).Append(database).ToList();
+        var args = CommandHelpers.GetArgs(options, OptionNames).Append(database);
         var env = CommandHelpers.GetEnvVariables(connection.ConnectionString);
         await LongCmdRunner.RunAsync(pgDump, args, env, null, destination, cancellationToken);
     }
@@ -141,6 +141,7 @@ public static class PgBackup
         { nameof(PgBackupOptions.NoPrivileges), "--no-privileges" },
         { nameof(PgBackupOptions.Inserts), "--inserts"},
         { nameof(PgBackupOptions.ColumnInserts), "--column-inserts"},
+        { nameof(PgBackupOptions.UseIfExists), "--if-exists"},
         { nameof(PgBackupOptions.Verbose), "--verbose" },
     };
     

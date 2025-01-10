@@ -11,19 +11,23 @@ public class PgBackupRestoreTests : PgToolTestsBase
         var database = Guid.NewGuid().ToString("N");
         CleanDatabase(database);
         
-        var file = Path.GetTempFileName();
-        DeleteFile(file);
-        options.FileName = file;
+        var path = Path.GetTempFileName();
+        DeleteFileOrDirectory(path);
+        options.FileName = path;
         
         try
         {
             await PgBackup.BackupAsync(ConnString, options, Database, ct);
-            new FileInfo(file).Exists.ShouldBeTrue();
+
+            if (options.Format != PgBackupFormat.Directory)
+                new FileInfo(path).Exists.ShouldBeTrue();
+            else
+                Directory.Exists(path).ShouldBeTrue();
 
             if (options.Format == PgBackupFormat.Plain)
             {
                 // We should be able to execute the SQL file directly
-                var sql = await File.ReadAllTextAsync(file, ct);
+                var sql = await File.ReadAllTextAsync(path, ct);
                 ExecuteNonQuery($"{ConnString};Database={database}", sql);
             }
             else
@@ -32,8 +36,10 @@ public class PgBackupRestoreTests : PgToolTestsBase
                 var restoreOpts = new PgRestoreOptions()
                 {
                     Database = database,
+                    Clean = true,
+                    IfExists = true
                 };
-                await PgRestore.RestoreAsync(ConnString, restoreOpts, file, ct);
+                await PgRestore.RestoreAsync(ConnString, restoreOpts, path, ct);
             }
 
             ExecuteScalar($"{ConnString};Database={database}", 
@@ -42,8 +48,8 @@ public class PgBackupRestoreTests : PgToolTestsBase
         }
         finally
         {
-            DeleteFile(file);
             DropDatabase(database);
+            DeleteFileOrDirectory(path);
         }
     }
 
@@ -70,7 +76,13 @@ public class PgBackupRestoreTests : PgToolTestsBase
         new PgBackupOptions()
         {
             Format = PgBackupFormat.Tar,
-            Schema = GetSchemaWithTables()
+            Schema = GetSchemaWithTables(),
+        },
+        new PgBackupOptions()
+        {
+            Format = PgBackupFormat.Directory,
+            Compression = 5,
+            Schema = GetSchemaWithTables(),
         }
     };
 }
