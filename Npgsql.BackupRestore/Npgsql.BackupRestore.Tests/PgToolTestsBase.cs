@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Data;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using Npgsql.BackupRestore.Commands;
 
@@ -33,6 +34,70 @@ public class PgToolTestsBase
         catch (FileNotFoundException)
         {
             // ignored
+        }
+    }
+    
+    protected static string GetSchemaWithTables()
+    {
+        using var conn = new NpgsqlConnection(FullConnString);
+        if (conn.State != ConnectionState.Open)
+            conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+                          SELECT table_schema, COUNT(1) AS table_count
+                          FROM information_schema.tables
+                          WHERE table_type = 'BASE TABLE'
+                          GROUP BY table_schema
+                          ORDER BY table_count
+                          LIMIT 1
+                          """;
+        var result = cmd.ExecuteScalar();
+        return result.ShouldBeOfType<string>().ShouldNotBeNull();
+    }
+
+    protected static object? ExecuteScalar(string connString, string sql)
+    {
+        using var conn = new NpgsqlConnection(connString);
+        if (conn.State != ConnectionState.Open)
+            conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        return cmd.ExecuteScalar();
+    }
+    
+    protected static void ExecuteNonQuery(string connString, string sql)
+    {
+        using var conn = new NpgsqlConnection(connString);
+        if (conn.State != ConnectionState.Open)
+            conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.ExecuteNonQuery();
+    }
+    
+    /// <summary>
+    /// Drops and recreates the given database
+    /// </summary>
+    /// <param name="dbName"></param>
+    protected static void CleanDatabase(string dbName)
+    {
+        DropDatabase(dbName);
+        ExecuteNonQuery(ConnString, $"CREATE DATABASE \"{dbName}\"");
+    }
+    
+    /// <summary>
+    /// Drops and recreates the given database
+    /// </summary>
+    /// <param name="dbName"></param>
+    protected static void DropDatabase(string dbName)
+    {
+        try
+        {
+            ExecuteNonQuery(ConnString, $"DROP DATABASE \"{dbName}\" WITH (FORCE)");
+        }
+        catch (NpgsqlException e) when (e.SqlState == "3D000")
+        {
+            // Database doesn't exist, ignore
         }
     }
 }

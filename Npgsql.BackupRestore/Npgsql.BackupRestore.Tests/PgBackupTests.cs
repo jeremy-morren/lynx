@@ -19,20 +19,24 @@ public class PgBackupTests(ITestOutputHelper output) : PgToolTestsBase
     [MemberData(nameof(GetBackupOptions))]
     public async Task Backup(PgBackupOptions options)
     {
+        var ct = new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token;
         var file = Path.GetTempFileName();
         DeleteFile(file);
 
         options.FileName = file;
         try
         {
-            await PgBackup.BackupAsync(ConnString,  options, Database);
+            await PgBackup.BackupAsync(ConnString,  options, Database, ct);
             new FileInfo(file).Exists.ShouldBeTrue();
             new FileInfo(file).Length.ShouldBePositive();
-
+            
             options.FileName = null;
             using var ms = new MemoryStream();
-            await PgBackup.BackupAsync(ConnString, options, Database, ms);
+            await PgBackup.BackupAsync(ConnString, options, Database, ms, ct);
             ms.Length.ShouldBe(new FileInfo(file).Length);
+            
+            if (options.SchemaOnly == true)
+                ms.ToArray().ShouldBeEquivalentTo(await File.ReadAllBytesAsync(file, ct));
             
             var kb = new FileInfo(file).Length / 1024d;
             output.WriteLine($"{kb:#,0.##} KiB");
@@ -56,25 +60,13 @@ public class PgBackupTests(ITestOutputHelper output) : PgToolTestsBase
         new PgBackupOptions()
         {
             Format = PgBackupFormat.Custom,
+            Schema = GetSchemaWithTables(),
+            DataOnly = true
+        },
+        new PgBackupOptions()
+        {
+            Format = PgBackupFormat.Tar,
             Schema = GetSchemaWithTables()
         }
     };
-
-    private static string GetSchemaWithTables()
-    {
-        using var conn = new NpgsqlConnection(FullConnString);
-        if (conn.State != ConnectionState.Open)
-            conn.Open();
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = """
-                          SELECT table_schema, COUNT(1) AS table_count
-                          FROM information_schema.tables
-                          WHERE table_type = 'BASE TABLE'
-                          GROUP BY table_schema
-                          ORDER BY table_count
-                          LIMIT 1
-                          """;
-        var result = cmd.ExecuteScalar();
-        return result.ShouldBeOfType<string>().ShouldNotBeNull();
-    }
 }

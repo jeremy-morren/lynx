@@ -47,7 +47,7 @@ public class PgBackupOptions
     public bool? Clean { get; set; }
     
     /// <summary>
-    /// Include commands to create database objects (<c>--create</c> switch)
+    /// Include commands to create database in dump (<c>--create</c> switch)
     /// </summary>
     public bool? Create { get; set; }
     
@@ -95,6 +95,16 @@ public class PgBackupOptions
     /// Use this many parallel jobs to dump (<c>--jobs</c> option)
     /// </summary>
     public int? Jobs { get; set; }
+    
+    /// <summary>
+    /// Dump data as INSERT commands, rather than COPY (<c>--inserts</c> switch)
+    /// </summary>
+    public bool? Inserts { get; set; }
+    
+    /// <summary>
+    /// Dump data as INSERT commands with column names, rather than COPY (<c>--column-inserts</c> switch)
+    /// </summary>
+    public bool? ColumnInserts { get; set; }
     
     /// <summary>
     /// Verbose mode (<c>--verbose</c> switch)

@@ -38,7 +38,8 @@ internal static class CommandHelpers
                     yield return $"{option}={s}";
                     break;
                 case Enum e:
-                    yield return $"{option}={e}";
+                    //Pg tools take enums in lowercase
+                    yield return $"{option}={e.ToString().ToLowerInvariant()}";
                     break;
                 case int i:
                     yield return $"{option}={i}";

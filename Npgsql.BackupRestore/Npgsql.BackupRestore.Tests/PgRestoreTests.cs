@@ -27,9 +27,8 @@ public class PgRestoreTests : PgToolTestsBase
         
         filename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TestFiles", filename);
         File.Exists(filename).ShouldBeTrue();
-        
-        DropDatabase(ConnString, database);
-        ExecuteNonQuery(ConnString, $"CREATE DATABASE \"{database}\"");
+
+        CleanDatabase(database);
 
         var options = new PgRestoreOptions()
         {
@@ -38,39 +37,7 @@ public class PgRestoreTests : PgToolTestsBase
             ExitOnError = true
         };
         await PgRestore.RestoreAsync(ConnString, options, filename, ct);
-        
-        ExecuteScalar($"{ConnString};Database={database}", "select count(*) from public.\"Child\"");
-    }
 
-    private static object? ExecuteScalar(string connString, string sql)
-    {
-        using var conn = new NpgsqlConnection(connString);
-        if (conn.State != ConnectionState.Open)
-            conn.Open();
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = sql;
-        return cmd.ExecuteScalar();
-    }
-    
-    private static void ExecuteNonQuery(string connString, string sql)
-    {
-        using var conn = new NpgsqlConnection(connString);
-        if (conn.State != ConnectionState.Open)
-            conn.Open();
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = sql;
-        cmd.ExecuteNonQuery();
-    }
-    
-    private static void DropDatabase(string connString, string dbName)
-    {
-        try
-        {
-            ExecuteNonQuery(connString, $"DROP DATABASE \"{dbName}\" WITH (FORCE)");
-        }
-        catch (NpgsqlException e) when (e.SqlState == "3D000")
-        {
-            // Database doesn't exist, ignore
-        }
+        ExecuteScalar($"{ConnString};Database={database}", "select count(*) from public.\"Child\"").ShouldBe(3);
     }
 }

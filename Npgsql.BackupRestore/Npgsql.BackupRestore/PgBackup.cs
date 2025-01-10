@@ -125,7 +125,6 @@ public static class PgBackup
         { nameof(PgBackupOptions.FileName), "--file" },
         { nameof(PgBackupOptions.Format), "--format" },
         { nameof(PgBackupOptions.Jobs), "--jobs" },
-        { nameof(PgBackupOptions.Verbose), "--verbose" },
         { nameof(PgBackupOptions.Compression), "--compress" },
         { nameof(PgBackupOptions.DataOnly), "--data-only" },
         { nameof(PgBackupOptions.IncludeBlobs), "--blobs" },
@@ -140,6 +139,9 @@ public static class PgBackup
         { nameof(PgBackupOptions.Table), "--table" },
         { nameof(PgBackupOptions.ExcludeTable), "--exclude-table" },
         { nameof(PgBackupOptions.NoPrivileges), "--no-privileges" },
+        { nameof(PgBackupOptions.Inserts), "--inserts"},
+        { nameof(PgBackupOptions.ColumnInserts), "--column-inserts"},
+        { nameof(PgBackupOptions.Verbose), "--verbose" },
     };
     
     internal static string PersistSecurityInfo(string connectionString)
