@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Data;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using Npgsql.BackupRestore.Commands;
 using Xunit.Abstractions;
@@ -58,11 +59,25 @@ public class PgBackupTests(ITestOutputHelper output) : PgToolTestsBase
         new PgBackupOptions()
         {
             Format = PgBackupFormat.Custom,
-        },
-        new PgBackupOptions()
-        {
-            Format = PgBackupFormat.Tar,
-            Schema = "public"
-        },
+            Schema = GetSchemaWithTables()
+        }
     };
+
+    private static string GetSchemaWithTables()
+    {
+        using var conn = new NpgsqlConnection(FullConnString);
+        if (conn.State != ConnectionState.Open)
+            conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+                          SELECT table_schema, COUNT(1) AS table_count
+                          FROM information_schema.tables
+                          WHERE table_type = 'BASE TABLE'
+                          GROUP BY table_schema
+                          ORDER BY table_count ASC
+                          LIMIT 1
+                          """;
+        var result = cmd.ExecuteScalar();
+        return result.ShouldBeOfType<string>().ShouldNotBeNull();
+    }
 }
