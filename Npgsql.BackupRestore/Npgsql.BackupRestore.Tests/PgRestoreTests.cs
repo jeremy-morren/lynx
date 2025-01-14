@@ -1,6 +1,4 @@
-﻿using System.Data;
-
-namespace Npgsql.BackupRestore.Tests;
+﻿namespace Npgsql.BackupRestore.Tests;
 
 [Collection("PgRestoreTests")]
 public class PgRestoreTests : PgToolTestsBase
@@ -39,6 +37,8 @@ public class PgRestoreTests : PgToolTestsBase
         await PgRestore.RestoreAsync(ConnString, options, filename, ct);
 
         ExecuteScalar($"{ConnString};Database={database}", "select count(*) from public.\"Child\"").ShouldBe(3);
+
+        DropDatabase(database);
     }
     
     [Theory]
@@ -48,7 +48,7 @@ public class PgRestoreTests : PgToolTestsBase
     [InlineData("Backup.tar", null)]
     public async Task RestoreStream(string filename, PgBackupFormat? format)
     {
-        var database = $"{nameof(RestoreFile)}_{filename.Replace('.', '_')}_{format}".ToLowerInvariant();
+        var database = $"{nameof(RestoreStream)}_{filename.Replace('.', '_')}_{format}".ToLowerInvariant();
         var ct = new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token;
         
         filename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TestFiles", filename);
@@ -66,5 +66,7 @@ public class PgRestoreTests : PgToolTestsBase
         await PgRestore.RestoreAsync(ConnString, options, fs, ct);
 
         ExecuteScalar($"{ConnString};Database={database}", "select count(*) from public.\"Child\"").ShouldBe(3);
+
+        DropDatabase(database);
     }
 }

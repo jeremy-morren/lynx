@@ -45,10 +45,11 @@ public class PgBackupRestoreTests : PgToolTestsBase
             ExecuteScalar($"{ConnString};Database={database}", 
                     "SELECT COUNT(*) FROM information_schema.tables WHERE table_type = 'BASE TABLE'")
                 .ShouldBeOfType<long>().ShouldBePositive();
+
+            DropDatabase(database);
         }
         finally
         {
-            DropDatabase(database);
             DeleteFileOrDirectory(path);
         }
     }

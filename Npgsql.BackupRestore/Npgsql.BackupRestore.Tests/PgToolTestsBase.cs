@@ -91,18 +91,9 @@ public class PgToolTestsBase
     
     protected static void DeleteFileOrDirectory(string path)
     {
-        try
-        {
+        if (Directory.Exists(path))
             Directory.Delete(path, true);
+        else if (File.Exists(path))
             File.Delete(path);
-        }
-        catch (DirectoryNotFoundException)
-        {
-            // ignored
-        }
-        catch (FileNotFoundException)
-        {
-            // ignored
-        }
     }
 }

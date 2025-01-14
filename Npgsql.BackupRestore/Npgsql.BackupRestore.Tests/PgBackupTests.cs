@@ -1,5 +1,4 @@
-﻿using System.Data;
-using Xunit.Abstractions;
+﻿using Xunit.Abstractions;
 
 namespace Npgsql.BackupRestore.Tests;
 
@@ -35,7 +34,7 @@ public class PgBackupTests(ITestOutputHelper output) : PgToolTestsBase
             await PgBackup.BackupAsync(ConnString, options, Database, ms, ct);
             ms.Length.ShouldBe(new FileInfo(file).Length);
             
-            if (options.SchemaOnly == true)
+            if (options.SchemaOnly)
                 ms.ToArray().ShouldBeEquivalentTo(await File.ReadAllBytesAsync(file, ct));
             
             var kb = new FileInfo(file).Length / 1024d;
