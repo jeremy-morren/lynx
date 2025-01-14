@@ -15,7 +15,7 @@ public static class IncludeRelatedEntitiesQueryableExtensions
     /// <exception cref="NotImplementedException"></exception>
     public static IQueryable<T> IncludeAll<T>(this IQueryable<T> query) where T : class
     {
-        var context = query.GetDbContext();
+        var context = query.GetDbContext(nameof(IncludeAll));
         var key = (context.Model, typeof(T));
         var properties = Cache.GetOrAdd(key, GetIncludeProperties);
         return properties.Aggregate(query, (current, includeProperty) => current.Include(includeProperty));

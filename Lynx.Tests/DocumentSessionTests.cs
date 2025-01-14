@@ -1,5 +1,7 @@
 using Lynx.DocumentStore;
+using Microsoft.EntityFrameworkCore;
 using Moq;
+using Xunit.Abstractions;
 
 // ReSharper disable MethodHasAsyncOverload
 // ReSharper disable UseAwaitUsing
@@ -15,12 +17,14 @@ public class DocumentSessionTests
     {
         var listener = new Mock<IDocumentSessionListener>();
 
-        using var _ = TestDbContext.Create(listener, out var factory);
+        using var _ = TestDbContext.CreateContext(out var factory);
 
         using (var context = factory())
         {
+            var store = new DocumentStore<TestDbContext>(context, listener.Object);
+            var session = store.OpenSession();
+
             //Insert
-            var session = context.CreateSession();
             session.Store(TestEntity.Create(1), TestEntity.Create(2));
             session.Store(TestEntity.Create(3), TestEntity.Create(4));
             
@@ -36,11 +40,13 @@ public class DocumentSessionTests
 
         using (var context = factory())
         {
+            var store = new DocumentStore<TestDbContext>(context, listener.Object);
+
             context.Query<TestEntity>().Should().HaveCount(5);
             context.Query<TestEntity>().Single(e => e.Id == 4).Iteration.ShouldBe(1);
             
             //Insert and delete
-            var session = context.CreateSession();
+            var session = store.OpenSession();
             session.DeleteWhere<TestEntity>(x => x.Id == 1);
             
             session.Store(TestEntity.Create(4, 2)); //Overwrite previous insert
@@ -67,10 +73,11 @@ public class DocumentSessionTests
     [Fact]
     public void PassingEnumerableToStoreSingleShouldThrow()
     {
-        using var _ = TestDbContext.Create(out var factory);
+        using var _ = TestDbContext.CreateContext(out var factory);
 
-        var context = factory();
-        var session = context.CreateSession();
+        using var context = factory();
+        var store = new DocumentStore<TestDbContext>(context);
+        var session = store.OpenSession();
         var ex = Assert.Throws<InvalidOperationException>(() => session.Store(new List<TestEntity>()));
         ex.Message.ShouldContain("Use Store(IEnumerable<T> entities) instead.");
     }
@@ -78,15 +85,16 @@ public class DocumentSessionTests
     [Fact]
     public void SkippingSaveChangesShouldNotCommit()
     {
+        using var _ = TestDbContext.CreateContext(out var factory);
+
         var listener = new Mock<IDocumentSessionListener>();
-        using var _ = TestDbContext.Create(listener, out var factory);
 
         using (var context = factory())
         {
-            var session = context.CreateSession();
+            var store = new DocumentStore<TestDbContext>(context, listener.Object);
+            var session = store.OpenSession();
             session.Store(TestEntity.Create(1));
         }
-
         using (var context = factory())
         {
             context.Query<TestEntity>().Should().BeEmpty();
@@ -95,27 +103,22 @@ public class DocumentSessionTests
     }
 
     [Fact]
-    public void ListenersShouldBeOptionsScoped()
+    public void DocumentStoreQueryShouldIncludeRelatedEntities()
     {
-        var listener1= new Mock<IDocumentSessionListener>();
-        var listener2 = new Mock<IDocumentSessionListener>();
+        using var _ = TestDbContext.CreateContext(out var factory);
 
-        using var _ = TestDbContext.Create(listener1, out var factory1);
-        using var __ = TestDbContext.Create(listener1, out var factory2);
-        
-        using (var context = factory1())
+        using (var context = factory())
         {
-            var session = context.CreateSession();
+            var store = new DocumentStore<TestDbContext>(context);
+            var session = store.OpenSession();
             session.Store(TestEntity.Create(1));
-            session.SaveChanges();
         }
-        using (var context = factory2())
+        using (var context = factory())
         {
-            var session = context.CreateSession();
-            session.Store(TestEntity.Create(2)); //Don't save changes, should not trigger listener
+            context.Query<TestEntity>().ShouldAllBe(e => e.Child == null);
+
+            var store = new DocumentStore<TestDbContext>(context);
+            store.Query<TestEntity>().ShouldAllBe(e => e.Child != null);
         }
-        
-        listener1.Verify(l => l.OnUpserted(It.IsAny<IReadOnlyList<object>>()), Times.Once);
-        listener2.Verify(l => l.OnUpserted(It.IsAny<IReadOnlyList<object>>()), Times.Never);
     }
 }

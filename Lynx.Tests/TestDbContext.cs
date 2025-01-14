@@ -1,7 +1,9 @@
 ﻿using Lynx.DocumentStore;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
+// ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace Lynx.Tests;
 
@@ -22,46 +24,51 @@ public class TestDbContext : DbContext
         });
     }
 
-    public static IDisposable Create(out Func<TestDbContext> factory) => Create(null, out factory);
-    public static IDisposable Create(Mock<IDocumentSessionListener>? listener, out Func<TestDbContext> factory)
+    public static IDisposable CreateContext(out Func<TestDbContext> factory)
     {
-        listener ??= new Mock<IDocumentSessionListener>();
         var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
-        
+
         var options = new DbContextOptionsBuilder<TestDbContext>()
             .UseSqlite(connection)
-            .UseDocumentListener(listener.Object)
             .Options;
 
-        var script = new TestDbContext(options).Database.GenerateCreateScript();
         factory = () =>
         {
             var context = new TestDbContext(options);
             context.Database.EnsureCreated();
             return context;
         };
+
         return connection;
     }
 }
 
 public record TestEntity
 {
-    public required int Id { get; set; }
+    public required int Id { get; init; }
         
-    public required OwnedType OwnedType { get; set; }
+    public required OwnedType OwnedType { get; init; }
     
-    public required int? Iteration { get; set; }
+    public required int? Iteration { get; init; }
+
+    public required ChildEntity? Child { get; init; }
 
     public static TestEntity Create(int id, int? iteration = null) => new()
     {
         Id = id,
+        Iteration = iteration,
         OwnedType = new OwnedType() { Id = id },
-        Iteration = iteration
+        Child = new ChildEntity() { Id = id }
     };
 }
 
 public record OwnedType
 {
-    public required int Id { get; set; }
+    public required int Id { get; init; }
+}
+
+public record ChildEntity
+{
+    public required int Id { get; init; }
 }
