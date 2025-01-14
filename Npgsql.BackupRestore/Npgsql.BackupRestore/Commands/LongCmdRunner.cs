@@ -46,12 +46,18 @@ internal static class LongCmdRunner
                 : Task.CompletedTask;
             var readErrorTask = process.StandardError.ReadToEndAsync(stopToken);
             
-            await Task.WhenAll(process.WaitForExitAsync(stopToken), writeStdInTask, readStdOutTask, readErrorTask);
+            // Wait for the process to exit, and for the streams to be fully read
+            // Don't wait on stdin, because if the command fails then a stream write exception is thrown
+            // Instead, wait for the process to exit then throw if it failed
+            await Task.WhenAll(process.WaitForExitAsync(stopToken), readStdOutTask, readErrorTask);
 
-            if (process.ExitCode == 0)
-                return;
-            var stdErr = readErrorTask.Result;
-            throw new PgToolCommandFailedException(cmd, args.ToList(), process.ExitCode, stdErr);
+            if (process.ExitCode != 0)
+            {
+                var stdErr = readErrorTask.Result;
+                throw new PgToolCommandFailedException(cmd, args.ToList(), process.ExitCode, stdErr);
+            }
+            // If we succeeded, wait on the (now certainly completed) stdin write task
+            await writeStdInTask;
         }
         catch (OperationCanceledException)
         {

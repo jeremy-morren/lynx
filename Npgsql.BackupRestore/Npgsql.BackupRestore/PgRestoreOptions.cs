@@ -24,22 +24,51 @@ public class PgRestoreOptions
     /// <summary>
     /// Restore only the data, not the schema (<c>--data-only</c> switch)
     /// </summary>
-    public bool? DataOnly { get; set; }
+    public bool DataOnly { get; set; }
     
     /// <summary>
     /// Clean (drop) database objects before recreating them (<c>--clean</c> switch)
     /// </summary>
-    public bool? Clean { get; set; }
+    public bool Clean { get; set; }
+    
+    /// <summary>
+    /// use IF EXISTS when dropping objects (<c>--if-exists</c> switch)
+    /// </summary>
+    /// <remarks>
+    /// Use DROP ... IF EXISTS commands to drop objects if <see cref="Clean"/> is specified.
+    /// This suppresses “does not exist” errors that might otherwise be reported.
+    /// This option is not valid unless <see cref="Clean"/> is specified.
+    /// </remarks>
+    public bool IfExists { get; set; }
     
     /// <summary>
     /// Create the target database (<c>--create</c> switch)
     /// </summary>
-    public bool? Create { get; set; }
+    /// <remarks>
+    /// <para>
+    /// Create the database before restoring into it.
+    /// If <see cref="Clean"/> is also specified, drop and recreate the target database before connecting to it.
+    /// </para>
+    /// <para>
+    /// With <see cref="Create"/>, pg_restore also restores the database's comment if any, and any configuration variable settings that are specific to this database, that is,
+    /// any ALTER DATABASE ... SET ... and ALTER ROLE ... IN DATABASE ... SET ... commands that mention this database.
+    /// Access privileges for the database itself are also restored, unless <see cref="NoPrivileges"/> is specified.
+    /// </para>
+    /// <para>
+    /// When this option is used, the database in <see cref="Database"/> is used only to issue the initial
+    /// DROP DATABASE and CREATE DATABASE commands. All data is restored into the database name that appears in the archive.
+    /// </para>
+    /// </remarks>
+    public bool Create { get; set; }
     
     /// <summary>
     /// Exit on error, default is to continue (<c>--exit-on-error</c> switch)
     /// </summary>
-    public bool? ExitOnError { get; set; }
+    /// <remarks>
+    /// Exit if an error is encountered while sending SQL commands to the database.
+    /// The default is to continue and to display a count of errors at the end of the restoration.
+    /// </remarks>
+    public bool ExitOnError { get; set; }
     
     /// <summary>
     /// Index to restore (<c>--index=NAME</c> option)
@@ -74,17 +103,17 @@ public class PgRestoreOptions
     /// <summary>
     /// Skip restoration of object ownership (<c>--no-owner</c> switch)
     /// </summary>
-    public bool? NoOwner { get; set; }
+    public bool NoOwner { get; set; }
     
     /// <summary>
     /// Skip restoration of access privileges (grant/revoke) (<c>--no-privileges</c> switch)
     /// </summary>
-    public bool? NoPrivileges { get; set; }
+    public bool NoPrivileges { get; set; }
     
     /// <summary>
     /// Restore as a single transaction (<c>--single-transaction</c> switch)
     /// </summary>
-    public bool? SingleTransaction { get; set; }
+    public bool SingleTransaction { get; set; }
     
     /// <summary>
     /// Use this many parallel jobs to restore (<c>--jobs</c> option)
@@ -94,5 +123,5 @@ public class PgRestoreOptions
     /// <summary>
     /// Verbose mode (<c>--verbose</c> switch)
     /// </summary>
-    public bool? Verbose { get; set; }
+    public bool Verbose { get; set; }
 }

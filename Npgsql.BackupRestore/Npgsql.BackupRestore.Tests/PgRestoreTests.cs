@@ -20,9 +20,9 @@ public class PgRestoreTests : PgToolTestsBase
     [InlineData("Backup.tar", PgBackupFormat.Tar)]
     [InlineData("Backup.bin", null)]
     [InlineData("Backup.tar", null)]
-    public async Task BackupRestore(string filename, PgBackupFormat? format)
+    public async Task RestoreFile(string filename, PgBackupFormat? format)
     {
-        var database = $"{nameof(BackupRestore)}_{filename.Replace('.', '_')}_{format}".ToLowerInvariant();
+        var database = $"{nameof(RestoreFile)}_{filename.Replace('.', '_')}_{format}".ToLowerInvariant();
         var ct = new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token;
         
         filename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TestFiles", filename);
@@ -37,6 +37,33 @@ public class PgRestoreTests : PgToolTestsBase
             ExitOnError = true
         };
         await PgRestore.RestoreAsync(ConnString, options, filename, ct);
+
+        ExecuteScalar($"{ConnString};Database={database}", "select count(*) from public.\"Child\"").ShouldBe(3);
+    }
+    
+    [Theory]
+    [InlineData("Backup.bin", PgBackupFormat.Custom)]
+    [InlineData("Backup.tar", PgBackupFormat.Tar)]
+    [InlineData("Backup.bin", null)]
+    [InlineData("Backup.tar", null)]
+    public async Task RestoreStream(string filename, PgBackupFormat? format)
+    {
+        var database = $"{nameof(RestoreFile)}_{filename.Replace('.', '_')}_{format}".ToLowerInvariant();
+        var ct = new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token;
+        
+        filename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TestFiles", filename);
+        File.Exists(filename).ShouldBeTrue();
+
+        CleanDatabase(database);
+
+        var options = new PgRestoreOptions()
+        {
+            Database = database,
+            Format = format,
+            ExitOnError = true
+        };
+        await using var fs = File.OpenRead(filename);
+        await PgRestore.RestoreAsync(ConnString, options, fs, ct);
 
         ExecuteScalar($"{ConnString};Database={database}", "select count(*) from public.\"Child\"").ShouldBe(3);
     }

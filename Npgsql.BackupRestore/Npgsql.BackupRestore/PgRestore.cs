@@ -1,9 +1,21 @@
-﻿using Npgsql.BackupRestore.Commands;
+﻿using JetBrains.Annotations;
+using Npgsql.BackupRestore.Commands;
 
 namespace Npgsql.BackupRestore;
 
+/// <summary>
+/// Wrapper around the <c>pg_restore</c> tool
+/// </summary>
+[PublicAPI]
 public static class PgRestore
 {
+    /// <summary>
+    /// Restores a PostgreSQL database from a file (using <c>pg_restore</c>)
+    /// </summary>
+    /// <param name="connectionString">Connection string</param>
+    /// <param name="options">Restore options</param>
+    /// <param name="filename">Source filename</param>
+    /// <param name="cancellationToken"></param>
     public static async Task RestoreAsync(
         string connectionString, 
         PgRestoreOptions options, 
@@ -20,6 +32,13 @@ public static class PgRestore
         await RestoreAsync(connection, options, filename, cancellationToken);
     }
     
+    /// <summary>
+    /// Restores a PostgreSQL database from a file (using <c>pg_restore</c>)
+    /// </summary>
+    /// <param name="connection">Connection</param>
+    /// <param name="options">Restore options</param>
+    /// <param name="filename">Source filename</param>
+    /// <param name="cancellationToken"></param>
     public static async Task RestoreAsync(
         NpgsqlConnection connection, 
         PgRestoreOptions options, 
@@ -32,9 +51,55 @@ public static class PgRestore
         
         var version = await NpgsqlServerHelpers.GetServerVersion(connection, cancellationToken);
         var tool = PgToolFinder.FindPgTool(ToolName, version);
-        var args = CommandHelpers.GetArgs(options, OptionNames).Append(filename).ToList();
+        var args = CommandHelpers.GetArgs(options, OptionNames).Append(filename);
         var env = CommandHelpers.GetEnvVariables(connection.ConnectionString);
         await LongCmdRunner.RunAsync(tool, args, env, null, null, cancellationToken);
+    }
+
+    /// <summary>
+    /// Restores a PostgreSQL database from a stream (using <c>pg_restore</c>)
+    /// </summary>
+    /// <param name="connectionString">Connection string</param>
+    /// <param name="options">Restore options</param>
+    /// <param name="source">Source stream</param>
+    /// <param name="cancellationToken"></param>
+    public static async Task RestoreAsync(
+        string connectionString,
+        PgRestoreOptions options,
+        Stream source,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(connectionString);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(source);
+        
+        connectionString = PgBackup.PersistSecurityInfo(connectionString);
+        await using var connection = new NpgsqlConnection(connectionString);
+        await RestoreAsync(connection, options, source, cancellationToken);
+    }
+
+    /// <summary>
+    /// Restores a PostgreSQL database from a file (using <c>pg_restore</c>)
+    /// </summary>
+    /// <param name="connection">Connection</param>
+    /// <param name="options">Restore options</param>
+    /// <param name="source">Source stream</param>
+    /// <param name="cancellationToken"></param>
+    public static async Task RestoreAsync(
+        NpgsqlConnection connection, 
+        PgRestoreOptions options, 
+        Stream source,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(source);
+        
+        var version = await NpgsqlServerHelpers.GetServerVersion(connection, cancellationToken);
+        var tool = PgToolFinder.FindPgTool(ToolName, version);
+        var args = CommandHelpers.GetArgs(options, OptionNames);
+        var env = CommandHelpers.GetEnvVariables(connection.ConnectionString);
+        await LongCmdRunner.RunAsync(tool, args, env, source, null, cancellationToken);
     }
     
     internal const string ToolName = "pg_restore";
@@ -46,6 +111,7 @@ public static class PgRestore
         { nameof(PgRestoreOptions.DataOnly), "--data-only" },
         { nameof(PgRestoreOptions.Clean), "--clean" },
         { nameof(PgRestoreOptions.Create), "--create" },
+        { nameof(PgRestoreOptions.IfExists), "--if-exists"},
         { nameof(PgRestoreOptions.ExitOnError), "--exit-on-error" },
         { nameof(PgRestoreOptions.Index), "--index" },
         { nameof(PgRestoreOptions.Schema), "--schema" },

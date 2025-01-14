@@ -21,7 +21,7 @@ public class PgBackupTests(ITestOutputHelper output) : PgToolTestsBase
     {
         var ct = new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token;
         var file = Path.GetTempFileName();
-        DeleteFile(file);
+        DeleteFileOrDirectory(file);
 
         options.FileName = file;
         try
@@ -43,7 +43,7 @@ public class PgBackupTests(ITestOutputHelper output) : PgToolTestsBase
         }
         finally
         {
-            DeleteFile(file);
+            DeleteFileOrDirectory(file);
         }
     }
 
