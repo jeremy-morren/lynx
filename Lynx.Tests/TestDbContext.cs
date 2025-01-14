@@ -24,6 +24,11 @@ public class TestDbContext : DbContext
         });
     }
 
+    /// <summary>
+    /// Creates a test context with an in-memory sqlite database
+    /// </summary>
+    /// <param name="factory"></param>
+    /// <returns></returns>
     public static IDisposable CreateContext(out Func<TestDbContext> factory)
     {
         var connection = new SqliteConnection("Data Source=:memory:");
