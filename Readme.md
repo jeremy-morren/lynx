@@ -5,12 +5,8 @@ Lynx is a very simple document session abstraction over Entity Framework Core, u
 ### Usage
 
 ```csharp
-var session = context.OpenSession();
-context.Store(new Person { Name = "John Doe" });
-context.DeleteWhere<Person>(p => p.Name == "Jane Doe");
-context.SaveChanges();
+var session = store.OpenSession();
+session.Store(new Person { Name = "John Doe" });
+session.DeleteWhere<Person>(p => p.Name == "Jane Doe");
+session.SaveChanges();
 ```
-
-### Lynx PGBackup/Restore
-
-`Lynx.NpgsqlBackupRestore` is a C# wrapper for pg_dump/pg_restore.
