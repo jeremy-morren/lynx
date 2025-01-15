@@ -87,6 +87,21 @@ internal class DocumentSession : IDocumentSession
         _unitOfWork.Add(new UpsertOperation<T>(list));
     }
 
+    public void Insert<T>(T entity) where T : class
+    {
+        Store<T>(entity); //TODO: Implement Insert
+    }
+
+    public void Insert<T>(params T[] entities) where T : class
+    {
+        Store<T>(entities); //TODO: Implement Insert
+    }
+
+    public void Insert<T>(IEnumerable<T> entities) where T : class
+    {
+        Store<T>(entities); //TODO: Implement Insert
+    }
+
     public void DeleteWhere<T>(Expression<Func<T, bool>> predicate) where T : class
     {
         ArgumentNullException.ThrowIfNull(predicate);
