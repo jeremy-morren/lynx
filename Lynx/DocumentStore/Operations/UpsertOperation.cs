@@ -32,7 +32,6 @@ internal class UpsertOperation<T> : IDocumentSessionOperations
     public void AfterCommit(IDocumentSessionListener listener, DbContext context)
     {
         ArgumentNullException.ThrowIfNull(listener);
-        listener.OnUpserted(_entities);
         listener.OnUpserted(_entities, context);
     }
 }

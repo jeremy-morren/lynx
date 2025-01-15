@@ -21,7 +21,7 @@ public class DocumentSessionTests
 
         using (var context = factory())
         {
-            var store = new DocumentStore<TestDbContext>(context, listener.Object);
+            var store = new DocumentStore<TestDbContext>(context, [listener.Object]);
             var session = store.OpenSession();
 
             //Insert
@@ -40,7 +40,7 @@ public class DocumentSessionTests
 
         using (var context = factory())
         {
-            var store = new DocumentStore<TestDbContext>(context, listener.Object);
+            var store = new DocumentStore<TestDbContext>(context, [listener.Object]);
 
             context.Query<TestEntity>().Should().HaveCount(5);
             context.Query<TestEntity>().Single(e => e.Id == 4).Iteration.ShouldBe(1);
@@ -67,7 +67,7 @@ public class DocumentSessionTests
             context.Query<TestEntity>().Single(e => e.Id == 4).Iteration.ShouldBe(2);
         }
 
-        listener.Verify(l => l.OnUpserted(It.IsAny<IReadOnlyList<object>>()), Times.Exactly(5));
+        listener.Verify(l => l.OnUpserted(It.IsAny<IReadOnlyList<object>>(), It.IsAny<DbContext>()), Times.Exactly(5));
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public class DocumentSessionTests
 
         using (var context = factory())
         {
-            var store = new DocumentStore<TestDbContext>(context, listener.Object);
+            var store = new DocumentStore<TestDbContext>(context, [listener.Object]);
             var session = store.OpenSession();
             session.Store(TestEntity.Create(1));
         }
@@ -99,7 +99,7 @@ public class DocumentSessionTests
         {
             context.Query<TestEntity>().Should().BeEmpty();
         }
-        listener.Verify(l => l.OnUpserted(It.IsAny<IReadOnlyList<object>>()), Times.Never);
+        listener.Verify(l => l.OnUpserted(It.IsAny<IReadOnlyList<object>>(), It.IsAny<DbContext>()), Times.Never);
     }
 
     [Fact]
@@ -109,15 +109,20 @@ public class DocumentSessionTests
 
         using (var context = factory())
         {
-            var store = new DocumentStore<TestDbContext>(context);
-            var session = store.OpenSession();
-            session.Store(TestEntity.Create(1));
+            var entity = TestEntity.Create(1) with
+            {
+                Child = new ChildEntity() { Id = 1 }
+            };
+            context.Add(entity);
+            context.SaveChanges();
         }
         using (var context = factory())
         {
+            context.Query<TestEntity>().ShouldNotBeEmpty();
             context.Query<TestEntity>().ShouldAllBe(e => e.Child == null);
 
             var store = new DocumentStore<TestDbContext>(context);
+
             store.Query<TestEntity>().ShouldAllBe(e => e.Child != null);
         }
     }

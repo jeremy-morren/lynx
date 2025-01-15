@@ -57,14 +57,13 @@ public record TestEntity
     
     public required int? Iteration { get; init; }
 
-    public required ChildEntity? Child { get; init; }
+    public ChildEntity? Child { get; init; }
 
     public static TestEntity Create(int id, int? iteration = null) => new()
     {
         Id = id,
         Iteration = iteration,
-        OwnedType = new OwnedType() { Id = id },
-        Child = new ChildEntity() { Id = id }
+        OwnedType = new OwnedType() { Id = id }
     };
 }
 

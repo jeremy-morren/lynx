@@ -1,20 +1,22 @@
 ﻿using System.Data;
+using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore;
 
 internal class DocumentStore<TContext> : IDocumentStore where TContext : DbContext
 {
-    private readonly IDocumentSessionListener? _listener;
+    private readonly List<IDocumentSessionListener> _listeners;
 
-    public DocumentStore(DbContext context, IDocumentSessionListener? listener = null)
+    public DocumentStore(TContext context, IEnumerable<IDocumentSessionListener>? listeners = null)
     {
         Context = context;
-        _listener = listener;
+
+        _listeners = listeners?.ToList() ?? [];
     }
 
     public DbContext Context { get; }
 
     public IDocumentSession OpenSession(IsolationLevel? isolationLevel = null) =>
-        new DocumentSession(Context, isolationLevel, _listener);
+        new DocumentSession(Context, isolationLevel, _listeners);
 }

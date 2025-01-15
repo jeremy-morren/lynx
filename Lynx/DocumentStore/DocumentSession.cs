@@ -14,15 +14,16 @@ internal class DocumentSession : IDocumentSession
     private readonly UnitOfWork _unitOfWork = [];
     
     private readonly IsolationLevel? _isolationLevel;
-    private readonly IDocumentSessionListener? _listener;
+    private readonly List<IDocumentSessionListener> _listeners;
     
     public DocumentSession(
         DbContext context, 
         IsolationLevel? isolationLevel,
-        IDocumentSessionListener? listener)
+        List<IDocumentSessionListener> listeners)
     {
         _isolationLevel = isolationLevel;
-        _listener = listener;
+        _listeners = listeners;
+
         DbContext = context ?? throw new ArgumentNullException(nameof(context));
     }
 
@@ -40,7 +41,9 @@ internal class DocumentSession : IDocumentSession
         foreach (var o in _unitOfWork)
             o.Execute(DbContext);
         transaction.Commit();
-        _listener?.AfterCommit(_unitOfWork, DbContext);
+
+        foreach (var listener in _listeners)
+            listener.AfterCommit(_unitOfWork, DbContext);
         _unitOfWork.Reset();
     }
 
@@ -52,7 +55,8 @@ internal class DocumentSession : IDocumentSession
         foreach (var o in _unitOfWork)
             await o.SaveChangesAsync(DbContext, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        _listener?.AfterCommit(_unitOfWork, DbContext);
+        foreach (var listener in _listeners)
+            listener.AfterCommit(_unitOfWork, DbContext);
         _unitOfWork.Reset();
     }
     

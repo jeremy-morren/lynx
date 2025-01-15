@@ -2,9 +2,15 @@
     <PropertyGroup>
         <PackageVersion>8.1.2-lynx</PackageVersion>
         <PackageOutputPath>$(MSBuildThisFileDirectory)Packages</PackageOutputPath>
-        <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 
         <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
+
+    <!-- Create the Packages directory if it doesn't exist (otherwise restore may fail) -->
+    <Target Name="CreatePackagesDir"
+            BeforeTargets="BeforeRestore"
+            Condition="!Exists('$(PackageOutputPath)')">
+        <MakeDir Directories="$(PackageOutputPath)"/>
+    </Target>
 </Project>
