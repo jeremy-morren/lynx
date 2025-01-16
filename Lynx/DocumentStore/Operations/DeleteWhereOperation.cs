@@ -7,7 +7,7 @@ namespace Lynx.DocumentStore.Operations;
 /// Operation to delete entities from the database.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-internal class DeleteWhereOperation<T> : IDocumentSessionOperations
+internal class DeleteWhereOperation<T> : IDocumentSessionOperation
     where T : class
 {
     private readonly Expression<Func<T, bool>> _predicate;

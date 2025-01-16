@@ -33,7 +33,6 @@ internal static class EntityKeyFilterHelpers
             default:
                 throw new InvalidOperationException($"Entity {typeof(T)} key has no properties");
         }
-
     }
 
     private static string[] GetKeyNames(Type type, DbContext context)

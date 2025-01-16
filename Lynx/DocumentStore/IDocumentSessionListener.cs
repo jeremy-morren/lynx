@@ -14,7 +14,7 @@ public interface IDocumentSessionListener
     /// <param name="context">Database context</param>
     void OnInsertedOrUpdated(IReadOnlyList<object> entities, DbContext context);
 
-    internal void AfterCommit(IEnumerable<IDocumentSessionOperations> operations, DbContext context)
+    internal void AfterCommit(IEnumerable<IDocumentSessionOperation> operations, DbContext context)
     {
         foreach (var o in operations)
             o.AfterCommit(this, context);

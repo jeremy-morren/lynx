@@ -2,6 +2,7 @@
 using System.Data;
 using System.Linq.Expressions;
 using Lynx.DocumentStore.Operations;
+using Lynx.EfCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore;
@@ -27,7 +28,7 @@ internal class DocumentSession : IDocumentSession
         DbContext = context ?? throw new ArgumentNullException(nameof(context));
     }
 
-    public IReadOnlyList<IDocumentSessionOperations> Operations => _unitOfWork;
+    public IReadOnlyList<IDocumentSessionOperation> Operations => _unitOfWork;
     
     public DbContext DbContext { get; }
     
@@ -64,24 +65,38 @@ internal class DocumentSession : IDocumentSession
     
     #region Operations
 
+
+    private IQueryable<T> EnsureEntityType<T>() where T : class
+    {
+        //Will throw if the entity type is not found
+        DbContext.Model.GetEntityType(typeof(T));
+
+        return DbContext.Set<T>();
+    }
+
     public void Store<T>(T entity) where T : class
     {
         ArgumentNullException.ThrowIfNull(entity);
-        
+        EnsureEntityType<T>();
+
         if (entity is IEnumerable)
             throw new InvalidOperationException("Use Store(IEnumerable<T> entities) instead.");
-        
+
         _unitOfWork.Add(new UpsertOperation<T>([entity]));
     }
 
-    public void Store<T>(params T[] entities) where T : class
+    public void Store<T>(T[] entities) where T : class
     {
+        ArgumentNullException.ThrowIfNull(entities);
+        EnsureEntityType<T>();
+
         _unitOfWork.Add(new UpsertOperation<T>(entities));
     }
 
     public void Store<T>(IEnumerable<T> entities) where T : class
     {
         ArgumentNullException.ThrowIfNull(entities);
+        EnsureEntityType<T>();
 
         var list = entities as IReadOnlyList<T> ?? entities.ToList();
         _unitOfWork.Add(new UpsertOperation<T>(list));
@@ -90,6 +105,7 @@ internal class DocumentSession : IDocumentSession
     public void Insert<T>(T entity) where T : class
     {
         ArgumentNullException.ThrowIfNull(entity);
+        EnsureEntityType<T>();
 
         if (entity is IEnumerable)
             throw new InvalidOperationException("Use Insert(IEnumerable<T> entities) instead.");
@@ -97,22 +113,37 @@ internal class DocumentSession : IDocumentSession
         _unitOfWork.Add(new InsertOperation<T>([entity]));
     }
 
-    public void Insert<T>(params T[] entities) where T : class
+    public void Insert<T>(T[] entities) where T : class
     {
+        ArgumentNullException.ThrowIfNull(entities);
+        EnsureEntityType<T>();
+
         _unitOfWork.Add(new InsertOperation<T>(entities));
     }
 
     public void Insert<T>(IEnumerable<T> entities) where T : class
     {
         ArgumentNullException.ThrowIfNull(entities);
+        EnsureEntityType<T>();
 
         var list = entities as IReadOnlyList<T> ?? entities.ToList();
         _unitOfWork.Add(new InsertOperation<T>(list));
     }
 
+    public void Delete<T>(object id) where T : class
+    {
+        ArgumentNullException.ThrowIfNull(id);
+
+        //Ensure the filter operation is valid
+        EnsureEntityType<T>().FilterByKey(DbContext, id);
+        _unitOfWork.Add(new DeleteByIdOperation<T>(id));
+    }
+
     public void DeleteWhere<T>(Expression<Func<T, bool>> predicate) where T : class
     {
         ArgumentNullException.ThrowIfNull(predicate);
+
+        EnsureEntityType<T>();
         _unitOfWork.Add(new DeleteWhereOperation<T>(predicate));
     }
     

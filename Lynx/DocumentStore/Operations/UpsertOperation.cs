@@ -7,7 +7,7 @@ namespace Lynx.DocumentStore.Operations;
 /// Represents an operation to upsert entities in bulk to the database.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-internal class UpsertOperation<T> : IDocumentSessionOperations
+internal class UpsertOperation<T> : IDocumentSessionOperation
     where T : class
 {
     private readonly IReadOnlyList<T> _entities;

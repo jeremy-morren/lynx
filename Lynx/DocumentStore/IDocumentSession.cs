@@ -20,7 +20,7 @@ public interface IDocumentSession
     /// <summary>
     /// Operations to be applied to the database when <see cref="SaveChanges"/> or <see cref="SaveChangesAsync"/> is called.
     /// </summary>
-    IReadOnlyList<IDocumentSessionOperations> Operations { get; }
+    IReadOnlyList<IDocumentSessionOperation> Operations { get; }
     
     /// <summary>
     /// Saves the changes to the database as a single transaction.
@@ -44,14 +44,14 @@ public interface IDocumentSession
     /// <param name="entity"></param>
     /// <typeparam name="T"></typeparam>
     void Store<T>(T entity) where T : class;
-    
+
     /// <summary>
     /// Upserts the entities to the database using bulk upsert.
     /// </summary>
     /// <param name="entities"></param>
     /// <typeparam name="T"></typeparam>
     void Store<T>(params T[] entities) where T : class;
-    
+
     /// <summary>
     /// Upserts the entities to the database using bulk upsert.
     /// </summary>
@@ -79,6 +79,13 @@ public interface IDocumentSession
     /// <param name="entities"></param>
     /// <typeparam name="T"></typeparam>
     void Insert<T>(IEnumerable<T> entities) where T : class;
+
+    /// <summary>
+    /// Deletes the entity with the specified id from the database.
+    /// </summary>
+    /// <param name="id">Id to delete</param>
+    /// <typeparam name="T"></typeparam>
+    void Delete<T>(object id) where T : class;
 
     /// <summary>
     /// Deletes entities from the database that match the predicate.

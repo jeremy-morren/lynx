@@ -5,7 +5,7 @@ namespace Lynx.DocumentStore;
 /// <summary>
 /// Represents a lynx database operation that will be applied to the database.
 /// </summary>
-public interface IDocumentSessionOperations
+public interface IDocumentSessionOperation
 {
     /// <summary>
     /// Saves the changes to the database.

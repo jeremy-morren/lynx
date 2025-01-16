@@ -12,6 +12,8 @@ public static class DocumentStoreQueryExtensions
     {
         ArgumentNullException.ThrowIfNull(store);
 
+        store.Context.Model.GetEntityType(typeof(T)); //Will throw if the entity type is not found
+
         return store.Context.Set<T>().IncludeAll().AsNoTracking();
     }
 

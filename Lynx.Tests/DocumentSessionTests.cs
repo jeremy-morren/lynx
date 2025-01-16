@@ -54,6 +54,7 @@ public class DocumentSessionTests
             //Upsert and delete
             var session = store.OpenSession();
             session.DeleteWhere<TestEntity>(x => x.Id == 1);
+            session.Delete<TestEntity>(2);
             
             session.Store(TestEntity.Create(3, 2)); //Overwrite previous insert
             
@@ -65,10 +66,10 @@ public class DocumentSessionTests
 
         using (var context = factory())
         {
-            context.Query<TestEntity>().Should().HaveCount(7);
-            context.Query<TestEntity>().ShouldNotContain(e => e.Id == 1);
-            
-            context.Query<TestEntity>().Should().AllSatisfy(e => e.OwnedType.ShouldNotBeNull().Id.ShouldBe(e.Id));
+            context.Query<TestEntity>().Should().HaveCount(6)
+                .And.NotContain(e => e.Id == 1)
+                .And.NotContain(e => e.Id == 2)
+                .And.AllSatisfy(e => e.OwnedType.ShouldNotBeNull().Id.ShouldBe(e.Id));
             
             context.Query<TestEntity>().Single(e => e.Id == 3).Iteration.ShouldBe(2);
         }
