@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Lynx.DocumentStore;
+using Lynx.DocumentStore.Query;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query.Internal;
@@ -8,17 +10,13 @@ namespace Lynx.EfCore;
 
 internal static class EfCoreHelpers
 {
-    public static DbContext GetDbContext<T>(this IQueryable<T> query, string methodName) where T : class
+    public static DbContext GetDbContext<T>(this IQueryable<T> query) where T : class
     {
         return query switch
         {
-            IInfrastructure<IServiceProvider> src => src.Instance.GetRequiredService<ICurrentDbContext>().Context,
-
-            // If method is called after other methods e.g. AsNoTracking(),
-            // then it isn't trivially possible to get the DbContext.
-            // Throw a helpful exception in that case.
-            EntityQueryable<T> => throw new InvalidOperationException(
-                $"Cannot get DbContext. Ensure is called {methodName}() before any other extension methods."),
+            LynxQueryable<T> q => q.Context,
+            IInfrastructure<IServiceProvider> i => i.Instance.GetRequiredService<ICurrentDbContext>().Context,
+            EntityQueryable<T> => throw new InvalidOperationException("Cannot get DbContext from EntityQueryable. Use query method from document store"),
 
             _ => throw new InvalidOperationException("Query is not an EF Core query")
         };

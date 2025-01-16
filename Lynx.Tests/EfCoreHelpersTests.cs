@@ -2,6 +2,7 @@
 using Lynx.EfCore;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 // ReSharper disable MethodHasAsyncOverload
 // ReSharper disable UseAwaitUsing
@@ -20,7 +21,7 @@ public class EfCoreHelpersTests
             .UseSqlite(conn)
             .Options;
 
-        using (var context = new EntityContext(options))
+        using (var context = new TestContext(options))
         {
             context.Database.EnsureCreated();
             
@@ -29,9 +30,9 @@ public class EfCoreHelpersTests
             context.SaveChanges();
         }
         
-        using (var context = new EntityContext(options))
+        using (var context = new TestContext(options))
         {
-            var e1 = context.Set<Entity1>().IncludeAll();
+            var e1 = context.Set<Entity1>().IncludeAllReferenced();
             e1.Should().HaveCount(2);
             Assert.All(e1, e =>
             {
@@ -43,7 +44,7 @@ public class EfCoreHelpersTests
                 e2.Entity3.OwnedList.ShouldNotBeNull();
             });
             
-            var e2 = context.Set<Entity2>().IncludeAll();
+            var e2 = context.Set<Entity2>().IncludeAllReferenced();
             e2.Should().HaveCount(2);
             Assert.All(e2, e =>
             {
@@ -53,10 +54,10 @@ public class EfCoreHelpersTests
                 e.Entity3.OwnedList.ShouldHaveSingleItem();
             });
 
-            var e3 = context.Set<Entity3>().IncludeAll().ToList();
+            var e3 = context.Set<Entity3>().IncludeAllReferenced().ToList();
             e3.Should().HaveCount(2);
             
-            var alone = context.Set<Alone>().IncludeAll();
+            var alone = context.Set<Alone>().IncludeAllReferenced();
             alone.Should().HaveCount(2);
         }
     }
@@ -68,7 +69,7 @@ public class EfCoreHelpersTests
             .UseInMemoryDatabase(nameof(GetIncludePropertiesShouldRecurse))
             .Options;
 
-        using var context = new EntityContext(options);
+        using var context = new TestContext(options);
         var model = context.Model;
 
         IncludeRelatedEntities.GetIncludeProperties(model, typeof(Entity1))
@@ -85,7 +86,7 @@ public class EfCoreHelpersTests
             .UseInMemoryDatabase(nameof(IncludeShadowPropertiesShouldBeIgnored))
             .Options;
 
-        using var context = new EntityContext(options);
+        using var context = new TestContext(options);
         var model = context.Model;
         
         IncludeRelatedEntities.GetNavigations(model, typeof(Entity2), null)
@@ -106,7 +107,7 @@ public class EfCoreHelpersTests
             .UseInMemoryDatabase(nameof(GetReferencingEntities))
             .Options;
 
-        using var context = new EntityContext(options);
+        using var context = new TestContext(options);
         var model = context.Model;
 
         //Entity1: referenced by Entity2
@@ -136,7 +137,7 @@ public class EfCoreHelpersTests
             .UseInMemoryDatabase(nameof(GetEntityIdValue))
             .Options;
 
-        using var context = new EntityContext(options);
+        using var context = new TestContext(options);
         var model = context.Model;
 
         var x = Entity1.New(5);
@@ -152,132 +153,5 @@ public class EfCoreHelpersTests
                 {nameof(Alone.Id1), 6},
                 {nameof(Alone.Id2), 12}
             });
-    }
-
-    [Fact]
-    public async Task FilterById()
-    {
-        using var conn = new SqliteConnection("DataSource=:memory:");
-        conn.Open();
-
-        var options = new DbContextOptionsBuilder()
-            .UseSqlite(conn)
-            .Options;
-
-        using (var context = new EntityContext(options))
-        {
-            context.Database.EnsureCreated();
-
-            context.Add(Entity1.New(1));
-            context.Add(Alone.New(2));
-            context.SaveChanges();
-        }
-
-        using (var context = new EntityContext(options))
-        {
-            var store = new DocumentStore<EntityContext>(context);
-
-            store.Load<Entity1>(1).ShouldNotBeNull().Entity2.ShouldNotBeNull();
-            (await store.LoadAsync<Entity1>(1)).ShouldNotBeNull().Entity2.ShouldNotBeNull();
-
-            store.Load<Entity1>(2).ShouldBeNull();
-            (await store.LoadAsync<Entity1>(2)).ShouldBeNull();
-
-            store.Load<Alone>(new { Id1 = 2, Id2 = 4 }).ShouldNotBeNull();
-            (await store.LoadAsync<Alone>(new { Id1 = 2, Id2 = 4 })).ShouldNotBeNull();
-
-            store.Load<Alone>(new { Id1 = 2, Id2 = 3 }).ShouldBeNull();
-            (await store.LoadAsync<Alone>(new { Id1 = 2, Id2 = 3 })).ShouldBeNull();
-        }
-    }
-
-    private class EntityContext(DbContextOptions options) : DbContext(options)
-    {
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<Entity1>()
-                .HasOne(e => e.Entity2)
-                .WithOne(e => e.Parent)
-                .HasForeignKey((Entity2 e) => e.ParentId);
-
-            modelBuilder.Entity<Entity3>(b =>
-            {
-                b.OwnsOne(x => x.Owned1);
-                b.OwnsMany(x => x.OwnedList);
-            });
-
-            modelBuilder.Entity<Alone>()
-                .HasKey(x => new { x.Id1, x.Id2 });
-        }
-    }
-
-    private class EntityBase
-    {
-        public required int Id { get; init; }
-    }
-    
-    private class Entity1 : EntityBase
-    {
-        public required Entity2 Entity2 { get; init; }
-
-        public static Entity1 New(int id) => new()
-        {
-            Id = id,
-            Entity2 = new Entity2()
-            {
-                Parent = null!,
-                Id = id,
-                Entity3 = new Entity3()
-                {
-                    Id = id, 
-                    Owned1 = new Owned() { Id = id},
-                    OwnedList = new List<Owned> { new () { Id = id } }
-                },
-                Children = new List<Child>
-                {
-                    new() { Id = id }
-                }
-            }
-        };
-    }
-
-    private class Entity2 : EntityBase
-    {
-        public required Entity3 Entity3 { get; init; }
-        
-        public ICollection<Child>? Children { get; init; }
-        
-        public int ParentId { get; init; }
-        public required Entity1 Parent { get; init; }
-    }
-
-    private class Entity3 : EntityBase
-    {
-        public required Owned Owned1 { get; init; }
-        public required ICollection<Owned> OwnedList { get; init; }
-    }
-    
-    private class Owned : EntityBase
-    {
-    }
-    
-    private class Child : EntityBase {}
-
-    /// <summary>
-    /// Not referenced. Also has composite key
-    /// </summary>
-    private class Alone
-    {
-        public required int Id1 { get; init; }
-
-        public int Id2
-        {
-            get => Id1 * 2;
-            // EF Core requires a setter
-            // ReSharper disable once ValueParameterNotUsed
-            init {}
-        }
-        
-        public static Alone New(int id) => new() { Id1 = id };
     }
 }

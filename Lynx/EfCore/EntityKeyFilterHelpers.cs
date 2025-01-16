@@ -2,6 +2,7 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Lynx.EfCore;
 
@@ -15,7 +16,14 @@ internal static class EntityKeyFilterHelpers
         ArgumentNullException.ThrowIfNull(key);
 
         var properties = GetKeyNames(typeof(T), context);
-        switch (properties.Length)
+
+        if (properties.Count == 1)
+        {
+            //Single key
+            return query.Where(x => EF.Property<object>(x, properties[0]) == key);
+        }
+
+        switch (properties.Count)
         {
             case 1:
                 //Single key
@@ -23,24 +31,23 @@ internal static class EntityKeyFilterHelpers
 
             case > 1:
                 //Composite key
-                foreach (var (property, getValue) in GetKeyValues(typeof(T), key.GetType(), properties))
+                foreach (var (property, getValue) in GetKeyValues(context.Model, typeof(T), key.GetType(), properties))
                 {
                     var value = getValue(key);
                     query = query.Where(x => EF.Property<object>(x, property) == value);
                 }
-
                 return query;
             default:
                 throw new InvalidOperationException($"Entity {typeof(T)} key has no properties");
         }
     }
 
-    private static string[] GetKeyNames(Type type, DbContext context)
+    private static List<string> GetKeyNames(Type type, DbContext context)
     {
         var entity = context.Model.GetEntityType(type);
         var key = entity.GetPrimaryKey();
 
-        return key.Properties.Select(p => p.Name).ToArray();
+        return key.Properties.Select(p => p.Name).ToList();
     }
 
     //Composite keys: Build list of property names and value getters for each property
@@ -48,36 +55,39 @@ internal static class EntityKeyFilterHelpers
     /// <summary>
     /// Map of entity and key types to list of property names and value getters for each property.
     /// </summary>
-    private static readonly ConcurrentDictionary<(Type EntityType, Type KeyType), List<(string Property, Func<object, object>)>> GetKeyValuesCache = new ();
+    private static readonly ConcurrentDictionary<(IModel, Type EntityType, Type KeyType), List<(string Property, Func<object, object>)>> GetKeyValuesCache = new ();
 
-    private static List<(string Property, Func<object, object>)> GetKeyValues(Type entityType, Type keyType, string[] properties)
+    private static List<(string Property, Func<object, object>)> GetKeyValues(IModel model, Type entityType, Type keyType, List<string> properties)
     {
-        var key = (entityType, keyType);
-        return GetKeyValuesCache.GetOrAdd(key, _ => BuildGetKeyValues(keyType, properties));
+        if (keyType.IsPrimitive)
+            throw new InvalidOperationException($"Entity {entityType} has a composite key. Provided key: {keyType}");
+
+        var key = (model, entityType, keyType);
+        return GetKeyValuesCache.GetOrAdd(key, _ => BuildGetKeyValues(keyType, properties).ToList());
     }
 
-    private static List<(string Property, Func<object, object>)> BuildGetKeyValues(Type keyType, string[] properties)
-    {
-        return properties
-            .Select(property => (property, BuildGetValueFunc(property, keyType)))
-            .ToList();
-    }
-
-    private static Func<object, object> BuildGetValueFunc(string property, Type keyType)
+    private static IEnumerable<(string Property, Func<object, object>)> BuildGetKeyValues(Type keyType, List<string> properties)
     {
         const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
-        var propInfo = keyType.GetProperty(property, flags)
-                       ?? throw new InvalidOperationException($"Composite key property '{property}' not found on composite id '{keyType}'");
+        var props = keyType.GetProperties(flags).ToDictionary(p => p.Name);
+        if (props.Count != properties.Count)
+            throw new InvalidOperationException($"Composite key properties count mismatch. Expected: {properties.Count}, Actual: {props.Count}");
 
+        foreach (var p in properties)
+        {
+            if (!props.TryGetValue(p, out var propInfo))
+                throw new InvalidOperationException($"Composite key property '{p}' not found on composite id '{keyType}'");
 
-        var param = Expression.Parameter(typeof(object), "key");
+            var param = Expression.Parameter(typeof(object), "key");
 
-        return Expression.Lambda<Func<object, object>>(
-                Expression.Convert(
-                    Expression.Property(
-                        Expression.Convert(param, keyType), propInfo),
-                    typeof(object)),
-                param)
-            .Compile();
+            var func = Expression.Lambda<Func<object, object>>(
+                    Expression.Convert(
+                        Expression.Property(
+                            Expression.Convert(param, keyType), propInfo),
+                        typeof(object)),
+                    param)
+                .Compile();
+            yield return (p, func);
+        }
     }
 }

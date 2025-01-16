@@ -77,11 +77,11 @@ internal class DocumentSession : IDocumentSession
     public void Store<T>(T entity) where T : class
     {
         ArgumentNullException.ThrowIfNull(entity);
-        EnsureEntityType<T>();
 
         if (entity is IEnumerable)
             throw new InvalidOperationException("Use Store(IEnumerable<T> entities) instead.");
 
+        EnsureEntityType<T>();
         _unitOfWork.Add(new UpsertOperation<T>([entity]));
     }
 
@@ -105,11 +105,11 @@ internal class DocumentSession : IDocumentSession
     public void Insert<T>(T entity) where T : class
     {
         ArgumentNullException.ThrowIfNull(entity);
-        EnsureEntityType<T>();
 
         if (entity is IEnumerable)
             throw new InvalidOperationException("Use Insert(IEnumerable<T> entities) instead.");
 
+        EnsureEntityType<T>();
         _unitOfWork.Add(new InsertOperation<T>([entity]));
     }
 
