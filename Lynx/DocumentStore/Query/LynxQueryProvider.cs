@@ -7,8 +7,7 @@ using Microsoft.EntityFrameworkCore.Query.Internal;
 
 namespace Lynx.DocumentStore.Query;
 
-[SuppressMessage("Usage", "EF1001:Internal EF Core API usage.")]
-public class LynxQueryProvider : EntityQueryProvider
+internal class LynxQueryProvider : EntityQueryProvider
 {
     public DbContext Context { get; }
 

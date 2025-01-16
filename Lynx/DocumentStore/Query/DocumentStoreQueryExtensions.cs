@@ -1,4 +1,6 @@
-﻿using Lynx.EfCore;
+﻿using System.Linq.Expressions;
+using System.Reflection;
+using Lynx.EfCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore.Query;
@@ -21,6 +23,18 @@ public static class DocumentStoreQueryExtensions
 
     /// <summary>
     /// Queries documents of type <typeparamref name="T"/>.
+    /// Includes all related entities.
+    /// </summary>
+    public static IQueryable<T> Query<T>(this IDocumentStore store, bool includeDeleted) where T : class
+    {
+        ArgumentNullException.ThrowIfNull(store);
+
+        var query = store.Context.CreateLynxQueryable<T>().IncludeAllReferenced();
+        return includeDeleted ? query : query.ExcludeDeleted();
+    }
+
+    /// <summary>
+    /// Queries documents of type <typeparamref name="T"/>.
     /// Includes deleted entities.
     /// Does not include related entities.
     /// </summary>
@@ -29,22 +43,6 @@ public static class DocumentStoreQueryExtensions
         ArgumentNullException.ThrowIfNull(store);
 
         return store.Context.CreateLynxQueryable<T>();
-    }
-
-    /// <summary>
-    /// Loads a document of type <typeparamref name="T"/> by its id. Includes all related entities.
-    /// </summary>
-    /// <param name="store"></param>
-    /// <param name="id"></param>
-    /// <typeparam name="T"></typeparam>
-    /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
-    public static T? Get<T>(this IDocumentStore store, object id) where T : class
-    {
-        ArgumentNullException.ThrowIfNull(store);
-        ArgumentNullException.ThrowIfNull(id);
-
-        return store.FilterByKey<T>(id).SingleOrDefault();
     }
 
     /// <summary>
@@ -63,31 +61,20 @@ public static class DocumentStoreQueryExtensions
         if (property?.ClrType != typeof(bool) && property?.ClrType != typeof(bool?))
             return query; //No deleted property found, ignore
 
-        return query.Where(x => EF.Property<bool>(x, property.Name) == false);
+        //For readability of query debug view, write lambda to use a constant value for name (instead of a captured variable)
+        var param = Expression.Parameter(typeof(T), "x");
+        var body = Expression.Equal(
+            Expression.Call(
+                BoolPropertyMethod.MakeGenericMethod(property.ClrType),
+                param,
+                Expression.Constant(property.Name)),
+            Expression.Constant(false)
+        );
+        var lambda = Expression.Lambda<Func<T, bool>>(body, param);
+
+        return query.Where(lambda);
     }
 
-    /// <summary>
-    /// Loads a document of type <typeparamref name="T"/> by its id. Includes all related entities.
-    /// </summary>
-    /// <param name="store"></param>
-    /// <param name="id"></param>
-    /// <param name="cancellationToken"></param>
-    /// <typeparam name="T"></typeparam>
-    /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
-    public static Task<T?> LoadAsync<T>(this IDocumentStore store, object id, CancellationToken cancellationToken = default) where T : class
-    {
-        ArgumentNullException.ThrowIfNull(store);
-        ArgumentNullException.ThrowIfNull(id);
-
-        return store.FilterByKey<T>(id).SingleOrDefaultAsync(cancellationToken);
-    }
-
-    private static IQueryable<T> FilterByKey<T>(this IDocumentStore store, object id) where T : class
-    {
-        ArgumentNullException.ThrowIfNull(store);
-        ArgumentNullException.ThrowIfNull(id);
-
-        return store.QueryRaw<T>().IncludeAllReferenced().FilterByKey(store.Context, id);
-    }
+    private static readonly MethodInfo BoolPropertyMethod = typeof(EF)
+        .GetMethod(nameof(EF.Property), BindingFlags.Public | BindingFlags.Static)!;
 }
