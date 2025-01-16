@@ -89,17 +89,25 @@ internal class DocumentSession : IDocumentSession
 
     public void Insert<T>(T entity) where T : class
     {
-        Store<T>(entity); //TODO: Implement Insert
+        ArgumentNullException.ThrowIfNull(entity);
+
+        if (entity is IEnumerable)
+            throw new InvalidOperationException("Use Insert(IEnumerable<T> entities) instead.");
+
+        _unitOfWork.Add(new InsertOperation<T>([entity]));
     }
 
     public void Insert<T>(params T[] entities) where T : class
     {
-        Store<T>(entities); //TODO: Implement Insert
+        _unitOfWork.Add(new InsertOperation<T>(entities));
     }
 
     public void Insert<T>(IEnumerable<T> entities) where T : class
     {
-        Store<T>(entities); //TODO: Implement Insert
+        ArgumentNullException.ThrowIfNull(entities);
+
+        var list = entities as IReadOnlyList<T> ?? entities.ToList();
+        _unitOfWork.Add(new InsertOperation<T>(list));
     }
 
     public void DeleteWhere<T>(Expression<Func<T, bool>> predicate) where T : class

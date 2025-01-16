@@ -24,13 +24,18 @@ public class DocumentSessionTests
             var store = new DocumentStore<TestDbContext>(context, [listener.Object]);
             var session = store.OpenSession();
 
+            //Upsert
+            session.Store(TestEntity.Create(1));
+            session.Store(TestEntity.Create(2), TestEntity.Create(3));
+            
+            session.Store(TestEntity.Create(3, 1)); //Ensure duplicates are overwritten
+            
+            session.Store<TestEntity>(new List<TestEntity>() { TestEntity.Create(4) });
+
             //Insert
-            session.Store(TestEntity.Create(1), TestEntity.Create(2));
-            session.Store(TestEntity.Create(3), TestEntity.Create(4));
-            
-            session.Store(TestEntity.Create(4, 1)); //Ensure duplicates are overwritten
-            
-            session.Store<TestEntity>(new List<TestEntity>() { TestEntity.Create(5) });
+            session.Insert(TestEntity.Create(5));
+            session.Insert(TestEntity.Create(6), TestEntity.Create(7));
+            session.Insert<TestEntity>(new List<TestEntity>() { TestEntity.Create(8) });
             
             if (isAsync)
                 await session.SaveChangesAsync();
@@ -42,14 +47,15 @@ public class DocumentSessionTests
         {
             var store = new DocumentStore<TestDbContext>(context, [listener.Object]);
 
-            context.Query<TestEntity>().Should().HaveCount(5);
-            context.Query<TestEntity>().Single(e => e.Id == 4).Iteration.ShouldBe(1);
+            context.Query<TestEntity>().Should().HaveCount(8);
+            context.Query<TestEntity>().Single(e => e.Id == 3).Iteration.ShouldBe(1,
+                "Existing entity should be overwritten");
             
-            //Insert and delete
+            //Upsert and delete
             var session = store.OpenSession();
             session.DeleteWhere<TestEntity>(x => x.Id == 1);
             
-            session.Store(TestEntity.Create(4, 2)); //Overwrite previous insert
+            session.Store(TestEntity.Create(3, 2)); //Overwrite previous insert
             
             if (isAsync)
                 await session.SaveChangesAsync();
@@ -59,15 +65,15 @@ public class DocumentSessionTests
 
         using (var context = factory())
         {
-            context.Query<TestEntity>().Should().HaveCount(4);
+            context.Query<TestEntity>().Should().HaveCount(7);
             context.Query<TestEntity>().ShouldNotContain(e => e.Id == 1);
             
             context.Query<TestEntity>().Should().AllSatisfy(e => e.OwnedType.ShouldNotBeNull().Id.ShouldBe(e.Id));
             
-            context.Query<TestEntity>().Single(e => e.Id == 4).Iteration.ShouldBe(2);
+            context.Query<TestEntity>().Single(e => e.Id == 3).Iteration.ShouldBe(2);
         }
 
-        listener.Verify(l => l.OnUpserted(It.IsAny<IReadOnlyList<object>>(), It.IsAny<DbContext>()), Times.Exactly(5));
+        listener.Verify(l => l.OnInsertedOrUpdated(It.IsAny<IReadOnlyList<object>>(), It.IsAny<DbContext>()), Times.Exactly(8));
     }
 
     [Fact]
@@ -99,7 +105,7 @@ public class DocumentSessionTests
         {
             context.Query<TestEntity>().Should().BeEmpty();
         }
-        listener.Verify(l => l.OnUpserted(It.IsAny<IReadOnlyList<object>>(), It.IsAny<DbContext>()), Times.Never);
+        listener.Verify(l => l.OnInsertedOrUpdated(It.IsAny<IReadOnlyList<object>>(), It.IsAny<DbContext>()), Times.Never);
     }
 
     [Fact]
@@ -109,10 +115,7 @@ public class DocumentSessionTests
 
         using (var context = factory())
         {
-            var entity = TestEntity.Create(1) with
-            {
-                Child = new ChildEntity() { Id = 1 }
-            };
+            var entity = TestEntity.Create(1, childId: 1);
             context.Add(entity);
             context.SaveChanges();
         }

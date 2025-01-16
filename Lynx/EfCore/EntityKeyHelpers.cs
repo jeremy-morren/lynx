@@ -32,11 +32,11 @@ public static class EntityKeyHelpers
     private static Func<object, object> BuildGetIdValue(IModel model, Type type)
     {
         var entity = model.GetEntityType(type);
-        var key = entity.GetKeys().Single();
+        var key = entity.GetPrimaryKey();
         
         // Shadow properties are not supported
         if (key.Properties.Any(p => p.IsShadowProperty()))
-            throw new InvalidOperationException($"Entity {entity} has shadow properties in the key.");
+            throw new NotSupportedException($"Entity {entity} has shadow properties in the key.");
 
         var param = Expression.Parameter(typeof(object));
         var cast = Expression.Convert(param, entity.ClrType);

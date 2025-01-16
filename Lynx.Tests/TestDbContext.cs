@@ -59,11 +59,12 @@ public record TestEntity
 
     public ChildEntity? Child { get; init; }
 
-    public static TestEntity Create(int id, int? iteration = null) => new()
+    public static TestEntity Create(int id, int? iteration = null, int? childId = null) => new()
     {
         Id = id,
         Iteration = iteration,
-        OwnedType = new OwnedType() { Id = id }
+        OwnedType = new OwnedType() { Id = id },
+        Child = childId.HasValue ? new ChildEntity() { Id = childId.Value } : null
     };
 }
 

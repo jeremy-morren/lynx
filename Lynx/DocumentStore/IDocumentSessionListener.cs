@@ -8,11 +8,11 @@ namespace Lynx.DocumentStore;
 public interface IDocumentSessionListener
 {
     /// <summary>
-    /// Invoked after changes are saved with the entities that were upserted and the database context.
+    /// Invoked after changes are saved with any entities that were inserted or updated.
     /// </summary>
     /// <param name="entities">Entities inserted or updated</param>
     /// <param name="context">Database context</param>
-    void OnUpserted(IReadOnlyList<object> entities, DbContext context);
+    void OnInsertedOrUpdated(IReadOnlyList<object> entities, DbContext context);
 
     internal void AfterCommit(IEnumerable<IDocumentSessionOperations> operations, DbContext context)
     {

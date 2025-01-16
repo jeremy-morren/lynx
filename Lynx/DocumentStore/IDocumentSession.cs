@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore;
@@ -6,12 +7,13 @@ namespace Lynx.DocumentStore;
 /// <summary>
 /// Lynx document store session.
 /// </summary>
+[PublicAPI]
 public interface IDocumentSession
 {
     #region Unit of Work
     
     /// <summary>
-    /// Returns the database context for the session.
+    /// Underlying database context for the session.
     /// </summary>
     DbContext DbContext { get; }
     
@@ -37,42 +39,42 @@ public interface IDocumentSession
     #region Operations
     
     /// <summary>
-    /// Upserts the entity to the database.
+    /// Upserts the entity to the database using bulk upsert.
     /// </summary>
     /// <param name="entity"></param>
     /// <typeparam name="T"></typeparam>
     void Store<T>(T entity) where T : class;
     
     /// <summary>
-    /// Upserts the entities to the database.
+    /// Upserts the entities to the database using bulk upsert.
     /// </summary>
     /// <param name="entities"></param>
     /// <typeparam name="T"></typeparam>
     void Store<T>(params T[] entities) where T : class;
     
     /// <summary>
-    /// Upserts the entities to the database.
+    /// Upserts the entities to the database using bulk upsert.
     /// </summary>
     /// <param name="entities"></param>
     /// <typeparam name="T"></typeparam>
     void Store<T>(IEnumerable<T> entities) where T : class;
 
     /// <summary>
-    /// Inserts the entity to the database.
+    /// Inserts the entity to the database using bulk upsert.
     /// </summary>
     /// <param name="entity"></param>
     /// <typeparam name="T"></typeparam>
     void Insert<T>(T entity) where T : class;
 
     /// <summary>
-    /// Inserts the entities to the database.
+    /// Inserts the entities to the database using bulk upsert.
     /// </summary>
     /// <param name="entities"></param>
     /// <typeparam name="T"></typeparam>
     void Insert<T>(params T[] entities) where T : class;
 
     /// <summary>
-    /// Inserts the entities to the database.
+    /// Inserts the entities to the database using bulk upsert.
     /// </summary>
     /// <param name="entities"></param>
     /// <typeparam name="T"></typeparam>
@@ -84,7 +86,6 @@ public interface IDocumentSession
     /// <param name="predicate"></param>
     /// <typeparam name="T"></typeparam>
     void DeleteWhere<T>(Expression<Func<T, bool>> predicate) where T : class;
-
     
     #endregion
 }

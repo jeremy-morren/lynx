@@ -1,6 +1,10 @@
-﻿using Lynx.EfCore;
+﻿using Lynx.DocumentStore;
+using Lynx.EfCore;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+
+// ReSharper disable MethodHasAsyncOverload
+// ReSharper disable UseAwaitUsing
 
 namespace Lynx.Tests;
 
@@ -16,7 +20,7 @@ public class EfCoreHelpersTests
             .UseSqlite(conn)
             .Options;
 
-        using (var context = new TestContext(options))
+        using (var context = new EntityContext(options))
         {
             context.Database.EnsureCreated();
             
@@ -25,7 +29,7 @@ public class EfCoreHelpersTests
             context.SaveChanges();
         }
         
-        using (var context = new TestContext(options))
+        using (var context = new EntityContext(options))
         {
             var e1 = context.Set<Entity1>().IncludeAll();
             e1.Should().HaveCount(2);
@@ -64,7 +68,7 @@ public class EfCoreHelpersTests
             .UseInMemoryDatabase(nameof(GetIncludePropertiesShouldRecurse))
             .Options;
 
-        using var context = new TestContext(options);
+        using var context = new EntityContext(options);
         var model = context.Model;
 
         IncludeRelatedEntities.GetIncludeProperties(model, typeof(Entity1))
@@ -81,7 +85,7 @@ public class EfCoreHelpersTests
             .UseInMemoryDatabase(nameof(IncludeShadowPropertiesShouldBeIgnored))
             .Options;
 
-        using var context = new TestContext(options);
+        using var context = new EntityContext(options);
         var model = context.Model;
         
         IncludeRelatedEntities.GetNavigations(model, typeof(Entity2), null)
@@ -102,7 +106,7 @@ public class EfCoreHelpersTests
             .UseInMemoryDatabase(nameof(GetReferencingEntities))
             .Options;
 
-        using var context = new TestContext(options);
+        using var context = new EntityContext(options);
         var model = context.Model;
 
         //Entity1: referenced by Entity2
@@ -132,7 +136,7 @@ public class EfCoreHelpersTests
             .UseInMemoryDatabase(nameof(GetEntityIdValue))
             .Options;
 
-        using var context = new TestContext(options);
+        using var context = new EntityContext(options);
         var model = context.Model;
 
         var x = Entity1.New(5);
@@ -146,11 +150,48 @@ public class EfCoreHelpersTests
             .ShouldBeEquivalentTo(new Dictionary<string, object>()
             {
                 {nameof(Alone.Id1), 6},
-                {nameof(Alone.Id2), 6}
+                {nameof(Alone.Id2), 12}
             });
     }
 
-    private class TestContext(DbContextOptions options) : DbContext(options)
+    [Fact]
+    public async Task FilterById()
+    {
+        using var conn = new SqliteConnection("DataSource=:memory:");
+        conn.Open();
+
+        var options = new DbContextOptionsBuilder()
+            .UseSqlite(conn)
+            .Options;
+
+        using (var context = new EntityContext(options))
+        {
+            context.Database.EnsureCreated();
+
+            context.Add(Entity1.New(1));
+            context.Add(Alone.New(2));
+            context.SaveChanges();
+        }
+
+        using (var context = new EntityContext(options))
+        {
+            var store = new DocumentStore<EntityContext>(context);
+
+            store.Load<Entity1>(1).ShouldNotBeNull().Entity2.ShouldNotBeNull();
+            (await store.LoadAsync<Entity1>(1)).ShouldNotBeNull().Entity2.ShouldNotBeNull();
+
+            store.Load<Entity1>(2).ShouldBeNull();
+            (await store.LoadAsync<Entity1>(2)).ShouldBeNull();
+
+            store.Load<Alone>(new { Id1 = 2, Id2 = 4 }).ShouldNotBeNull();
+            (await store.LoadAsync<Alone>(new { Id1 = 2, Id2 = 4 })).ShouldNotBeNull();
+
+            store.Load<Alone>(new { Id1 = 2, Id2 = 3 }).ShouldBeNull();
+            (await store.LoadAsync<Alone>(new { Id1 = 2, Id2 = 3 })).ShouldBeNull();
+        }
+    }
+
+    private class EntityContext(DbContextOptions options) : DbContext(options)
     {
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -222,13 +263,16 @@ public class EfCoreHelpersTests
     
     private class Child : EntityBase {}
 
+    /// <summary>
+    /// Not referenced. Also has composite key
+    /// </summary>
     private class Alone
     {
         public required int Id1 { get; init; }
 
         public int Id2
         {
-            get => Id1;
+            get => Id1 * 2;
             // EF Core requires a setter
             // ReSharper disable once ValueParameterNotUsed
             init {}
