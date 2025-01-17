@@ -90,7 +90,8 @@ internal class DocumentSession : IDocumentSession
         ArgumentNullException.ThrowIfNull(entities);
         EnsureEntityType<T>();
 
-        _unitOfWork.Add(new UpsertOperation<T>(entities));
+        if (entities.Length > 0)
+            _unitOfWork.Add(new UpsertOperation<T>(entities));
     }
 
     public void Store<T>(IEnumerable<T> entities) where T : class
@@ -99,7 +100,9 @@ internal class DocumentSession : IDocumentSession
         EnsureEntityType<T>();
 
         var list = entities as IReadOnlyList<T> ?? entities.ToList();
-        _unitOfWork.Add(new UpsertOperation<T>(list));
+
+        if (list.Count > 0)
+            _unitOfWork.Add(new UpsertOperation<T>(list));
     }
 
     public void Insert<T>(T entity) where T : class
@@ -118,7 +121,8 @@ internal class DocumentSession : IDocumentSession
         ArgumentNullException.ThrowIfNull(entities);
         EnsureEntityType<T>();
 
-        _unitOfWork.Add(new InsertOperation<T>(entities));
+        if (entities.Length > 0)
+            _unitOfWork.Add(new InsertOperation<T>(entities));
     }
 
     public void Insert<T>(IEnumerable<T> entities) where T : class
@@ -127,7 +131,9 @@ internal class DocumentSession : IDocumentSession
         EnsureEntityType<T>();
 
         var list = entities as IReadOnlyList<T> ?? entities.ToList();
-        _unitOfWork.Add(new InsertOperation<T>(list));
+
+        if (list.Count > 0)
+            _unitOfWork.Add(new InsertOperation<T>(list));
     }
 
     public void Delete<T>(object id) where T : class

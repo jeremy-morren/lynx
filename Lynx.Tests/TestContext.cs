@@ -1,9 +1,12 @@
 ﻿using Lynx.DocumentStore;
+using Lynx.EfCore.OptionalForeign;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 // ReSharper disable UnusedAutoPropertyAccessor.Global
+// ReSharper disable EntityFramework.ModelValidation.UnlimitedStringLength
+// ReSharper disable PropertyCanBeMadeInitOnly.Global
 
 namespace Lynx.Tests;
 
@@ -36,6 +39,21 @@ public class TestContext : DbContext
 
         modelBuilder.Entity<Alone>()
             .HasKey(x => new { x.Id1, x.Id2 });
+
+        modelBuilder.Entity<PrincipalEntity>(b =>
+        {
+            b.HasOptionalForeign(x => x.ForeignId1, x => x.Foreign1);
+            b.HasOptionalForeign(x => x.ForeignId2, x => x.Foreign2);
+
+            b.Property(x => x.ForeignId2).HasColumnName("RenamedForeignId2");
+
+            b.HasOptionalForeign(x => x.ForeignId3, x => x.Foreign3);
+
+            b.HasIndex(x => new { x.ForeignId1, x.ForeignId2 });
+        });
+
+        modelBuilder.Entity<Foreign>();
+        modelBuilder.Entity<ForeignString>();
     }
 
     /// <summary>
@@ -65,7 +83,7 @@ public class TestContext : DbContext
 
 public class EntityBase
 {
-    public required int Id { get; init; }
+    public required int Id { get; set; }
 }
 
 /// <summary>
@@ -73,11 +91,11 @@ public class EntityBase
 /// </summary>
 public class ParentEntity : EntityBase
 {
-    public required Owned Owned { get; init; }
+    public required Owned Owned { get; set; }
 
-    public required int? Iteration { get; init; }
+    public required int? Iteration { get; set; }
 
-    public Child? Child { get; init; }
+    public Child? Child { get; set; }
 
     public static ParentEntity Create(int id, int? iteration = null, int? childId = null) => new()
     {
@@ -90,9 +108,9 @@ public class ParentEntity : EntityBase
 
 public class Entity1 : EntityBase
 {
-    public required Entity2 Entity2 { get; init; }
+    public required Entity2 Entity2 { get; set; }
 
-    public required bool Deleted { get; init; }
+    public required bool Deleted { get; set; }
 
     public static Entity1 New(int id, bool deleted = false) => new()
     {
@@ -118,18 +136,18 @@ public class Entity1 : EntityBase
 
 public class Entity2 : EntityBase
 {
-    public required Entity3 Entity3 { get; init; }
+    public required Entity3 Entity3 { get; set; }
 
-    public ICollection<Child>? Children { get; init; }
+    public ICollection<Child>? Children { get; set; }
 
-    public int ParentId { get; init; }
-    public required Entity1 Parent { get; init; }
+    public int ParentId { get; set; }
+    public required Entity1 Parent { get; set; }
 }
 
 public class Entity3 : EntityBase
 {
-    public required Owned Owned1 { get; init; }
-    public required ICollection<Owned> OwnedList { get; init; }
+    public required Owned Owned1 { get; set; }
+    public required ICollection<Owned> OwnedList { get; set; }
 }
 
 public class Owned : EntityBase;
@@ -141,7 +159,7 @@ public class Child : EntityBase;
 /// </summary>
 public class Alone
 {
-    public required int Id1 { get; init; }
+    public required int Id1 { get; set; }
 
     /// <summary>
     /// <see cref="Id1"/> * 2
@@ -155,4 +173,36 @@ public class Alone
     }
 
     public static Alone New(int id) => new() { Id1 = id };
+}
+
+/// <summary>
+/// Entity for testing optional foreign properties
+/// </summary>
+public class PrincipalEntity
+{
+    public int Id { get; set; }
+
+    public int ForeignId1 { get; set; }
+
+    public Foreign? Foreign1 { get; set; }
+
+    public int ForeignId2 { get; set; }
+
+    public Foreign? Foreign2 { get; set; }
+
+    public string? ForeignId3 { get; set; }
+
+    public ForeignString? Foreign3 { get; set; }
+
+    public Child? Child { get; set; }
+}
+
+public class Foreign
+{
+    public int Id { get; set; }
+}
+
+public record ForeignString
+{
+    public required string Id { get; set; }
 }
