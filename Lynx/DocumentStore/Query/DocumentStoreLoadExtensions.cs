@@ -78,7 +78,27 @@ public static class DocumentStoreLoadExtensions
         return store.FilterByKey<T>(id, includeDeleted).SingleOrDefaultAsync(cancellationToken);
     }
 
-    private static IQueryable<T> FilterByKey<T>(this IDocumentStore store, object id, bool includeDeleted) where T : class
+    /// <summary>
+    /// Filters a query by the key of the entity. Includes related entities and entities marked as deleted.
+    /// </summary>
+    /// <param name="store"></param>
+    /// <param name="id">Id value</param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
+    public static IQueryable<T> FilterByKey<T>(this IDocumentStore store, object id) where T : class
+    {
+        return store.FilterByKey<T>(id, true);
+    }
+
+    /// <summary>
+    /// Filters a query by the key of the entity. Includes related entities
+    /// </summary>
+    /// <param name="store"></param>
+    /// <param name="id">Id value</param>
+    /// <param name="includeDeleted">Whether the entity should be included even if it is deleted</param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
+    public static IQueryable<T> FilterByKey<T>(this IDocumentStore store, object id, bool includeDeleted) where T : class
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(id);
