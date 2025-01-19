@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace Lynx.ExecutionPlan;
+﻿namespace Lynx.ExecutionPlan;
 
 public interface IExecutionPlan
 {

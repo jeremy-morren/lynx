@@ -1,6 +1,5 @@
 ﻿using System.Data;
 using JetBrains.Annotations;
-using Lynx.EfCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore;

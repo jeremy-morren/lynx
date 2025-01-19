@@ -1,7 +1,6 @@
 using Lynx.DocumentStore;
 using Microsoft.EntityFrameworkCore;
 using Moq;
-using Xunit.Abstractions;
 
 // ReSharper disable MethodHasAsyncOverload
 // ReSharper disable UseAwaitUsing

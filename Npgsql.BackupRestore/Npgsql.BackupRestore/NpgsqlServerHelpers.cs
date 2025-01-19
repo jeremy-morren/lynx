@@ -1,6 +1,4 @@
 ﻿using System.Data;
-using JetBrains.Annotations;
-using Npgsql;
 
 namespace Npgsql.BackupRestore;
 

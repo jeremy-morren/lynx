@@ -1,6 +1,4 @@
-﻿using System.Reflection;
-using Lynx.EfCore.OptionalForeign;
-using Microsoft.EntityFrameworkCore.Metadata;
+﻿using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Lynx.EfCore;
 
@@ -28,7 +26,7 @@ internal static class ReferencingEntities
             if (visited.Contains(type))
                 continue; // Skip target and visited entities
 
-            if (!HasReferencingEntities(model, type, target))
+            if (!HasReferencingEntities(type, target))
                 continue;
 
             visited.Add(type);
@@ -45,7 +43,7 @@ internal static class ReferencingEntities
     /// <summary>
     /// Checks whether type references target entity.
     /// </summary>
-    private static bool HasReferencingEntities(IModel model, IEntityType type, IEntityType target)
+    private static bool HasReferencingEntities(IEntityType type, IEntityType target)
     {
         // Get all entities that reference target entity
         var navigations =
@@ -53,16 +51,6 @@ internal static class ReferencingEntities
             where n.TargetEntityType == target && !n.ForeignKey.IsOwnership
             select n.TargetEntityType;
 
-        // Get all entities that have an optional foreign key to target entity
-        const BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
-        var foreignOptional =
-            from a in type.GetAnnotations()
-            where a.Name.StartsWith(OptionalForeignPropertyBuilderExtensions.AnnotationPrefix)
-            let navPropertyName = a.Name[OptionalForeignPropertyBuilderExtensions.AnnotationPrefix.Length..]
-            let navPropType = type.ClrType.GetProperty(navPropertyName, flags)!.PropertyType
-            where navPropType == target.ClrType
-            select model.GetEntityType(navPropType);
-
-        return navigations.Concat(foreignOptional).Any();
+        return navigations.Any();
     }
 }

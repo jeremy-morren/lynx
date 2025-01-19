@@ -1,5 +1,4 @@
-﻿using Lynx.DocumentStore;
-using Lynx.DocumentStore.Query;
+﻿using Lynx.DocumentStore.Query;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;

@@ -1,7 +1,6 @@
 ﻿// ReSharper disable StringLiteralTypo
 // ReSharper disable CommentTypo
 
-using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Npgsql.BackupRestore.Commands;
 

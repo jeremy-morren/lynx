@@ -1,5 +1,4 @@
-﻿using System.Linq.Expressions;
-using Lynx.DocumentStore;
+﻿using Lynx.DocumentStore;
 using Lynx.DocumentStore.Query;
 using Lynx.EfCore;
 using Microsoft.Data.Sqlite;

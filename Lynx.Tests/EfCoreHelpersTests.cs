@@ -1,18 +1,13 @@
-﻿using Lynx.DocumentStore;
-using Lynx.DocumentStore.Query;
-using Lynx.EfCore;
-using Lynx.EfCore.OptionalForeign;
+﻿using Lynx.EfCore;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Xunit.Abstractions;
 
 // ReSharper disable MethodHasAsyncOverload
 // ReSharper disable UseAwaitUsing
 
 namespace Lynx.Tests;
 
-public class EfCoreHelpersTests(ITestOutputHelper output)
+public class EfCoreHelpersTests
 {
     [Fact]
     public void IncludeEntitiesShouldRecurse()
@@ -82,9 +77,6 @@ public class EfCoreHelpersTests(ITestOutputHelper output)
         IncludeRelatedEntities.GetIncludeProperties(model, typeof(Entity3)).ShouldBeEmpty();
 
         IncludeRelatedEntities.GetIncludeProperties(model, typeof(Alone)).ShouldBeEmpty();
-
-        IncludeRelatedEntities.GetIncludeProperties(model, typeof(PrincipalEntity)).Should().BeEquivalentTo(
-            nameof(PrincipalEntity.Foreign1), nameof(PrincipalEntity.Foreign2), nameof(PrincipalEntity.Foreign3), nameof(PrincipalEntity.Child));
     }
     
     [Fact]
@@ -140,17 +132,7 @@ public class EfCoreHelpersTests(ITestOutputHelper output)
         //Child: Referenced as a collection by Entity2
         model.GetReferencingEntities(typeof(Child))
             .Select(e => e.ClrType)
-            .Should().BeEquivalentTo([typeof(ParentEntity), typeof(Entity1), typeof(Entity2), typeof(PrincipalEntity)]);
-
-        //Foreign: referenced by Principal
-        model.GetReferencingEntities(typeof(Foreign))
-            .Select(e => e.ClrType)
-            .Should().BeEquivalentTo([typeof(PrincipalEntity)]);
-
-        //ForeignString: referenced by Principal
-        model.GetReferencingEntities(typeof(ForeignString))
-            .Select(e => e.ClrType)
-            .Should().BeEquivalentTo([typeof(PrincipalEntity)]);
+            .Should().BeEquivalentTo([typeof(ParentEntity), typeof(Entity1), typeof(Entity2)]);
     }
 
     [Fact]
@@ -176,125 +158,5 @@ public class EfCoreHelpersTests(ITestOutputHelper output)
                 {nameof(Alone.Id1), 6},
                 {nameof(Alone.Id2), 12}
             });
-    }
-
-    [Fact]
-    public void IncludeOptionalReferencesShouldSucceed()
-    {
-        using var conn = new SqliteConnection("DataSource=:memory:");
-        conn.Open();
-
-        var options = new DbContextOptionsBuilder()
-            .UseSqlite(conn)
-            .Options;
-
-        using (var context = new TestContext(options))
-        {
-            context.Database.EnsureCreated();
-
-            context.Set<Foreign>().AddRange(
-                new Foreign() { Id = 1},
-                new Foreign() { Id = 2}
-            );
-            context.Set<ForeignString>().AddRange(
-                new ForeignString() { Id = "1"},
-                new ForeignString() { Id = "2"}
-            );
-
-            context.Set<PrincipalEntity>().AddRange(
-                new PrincipalEntity()
-                {
-                    ForeignId1 = 1,
-                    ForeignId2 = 10,
-
-                    ForeignId3 = "1"
-                },
-                new PrincipalEntity()
-                {
-                    ForeignId1 = 2,
-                    ForeignId2 = 10,
-
-                    ForeignId3 = "2"
-                },
-                new PrincipalEntity()
-                {
-                    ForeignId1 = 2,
-                    ForeignId2 = 2
-                });
-            context.SaveChanges();
-        }
-
-        using (var context = new TestContext(options))
-        {
-            var query = context.CreateLynxQueryable<PrincipalEntity>()
-                .IncludeOptionalForeign(x => x.Foreign1)
-                .IncludeOptionalForeign(x => x.Foreign2)
-                .IncludeOptionalForeign(nameof(PrincipalEntity.Foreign3))
-                .Where(x => x.Foreign1!.Id > 1);
-
-            query.Should().BeEquivalentTo([
-                new PrincipalEntity()
-                {
-                    Id = 2,
-                    ForeignId1 = 2,
-                    ForeignId2 = 10,
-                    ForeignId3 = "2",
-                    Foreign1 = new Foreign() { Id = 2 },
-                    Foreign2 = null,
-                    Foreign3 = new ForeignString() { Id = "2" }
-                },
-                new PrincipalEntity()
-                {
-                    Id = 3,
-                    ForeignId1 = 2,
-                    ForeignId2 = 2,
-                    Foreign1 = new Foreign() { Id = 2 },
-                    Foreign2 = new Foreign() { Id = 2 }
-                }
-            ]);
-
-            query.CreateDbCommand().CommandText
-                .Should().Contain("LEFT JOIN", Exactly.Thrice())
-                .And.Contain("Renamed", Exactly.Twice())
-                .And.NotContain("INNER JOIN")
-                .And.Contain($"LEFT JOIN \"{nameof(Foreign)}\"", Exactly.Twice());
-
-            output.WriteLine(query.CreateDbCommand().CommandText);
-        }
-    }
-
-    [Fact]
-    public void Test()
-    {
-        using var conn = new SqliteConnection("DataSource=:memory:");
-        conn.Open();
-
-        var options = new DbContextOptionsBuilder()
-            .UseSqlite(conn)
-            .Options;
-
-        using (var context = new TestContext(options))
-        {
-            context.Database.EnsureCreated();
-
-            context.Add(new PrincipalEntity()
-            {
-                Child = new Child() { Id = 1 }
-            });
-            context.SaveChanges();
-        }
-
-        using (var context = new TestContext(options))
-        {
-            var query = context.Set<PrincipalEntity>()
-                .Include(c => c.Child)
-                .Select(e => new PrincipalEntity()
-                {
-                    Id = e.Id
-                });
-
-            context.Set<PrincipalEntity>().AsNoTracking()
-                .Should().HaveCount(1).And.AllSatisfy(e => e.Child.ShouldNotBeNull());
-        }
     }
 }
