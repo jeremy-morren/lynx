@@ -33,8 +33,8 @@ internal static class CommandHelpers
                         yield return option;
                     break;
                 case string s:
-                    if (string.IsNullOrEmpty(s))
-                        break; //Ignore empty strings
+                    if (s == string.Empty)
+                        yield return option; //For empty strings, return the switch without a value
                     yield return $"{option}={s}";
                     break;
                 case Enum e:

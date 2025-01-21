@@ -94,6 +94,10 @@ public static class PgRestore
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(source);
+
+        if (string.IsNullOrEmpty(options.Database))
+            // pg_restore will fail if --dbname is not specified
+            throw new InvalidOperationException($"{nameof(options.Database)} must be specified when restoring from a stream");
         
         var version = await NpgsqlServerHelpers.GetServerVersion(connection, cancellationToken);
         var tool = PgToolFinder.FindPgTool(ToolName, version);

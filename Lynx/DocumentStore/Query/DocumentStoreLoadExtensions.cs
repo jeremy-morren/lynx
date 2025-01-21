@@ -1,8 +1,10 @@
-﻿using Lynx.EfCore;
+﻿using JetBrains.Annotations;
+using Lynx.EfCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore.Query;
 
+[PublicAPI]
 public static class DocumentStoreLoadExtensions
 {
     /// <summary>

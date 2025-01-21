@@ -71,7 +71,7 @@ public class PgBackupRestoreTests : PgToolTestsBase
         new PgBackupOptions()
         {
             Format = PgBackupFormat.Custom,
-            Compression = 3,
+            Compression = "zstd",
             IncludeBlobs = true,
         },
         new PgBackupOptions()
@@ -82,7 +82,7 @@ public class PgBackupRestoreTests : PgToolTestsBase
         new PgBackupOptions()
         {
             Format = PgBackupFormat.Directory,
-            Compression = 5,
+            Compression = "5",
             Schema = GetSchemaWithTables(),
         }
     };

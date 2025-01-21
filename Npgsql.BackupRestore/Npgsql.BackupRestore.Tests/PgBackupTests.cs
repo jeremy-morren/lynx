@@ -51,7 +51,7 @@ public class PgBackupTests(ITestOutputHelper output) : PgToolTestsBase
         new PgBackupOptions()
         {
             Format = PgBackupFormat.Plain,
-            Compression = 4,
+            Compression = "4",
             NoOwner = true,
             NoPrivileges = true,
             SchemaOnly = true,

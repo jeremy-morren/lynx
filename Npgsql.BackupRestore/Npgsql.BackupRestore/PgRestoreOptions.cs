@@ -24,18 +24,26 @@ public class PgRestoreOptions
     /// <summary>
     /// Restore only the data, not the schema (<c>--data-only</c> switch)
     /// </summary>
+    /// <remarks>
+    /// Restore only the data, not the schema (data definitions).
+    /// Table data, large objects, and sequence values are restored, if present in the archive.
+    /// </remarks>
     public bool DataOnly { get; set; }
     
     /// <summary>
     /// Clean (drop) database objects before recreating them (<c>--clean</c> switch)
     /// </summary>
+    /// <remarks>
+    /// Before restoring database objects, issue commands to <c>DROP</c> all the objects that will be restored. This option is useful for overwriting an existing database.
+    /// If any of the objects do not exist in the destination database, ignorable error messages will be reported, unless <see cref="IfExists"/> is also specified.
+    /// </remarks>
     public bool Clean { get; set; }
     
     /// <summary>
-    /// use IF EXISTS when dropping objects (<c>--if-exists</c> switch)
+    /// use <c>IF EXISTS</c> when dropping objects (<c>--if-exists</c> switch)
     /// </summary>
     /// <remarks>
-    /// Use DROP ... IF EXISTS commands to drop objects if <see cref="Clean"/> is specified.
+    /// Use <c>DROP ... IF EXISTS</c> commands to drop objects if <see cref="Clean"/> is specified.
     /// This suppresses “does not exist” errors that might otherwise be reported.
     /// This option is not valid unless <see cref="Clean"/> is specified.
     /// </remarks>
