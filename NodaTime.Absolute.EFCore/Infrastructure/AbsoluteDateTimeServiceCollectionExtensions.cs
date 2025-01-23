@@ -19,6 +19,7 @@ public static class AbsoluteDateTimeServiceCollectionExtensions
 
         new EntityFrameworkRelationalServicesBuilder(services)
             .TryAdd<IRelationalTypeMappingSourcePlugin>(new AbsoluteDateTimeTypeMappingSourcePlugin(timeZoneProvider))
-            .TryAdd<IMethodCallTranslatorPlugin, AbsoluteDateTimeMethodTranslatorPlugin>();
+            .TryAdd<IMethodCallTranslatorPlugin, AbsoluteDateTimeMethodCallTranslatorPlugin>()
+            .TryAdd<IMemberTranslatorPlugin, AbsoluteDateTimeMemberTranslatorPlugin>();
     }
 }

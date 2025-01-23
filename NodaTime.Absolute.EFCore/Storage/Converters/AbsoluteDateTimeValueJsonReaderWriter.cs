@@ -12,7 +12,7 @@ internal class AbsoluteDateTimeValueJsonReaderWriter : JsonValueReaderWriter<Abs
     {
         _timeZoneProvider = timeZoneProvider;
     }
-
+    
     public override AbsoluteDateTime FromJsonTyped(ref Utf8JsonReaderManager manager, object? existingObject = null)
     {
         if (manager.CurrentReader.TokenType != JsonTokenType.StartObject)

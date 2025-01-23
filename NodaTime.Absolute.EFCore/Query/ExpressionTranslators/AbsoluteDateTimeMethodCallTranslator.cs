@@ -8,17 +8,13 @@ using NodaTime.Absolute.EFCore.Serialization;
 
 namespace NodaTime.Absolute.EFCore.Query.ExpressionTranslators;
 
-public class AbsoluteDateTimeMethodCallTranslator : IMethodCallTranslator
+internal class AbsoluteDateTimeMethodCallTranslator : AbsoluteDateTimeTimeTranslatorBase, IMethodCallTranslator
 {
-    private readonly ISqlExpressionFactory _factory;
-    private readonly RelationalTypeMapping _instantTypeMapping;
-
     public AbsoluteDateTimeMethodCallTranslator(
-        ISqlExpressionFactory factory,
-        List<IRelationalTypeMappingSourcePlugin> mappingPlugins)
+        IEnumerable<IRelationalTypeMappingSourcePlugin> mappingPlugins)
+        : base(mappingPlugins)
     {
-        _factory = factory;
-        _instantTypeMapping = GetTypeMapping(typeof(Instant), mappingPlugins)!;
+
     }
 
     public SqlExpression? Translate(
@@ -34,7 +30,7 @@ public class AbsoluteDateTimeMethodCallTranslator : IMethodCallTranslator
             return new JsonScalarExpression(instance,
                 [new PathSegment(nameof(AbsoluteDateTimeJson.Instant))],
                 typeof(Instant),
-                _instantTypeMapping,
+                InstantTypeMapping,
                 false);
 
         // Translate calls to AbsoluteDateTime.GetZoneId() to ZoneId property
@@ -47,17 +43,6 @@ public class AbsoluteDateTimeMethodCallTranslator : IMethodCallTranslator
 
         return null;
     }
-
-    private RelationalTypeMapping? GetTypeMapping(Type type, List<IRelationalTypeMappingSourcePlugin> mappingPlugins)
-    {
-        var info = new RelationalTypeMappingInfo(type: type);
-        foreach (var t in mappingPlugins)
-            if (t.FindMapping(info) is { } mapping)
-                return mapping;
-        throw new InvalidOperationException($"Type mapping for {type} not found. Ensure that the provider-specific plugin for NodaTime is registered.");
-    }
-
-    private const BindingFlags InstanceMembers = BindingFlags.Public | BindingFlags.Instance;
 
     private static readonly MethodInfo ToInstantMethod =
         typeof(AbsoluteDateTime).GetMethod(nameof(AbsoluteDateTime.ToInstant), InstanceMembers)!;

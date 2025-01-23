@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using NodaTime.Calendars;
+using NodaTime.Extensions;
 using PureAttribute = System.Diagnostics.Contracts.PureAttribute;
 
 namespace NodaTime;
@@ -324,4 +325,9 @@ public readonly struct AbsoluteDateTime :
     /// Gets the <see cref="DateTimeZone.Id"/> of the time zone associated with this value.
     /// </summary>
     public string GetZoneId() => _value.Zone.Id;
+
+    /// <summary>
+    /// Returns the current date and time in the UTC time zone.
+    /// </summary>
+    public static AbsoluteDateTime UtcNow() => SystemClock.Instance.GetCurrentInstant().InUtc();
 }

@@ -4,13 +4,12 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace NodaTime.Absolute.EFCore.Query.ExpressionTranslators;
 
-internal class AbsoluteDateTimeMethodTranslatorPlugin(
-    ISqlExpressionFactory sqlExpressionFactory,
-    IEnumerable<IRelationalTypeMappingSourcePlugin> typeMappingSourcePlugins)
+internal class AbsoluteDateTimeMethodCallTranslatorPlugin(
+    IEnumerable<IRelationalTypeMappingSourcePlugin> mappingPlugins)
     : IMethodCallTranslatorPlugin
 {
     public IEnumerable<IMethodCallTranslator> Translators { get; } =
     [
-        new AbsoluteDateTimeMethodCallTranslator(sqlExpressionFactory, typeMappingSourcePlugins.ToList())
+        new AbsoluteDateTimeMethodCallTranslator(mappingPlugins)
     ];
 }
