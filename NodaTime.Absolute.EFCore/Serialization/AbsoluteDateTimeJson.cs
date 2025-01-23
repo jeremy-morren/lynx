@@ -34,12 +34,19 @@ internal readonly record struct AbsoluteDateTimeJson
             Local = value.LocalDateTime
         };
 
+    public static ZonedDateTime FromJsonElement(JsonElement json, IDateTimeZoneProvider provider)
+    {
+        var value = json.Deserialize(JsonTypeInfo);
+        return value.Instant.InZone(provider[value.ZoneId]);
+    }
+
     public static ZonedDateTime FromJson(string json, IDateTimeZoneProvider provider)
     {
         var value = JsonSerializer.Deserialize(json, JsonTypeInfo);
         return value.Instant.InZone(provider[value.ZoneId]);
     }
 
+    public JsonElement ToJsonElement() => JsonSerializer.SerializeToElement(this, JsonTypeInfo);
     public string ToJson() => JsonSerializer.Serialize(this, JsonTypeInfo);
 
     private static readonly JsonTypeInfo<AbsoluteDateTimeJson> JsonTypeInfo =

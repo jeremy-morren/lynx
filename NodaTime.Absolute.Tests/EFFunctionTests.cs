@@ -45,7 +45,7 @@ public class EFFunctionTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void QueryWithAbsoluteTimeOnDbContextShouldSucceed()
+    public void QueryWithFunctionsShouldSucceed()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
@@ -58,19 +58,32 @@ public class EFFunctionTests(ITestOutputHelper output)
         using var context = new SqliteDbContext(options);
 
         output.WriteLine(context.Database.GenerateCreateScript());
-
-        var localDate = SystemClock.Instance.GetCurrentInstant().InUtc().LocalDateTime;
-
-        var query =
-            from d in context.Set<DateEntity>()
-            where d.Date < SystemClock.Instance.GetCurrentInstant()
-                  && d.Owned.Date.LocalDateTime == localDate
-            select d.Owned.Date;
-
-        output.WriteLine(query.ToQueryString());
-
         context.Database.EnsureCreated();
-        query.Should().BeEmpty();
+
+        var now = SystemClock.Instance.GetCurrentInstant();
+        const string zone = "Australia/Sydney";
+        context.Add(DateEntity.New(now, zone));
+        context.Add(DateEntity.New(now, zone));
+        context.SaveChanges();
+
+        context.Set<DateEntity>().AsNoTracking()
+            .Where(d => d.Owned.Date.ToInstant() < SystemClock.Instance.GetCurrentInstant())
+            .Select(d => d.Owned.Date)
+            .Log(output)
+            .ToList().Should().HaveCount(2)
+            .And.AllSatisfy(d =>
+            {
+                d.ToInstant().Should().Be(now);
+                d.Zone.Id.Should().Be(zone);
+            });
+
+        context.Set<DateEntity>().AsNoTracking()
+            .Where(d => d.Date.GetZoneId() == zone)
+            .Select(d => d.Owned.Date.ToInstant())
+            .Log(output)
+            .ToList()
+            .Should().HaveCount(2)
+            .And.AllSatisfy(i => i.Should().Be(now));
     }
 
     private class SqliteDbContext(DbContextOptions options) : DbContext(options)

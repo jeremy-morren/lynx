@@ -15,15 +15,16 @@ internal class AbsoluteDateTimeValueJsonReaderWriter : JsonValueReaderWriter<Abs
 
     public override AbsoluteDateTime FromJsonTyped(ref Utf8JsonReaderManager manager, object? existingObject = null)
     {
-        if (manager.CurrentReader.TokenType != JsonTokenType.String)
-            throw new InvalidOperationException($"Expected a string token for {typeof(AbsoluteDateTime)}");
-        var json = manager.CurrentReader.GetString() ?? throw new InvalidOperationException("Value was null");
-        return AbsoluteDateTimeJson.FromJson(json, _timeZoneProvider);
+        if (manager.CurrentReader.TokenType != JsonTokenType.StartObject)
+            throw new InvalidOperationException($"Expected a start object token for {typeof(AbsoluteDateTime)}");
+
+        var json = JsonSerializer.Deserialize<JsonElement>(ref manager.CurrentReader);
+        return AbsoluteDateTimeJson.FromJsonElement(json, _timeZoneProvider);
     }
 
     public override void ToJsonTyped(Utf8JsonWriter writer, AbsoluteDateTime value)
     {
-        var json = AbsoluteDateTimeJson.FromDate(value).ToJson();
-        writer.WriteStringValue(json);
+        var json = AbsoluteDateTimeJson.FromDate(value).ToJsonElement();
+        JsonSerializer.Serialize(writer, json);
     }
 }

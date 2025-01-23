@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
+using NodaTime.Absolute.EFCore.Query.ExpressionTranslators;
 using NodaTime.Absolute.EFCore.Storage;
 
 namespace NodaTime.Absolute.EFCore.Infrastructure;
@@ -16,6 +18,7 @@ public static class AbsoluteDateTimeServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         new EntityFrameworkRelationalServicesBuilder(services)
-            .TryAdd<IRelationalTypeMappingSourcePlugin>(new AbsoluteDateTimeTypeMappingSourcePlugin(timeZoneProvider));
+            .TryAdd<IRelationalTypeMappingSourcePlugin>(new AbsoluteDateTimeTypeMappingSourcePlugin(timeZoneProvider))
+            .TryAdd<IMethodCallTranslatorPlugin, AbsoluteDateTimeMethodTranslatorPlugin>();
     }
 }

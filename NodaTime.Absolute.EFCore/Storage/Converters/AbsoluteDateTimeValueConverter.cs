@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+﻿using System.Text.Json;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NodaTime.Absolute.EFCore.Serialization;
 
 namespace NodaTime.Absolute.EFCore.Storage.Converters;

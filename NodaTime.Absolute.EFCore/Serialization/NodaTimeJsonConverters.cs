@@ -7,7 +7,7 @@ namespace NodaTime.Absolute.EFCore.Serialization;
 internal class InstantConverter : JsonConverter<Instant>
 {
     private static readonly InstantPattern Pattern =
-        InstantPattern.CreateWithInvariantCulture("uuuu'-'MM'-'dd HH':'mm':'ss'.'fffffff'Z'");
+        InstantPattern.CreateWithInvariantCulture("uuuu'-'MM'-'dd HH':'mm':'ss'.'fffffff");
 
     public override Instant Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
