@@ -23,7 +23,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\NodaTime.Absolute.EFCore.Sqlite\NodaTime.Absolute.EFCore.Sqlite.csproj" />
+      <ProjectReference Include="..\NodaTime.Absolute.EFCore\NodaTime.Absolute.EFCore.csproj" />
     </ItemGroup>
 
 </Project>

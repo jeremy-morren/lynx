@@ -1,8 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
+using NodaTime.Absolute.EFCore.Infrastructure;
 
-namespace NodaTime.Absolute.EFCore.Sqlite;
+namespace NodaTime.Absolute.EFCore;
 
 public static class AbsoluteDateTimeDbContextOptionsBuilderExtensions
 {

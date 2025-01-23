@@ -27,7 +27,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodaTime.Absolute", "NodaTi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodaTime.Absolute.Tests", "NodaTime.Absolute.Tests\NodaTime.Absolute.Tests.csproj", "{CA1E2906-4555-4F60-8C35-84E38DBACDD3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodaTime.Absolute.EFCore.Sqlite", "NodaTime.Absolute.EFCore.Sqlite\NodaTime.Absolute.EFCore.Sqlite.csproj", "{52F38D5A-0C82-4638-9BC3-A75505CC0A6E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodaTime.Absolute.EFCore", "NodaTime.Absolute.EFCore\NodaTime.Absolute.EFCore.csproj", "{52F38D5A-0C82-4638-9BC3-A75505CC0A6E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

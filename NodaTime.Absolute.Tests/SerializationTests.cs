@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 using FluentAssertions;
-using NodaTime.Absolute.EFCore.Sqlite.Converter;
+using NodaTime.Absolute.EFCore.Serialization;
 using NodaTime.Serialization.SystemTextJson;
 using NodaTime.Text;
 
@@ -21,15 +21,14 @@ public class SerializationTests
     }
 
     [Theory]
+    [InlineData("O")]
     [InlineData("yyyy-MM-ddTHH:mm:ss.fffZ")]
     [InlineData("yyyy-MM-ddTHH:mm:ssZ")]
     public void EFRoundTripShouldBeSuccessful(string format)
     {
         var now = InstantPattern.ExtendedIso.Parse(DateTime.UtcNow.ToString(format)).Value;
 
-        AbsoluteDateTime dt =  now.InZone(DateTimeZoneProviders.Tzdb["Australia/Perth"]);
-
-        var json = AbsoluteDateTimeEFConverter.Serialize(dt);
-        AbsoluteDateTimeEFConverter.Deserialize(json, DateTimeZoneProviders.Tzdb).Should().Be(dt);
+        var dt = now.InZone(DateTimeZoneProviders.Tzdb["Australia/Perth"]);
+        AbsoluteDateTimeJson.FromJson(AbsoluteDateTimeJson.FromDate(dt).ToJson(), DateTimeZoneProviders.Tzdb).Should().Be(dt);
     }
 }

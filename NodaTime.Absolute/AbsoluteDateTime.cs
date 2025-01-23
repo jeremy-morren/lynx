@@ -260,6 +260,42 @@ public readonly struct AbsoluteDateTime :
 
     public static bool operator ==(AbsoluteDateTime left, AbsoluteDateTime right) => left.ToInstant() == right.ToInstant();
     public static bool operator !=(AbsoluteDateTime left, AbsoluteDateTime right) => left.ToInstant() != right.ToInstant();
+    
+    public static bool operator <(Instant left, AbsoluteDateTime right) => left < right.ToInstant();
+    public static bool operator >(Instant left, AbsoluteDateTime right) => left > right.ToInstant();
+
+    public static bool operator <=(Instant left, AbsoluteDateTime right) => left <= right.ToInstant();
+    public static bool operator >=(Instant left, AbsoluteDateTime right) => left >= right.ToInstant();
+
+    public static bool operator ==(Instant left, AbsoluteDateTime right) => left == right.ToInstant();
+    public static bool operator !=(Instant left, AbsoluteDateTime right) => left != right.ToInstant();
+    
+    public static bool operator <(AbsoluteDateTime left, Instant right) => left.ToInstant() < right;
+    public static bool operator >(AbsoluteDateTime left, Instant right) => left.ToInstant() > right;
+
+    public static bool operator <=(AbsoluteDateTime left, Instant right) => left.ToInstant() <= right;
+    public static bool operator >=(AbsoluteDateTime left, Instant right) => left.ToInstant() >= right;
+
+    public static bool operator ==(AbsoluteDateTime left, Instant right) => left.ToInstant() == right;
+    public static bool operator !=(AbsoluteDateTime left, Instant right) => left.ToInstant() != right;
+
+    public static bool operator <(ZonedDateTime left, AbsoluteDateTime right) => left.ToInstant() < right.ToInstant();
+    public static bool operator >(ZonedDateTime left, AbsoluteDateTime right) => left.ToInstant() > right.ToInstant();
+
+    public static bool operator <=(ZonedDateTime left, AbsoluteDateTime right) => left.ToInstant() <= right.ToInstant();
+    public static bool operator >=(ZonedDateTime left, AbsoluteDateTime right) => left.ToInstant() >= right.ToInstant();
+
+    public static bool operator ==(ZonedDateTime left, AbsoluteDateTime right) => left.ToInstant() == right.ToInstant();
+    public static bool operator !=(ZonedDateTime left, AbsoluteDateTime right) => left.ToInstant() != right.ToInstant();
+    
+    public static bool operator <(AbsoluteDateTime left, ZonedDateTime right) => left.ToInstant() < right.ToInstant();
+    public static bool operator >(AbsoluteDateTime left, ZonedDateTime right) => left.ToInstant() > right.ToInstant();
+
+    public static bool operator <=(AbsoluteDateTime left, ZonedDateTime right) => left.ToInstant() <= right.ToInstant();
+    public static bool operator >=(AbsoluteDateTime left, ZonedDateTime right) => left.ToInstant() >= right.ToInstant();
+
+    public static bool operator ==(AbsoluteDateTime left, ZonedDateTime right) => left.ToInstant() == right.ToInstant();
+    public static bool operator !=(AbsoluteDateTime left, ZonedDateTime right) => left.ToInstant() != right.ToInstant();
 
     #endregion
 
