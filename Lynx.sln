@@ -21,6 +21,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Npgsql.BackupRestore", "Npg
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Npgsql.BackupRestore.Tests", "Npgsql.BackupRestore\Npgsql.BackupRestore.Tests\Npgsql.BackupRestore.Tests.csproj", "{7DC090A1-1503-43EE-A924-393AC19B2D55}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NodaTime.Absolute", "NodaTime.Absolute", "{47210301-AA17-4133-9914-0B9E6550A479}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodaTime.Absolute", "NodaTime.Absolute\NodaTime.Absolute.csproj", "{FAD347A2-AF11-45DB-B00A-5EBDAFF19F8F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodaTime.Absolute.Tests", "NodaTime.Absolute.Tests\NodaTime.Absolute.Tests.csproj", "{CA1E2906-4555-4F60-8C35-84E38DBACDD3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodaTime.Absolute.EFCore.Sqlite", "NodaTime.Absolute.EFCore.Sqlite\NodaTime.Absolute.EFCore.Sqlite.csproj", "{52F38D5A-0C82-4638-9BC3-A75505CC0A6E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,6 +51,18 @@ Global
 		{7DC090A1-1503-43EE-A924-393AC19B2D55}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7DC090A1-1503-43EE-A924-393AC19B2D55}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7DC090A1-1503-43EE-A924-393AC19B2D55}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FAD347A2-AF11-45DB-B00A-5EBDAFF19F8F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAD347A2-AF11-45DB-B00A-5EBDAFF19F8F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAD347A2-AF11-45DB-B00A-5EBDAFF19F8F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAD347A2-AF11-45DB-B00A-5EBDAFF19F8F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA1E2906-4555-4F60-8C35-84E38DBACDD3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA1E2906-4555-4F60-8C35-84E38DBACDD3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA1E2906-4555-4F60-8C35-84E38DBACDD3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA1E2906-4555-4F60-8C35-84E38DBACDD3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{52F38D5A-0C82-4638-9BC3-A75505CC0A6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52F38D5A-0C82-4638-9BC3-A75505CC0A6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52F38D5A-0C82-4638-9BC3-A75505CC0A6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52F38D5A-0C82-4638-9BC3-A75505CC0A6E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -52,5 +72,8 @@ Global
 		{D05181C2-7D16-4D01-8403-0179CA4C6532} = {B8992424-17F8-476F-B136-EEECC230FAC7}
 		{751F68DB-935E-4B01-9A60-B24DAD388FFA} = {98FF1C8B-D597-4465-91A6-20E750F76A39}
 		{7DC090A1-1503-43EE-A924-393AC19B2D55} = {98FF1C8B-D597-4465-91A6-20E750F76A39}
+		{FAD347A2-AF11-45DB-B00A-5EBDAFF19F8F} = {47210301-AA17-4133-9914-0B9E6550A479}
+		{CA1E2906-4555-4F60-8C35-84E38DBACDD3} = {47210301-AA17-4133-9914-0B9E6550A479}
+		{52F38D5A-0C82-4638-9BC3-A75505CC0A6E} = {47210301-AA17-4133-9914-0B9E6550A479}
 	EndGlobalSection
 EndGlobal
