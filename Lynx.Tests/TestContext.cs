@@ -36,6 +36,8 @@ public class TestContext : DbContext
 
         modelBuilder.Entity<Alone>()
             .HasKey(x => new { x.Id1, x.Id2 });
+
+        modelBuilder.Entity<OwnedForeign>();
     }
 
     /// <summary>
@@ -94,6 +96,11 @@ public class Entity1 : EntityBase
 
     public required bool Deleted { get; set; }
 
+    /// <summary>
+    /// Reference self (to test recursion)
+    /// </summary>
+    public Entity1? Other { get; set; }
+
     public static Entity1 New(int id, bool deleted = false) => new()
     {
         Id = id,
@@ -132,9 +139,17 @@ public class Entity3 : EntityBase
     public required ICollection<Owned> OwnedList { get; set; }
 }
 
-public class Owned : EntityBase;
+public class Owned : EntityBase
+{
+    public OwnedForeign? Child { get; set; }
+}
 
 public class Child : EntityBase;
+
+/// <summary>
+/// Entity referenced by an owned type
+/// </summary>
+public class OwnedForeign : EntityBase;
 
 /// <summary>
 /// Not referenced. Also has composite key

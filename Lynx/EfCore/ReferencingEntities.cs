@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata;
+﻿using System.Collections.Immutable;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Lynx.EfCore;
 
@@ -13,42 +14,24 @@ internal static class ReferencingEntities
     internal static IEnumerable<IEntityType> GetReferencingEntities(IModel model, Type entityType)
     {
         var target = model.GetEntityType(entityType);
-        // Recurse
-        return GetReferencingEntitiesInternal(model, target, [target]).Distinct();
-    }
 
-    private static IEnumerable<IEntityType> GetReferencingEntitiesInternal(
-        IModel model, IEntityType target, HashSet<IEntityType> visited)
-    {
-        // Get all entities that reference target entity
-        foreach (var type in model.GetEntityTypes())
-        {
-            if (visited.Contains(type))
-                continue; // Skip target and visited entities
-
-            if (!HasReferencingEntities(type, target))
-                continue;
-
-            visited.Add(type);
-            
-            // This entity references target.
-            // Return type, and recursively get all entities that reference this entity.
-            yield return type;
-
-            foreach (var child in GetReferencingEntitiesInternal(model, type, visited))
-                yield return child;
-        }
+        return model.GetEntityTypes()
+            .Where(t => HasReferencingEntities(t, target, []))
+            .Where(t => !t.IsOwned())
+            .Distinct();
     }
 
     /// <summary>
-    /// Checks whether type references target entity.
+    /// Checks whether type references target.
     /// </summary>
-    private static bool HasReferencingEntities(IEntityType type, IEntityType target)
+    private static bool HasReferencingEntities(IEntityType type, IEntityType target, ImmutableHashSet<IEntityType> visited)
     {
         // Get all entities that reference target entity
         var navigations =
             from n in type.GetNavigations()
-            where n.TargetEntityType == target && !n.ForeignKey.IsOwnership
+            where !visited.Contains(n.TargetEntityType) // Skip visited entities
+            where (n.TargetEntityType == target && !n.ForeignKey.IsOwnership) //Check if this navigation references target
+                || HasReferencingEntities(n.TargetEntityType, target, visited.Add(type)) //Or recurse
             select n.TargetEntityType;
 
         return navigations.Any();

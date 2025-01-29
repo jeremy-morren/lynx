@@ -110,11 +110,10 @@ public class EfCoreHelpersTests
         using var context = new TestContext(options);
         var model = context.Model;
 
-        //Entity1: referenced by Entity2
-
+        //Entity1: referenced by Entity2 and itself
         model.GetReferencingEntities(typeof(Entity1))
             .Select(e => e.ClrType)
-            .Should().BeEquivalentTo([typeof(Entity2)]);
+            .Should().BeEquivalentTo([typeof(Entity1), typeof(Entity2)]);
         
         //Entity2: referenced by Entity1
         model.GetReferencingEntities(typeof(Entity2))
@@ -132,7 +131,14 @@ public class EfCoreHelpersTests
         //Child: Referenced as a collection by Entity2
         model.GetReferencingEntities(typeof(Child))
             .Select(e => e.ClrType)
+            .Distinct()
             .Should().BeEquivalentTo([typeof(ParentEntity), typeof(Entity1), typeof(Entity2)]);
+
+        //OwnedForeign: referenced by Owned, which is owned by Entity3
+        //NB: Owned itself is not an entity, so it should not be included
+        model.GetReferencingEntities(typeof(OwnedForeign))
+            .Select(e => e.ClrType)
+            .Should().BeEquivalentTo([typeof(Entity1), typeof(Entity2), typeof(Entity3), typeof(ParentEntity)]);
     }
 
     [Fact]
