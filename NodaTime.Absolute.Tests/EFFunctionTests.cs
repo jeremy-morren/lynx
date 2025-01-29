@@ -13,6 +13,22 @@ namespace NodaTime.Absolute.Tests;
 public class EFFunctionTests(ITestOutputHelper output)
 {
     [Fact]
+    public void QueryJson()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+
+        var options = new DbContextOptionsBuilder()
+            .UseSqlite(connection, x => x.UseNodaTime())
+            .UseAbsoluteDateTime()
+            .Options;
+
+        using var context = new TestContext(options);
+
+        output.WriteLine(context.Database.GenerateCreateScript());
+    }
+
+    [Fact]
     public void EnableAbsoluteTimeOnDbContextShouldSucceed()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
@@ -23,7 +39,7 @@ public class EFFunctionTests(ITestOutputHelper output)
             .UseAbsoluteDateTime()
             .Options;
 
-        using var context = new SqliteDbContext(options);
+        using var context = new TestContext(options);
 
         output.WriteLine(context.Database.GenerateCreateScript());
         context.Database.EnsureCreated();
@@ -45,6 +61,13 @@ public class EFFunctionTests(ITestOutputHelper output)
                 d.ToInstant().Should().Be(instant);
                 d.Zone.Id.Should().Be(zone);
             });
+
+
+        var query =
+            from d in context.Set<DateEntity>().AsNoTracking()
+            where d.Date != d.Owned.Date
+            orderby d.Date
+            select d.Owned.Date;
     }
 
     [Fact]
@@ -58,7 +81,7 @@ public class EFFunctionTests(ITestOutputHelper output)
             .UseAbsoluteDateTime()
             .Options;
 
-        using var context = new SqliteDbContext(options);
+        using var context = new TestContext(options);
 
         output.WriteLine(context.Database.GenerateCreateScript());
         context.Database.EnsureCreated();
@@ -114,13 +137,16 @@ public class EFFunctionTests(ITestOutputHelper output)
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
 
-        new JsonScalarExpression()
         var options = new DbContextOptionsBuilder()
             .UseSqlite(connection, x => x.UseNodaTime())
             .UseAbsoluteDateTime()
             .Options;
 
-        using var context = new SqliteDbContext(options);
+        using var context = new TestContext(options);
+
+        context.Set<DateEntity>().AsNoTracking()
+            .Select(d => d.Owned.Owned2)
+            .Log(output);
 
         // output.WriteLine(context.Database.GenerateCreateScript());
         // context.Database.EnsureCreated();
@@ -130,10 +156,6 @@ public class EFFunctionTests(ITestOutputHelper output)
         // context.Add(DateEntity.New(now, zone));
         // context.Add(DateEntity.New(now, zone));
         // context.SaveChanges();
-
-        context.Set<DateEntity>().AsNoTracking()
-            .Select(d => d.Owned.Date)
-            .Log(output);
 
         // var query = context.Set<DateEntity>().AsNoTracking()
         //     .Where(d => d.Date.GetZoneId() == zone)
@@ -145,51 +167,5 @@ public class EFFunctionTests(ITestOutputHelper output)
         // reader.Read().Should().BeTrue();
         // var json = reader.GetString(0);
         // AbsoluteDateTimeJson.FromJson(json, DateTimeZoneProviders.Tzdb).ToInstant().Should().Be(now);
-    }
-
-    private class SqliteDbContext(DbContextOptions options) : DbContext(options)
-    {
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<DateEntity>(b =>
-            {
-                b.OwnsOne(x => x.Owned, x =>
-                {
-                    x.ToJson();
-
-                    x.HasIndex(y => y.Date);
-                    x.OwnsOne(y => y.Owned2);
-                });
-            });
-        }
-    }
-
-    private class DateEntity
-    {
-        public int Id { get; set; }
-
-        public AbsoluteDateTime Date { get; set; }
-
-        public required Owned Owned { get; set; }
-
-        public static DateEntity New(Instant instant, string zone) => new()
-        {
-            Date = instant.InZone(DateTimeZoneProviders.Tzdb[zone]),
-            Owned = new Owned
-            {
-                Date = instant.InZone(DateTimeZoneProviders.Tzdb[zone]),
-                Owned2 = new Owned
-                {
-                    Date = instant.InZone(DateTimeZoneProviders.Tzdb[zone])
-                }
-            }
-        };
-    }
-
-    private class Owned
-    {
-        public AbsoluteDateTime Date { get; set; }
-
-        public Owned? Owned2 { get; set; }
     }
 }

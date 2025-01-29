@@ -5,11 +5,11 @@ using NodaTime.Absolute.EFCore.Storage;
 
 namespace NodaTime.Absolute.EFCore.Infrastructure;
 
-internal class AbsoluteDateTimeOptionsExtension : IDbContextOptionsExtension
+internal class AbsoluteDateTimeDbContextOptionsExtension : IDbContextOptionsExtension
 {
     private readonly IDateTimeZoneProvider _timeZoneProvider;
 
-    public AbsoluteDateTimeOptionsExtension(IDateTimeZoneProvider? timeZoneProvider)
+    public AbsoluteDateTimeDbContextOptionsExtension(IDateTimeZoneProvider? timeZoneProvider)
     {
         _timeZoneProvider = timeZoneProvider ?? DateTimeZoneProviders.Tzdb;
         Info = new ExtensionInfo(this, _timeZoneProvider);

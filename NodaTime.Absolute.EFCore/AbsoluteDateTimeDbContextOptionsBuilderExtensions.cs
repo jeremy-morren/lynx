@@ -16,8 +16,8 @@ public static class AbsoluteDateTimeDbContextOptionsBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var extension = builder.Options.FindExtension<AbsoluteDateTimeOptionsExtension>()
-                        ?? new AbsoluteDateTimeOptionsExtension(provider);
+        var extension = builder.Options.FindExtension<AbsoluteDateTimeDbContextOptionsExtension>()
+                        ?? new AbsoluteDateTimeDbContextOptionsExtension(provider);
 
         ((IDbContextOptionsBuilderInfrastructure)builder).AddOrUpdateExtension(extension);
 

@@ -4,9 +4,9 @@ using NodaTime.Absolute.EFCore.Serialization;
 
 namespace NodaTime.Absolute.EFCore.Storage.Converters;
 
-internal class AbsoluteDateTimeValueConverter : ValueConverter<AbsoluteDateTime, string>
+internal class AbsoluteDateTimeStringValueConverter : ValueConverter<AbsoluteDateTime, string>
 {
-    public AbsoluteDateTimeValueConverter(IDateTimeZoneProvider timeZoneProvider)
+    public AbsoluteDateTimeStringValueConverter(IDateTimeZoneProvider timeZoneProvider)
         : base(
             dt => AbsoluteDateTimeJson.FromDate(dt).ToJson(),
             json => AbsoluteDateTimeJson.FromJson(json, timeZoneProvider),
