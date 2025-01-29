@@ -3,6 +3,7 @@ using System.Data;
 using System.Linq.Expressions;
 using Lynx.DocumentStore.Operations;
 using Lynx.EfCore;
+using Lynx.EfCore.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore;

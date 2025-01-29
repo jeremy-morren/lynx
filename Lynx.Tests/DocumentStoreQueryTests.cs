@@ -1,6 +1,7 @@
 ﻿using Lynx.DocumentStore;
 using Lynx.DocumentStore.Query;
 using Lynx.EfCore;
+using Lynx.EfCore.Helpers;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
@@ -118,6 +119,7 @@ public class DocumentStoreQueryTests
             store.Load<Entity1>(1, false).ShouldBeNull();
 
             store.Load<Alone>(new { Id1 = 2, Id2 = 4}).ShouldNotBeNull();
+            store.Query<Alone>().Should().HaveCount(1);
 
             store.Query<Entity2>().ToList()
                 .Should().HaveCount(1)

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using Lynx.EfCore.Helpers;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Lynx.EfCore;

@@ -1,12 +1,14 @@
 ﻿using System.Linq.Expressions;
 using System.Reflection;
 using Lynx.EfCore;
+using Lynx.EfCore.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore.Query;
 
 public static class DocumentStoreQueryExtensions
 {
+
     /// <summary>
     /// Queries documents of type <typeparamref name="T"/>.
     /// Excludes deleted entities.
@@ -16,7 +18,7 @@ public static class DocumentStoreQueryExtensions
     {
         ArgumentNullException.ThrowIfNull(store);
 
-        return store.Context.CreateLynxQueryable<T>()
+        return store.Context.Query<T>()
             .IncludeAllReferenced()
             .ExcludeDeleted();
     }
@@ -29,7 +31,7 @@ public static class DocumentStoreQueryExtensions
     {
         ArgumentNullException.ThrowIfNull(store);
 
-        var query = store.Context.CreateLynxQueryable<T>().IncludeAllReferenced();
+        var query = store.Context.Query<T>().IncludeAllReferenced();
         return includeDeleted ? query : query.ExcludeDeleted();
     }
 
@@ -42,39 +44,14 @@ public static class DocumentStoreQueryExtensions
     {
         ArgumentNullException.ThrowIfNull(store);
 
-        return store.Context.CreateLynxQueryable<T>();
+        return store.Context.Query<T>();
     }
 
-    /// <summary>
-    /// Excludes deleted entities from the query.
-    /// </summary>
-    /// <param name="query"></param>
-    /// <typeparam name="T"></typeparam>
-    /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
-    public static IQueryable<T> ExcludeDeleted<T>(this IQueryable<T> query) where T : class
+    private static IQueryable<T> Query<T>(this DbContext context)
+        where T : class
     {
-        var context = query.GetDbContext();
-        var entityType = context.Model.GetEntityType(typeof(T));
+        context.Model.GetEntityType(typeof(T)); //Will throw if the entity type is not found
 
-        var property = entityType.FindProperty("Deleted") ?? entityType.FindProperty("IsDeleted");
-        if (property?.ClrType != typeof(bool) && property?.ClrType != typeof(bool?))
-            return query; //No deleted property found, ignore
-
-        //For readability of query debug view, write lambda to use a constant value for name (instead of a captured variable)
-        var param = Expression.Parameter(typeof(T), "x");
-        var body = Expression.Equal(
-            Expression.Call(
-                BoolPropertyMethod.MakeGenericMethod(property.ClrType),
-                param,
-                Expression.Constant(property.Name)),
-            Expression.Constant(false)
-        );
-        var lambda = Expression.Lambda<Func<T, bool>>(body, param);
-
-        return query.Where(lambda);
+        return context.Set<T>().AsNoTracking();
     }
-
-    private static readonly MethodInfo BoolPropertyMethod = typeof(EF)
-        .GetMethod(nameof(EF.Property), BindingFlags.Public | BindingFlags.Static)!;
 }

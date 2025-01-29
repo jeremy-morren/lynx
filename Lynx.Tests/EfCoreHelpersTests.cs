@@ -41,19 +41,28 @@ public class EfCoreHelpersTests
                 e2.Entity3.Owned1.ShouldNotBeNull();
                 e2.Entity3.OwnedList.ShouldNotBeNull();
             });
-            
+
             var e2 = context.Set<Entity2>().IncludeAllReferenced();
             e2.Should().HaveCount(2);
             Assert.All(e2, e =>
             {
                 e.Parent.ShouldNotBeNull();
                 e.Entity3.ShouldNotBeNull();
-                e.Children.ShouldBeNull();
+                e.Children.ShouldBeNull("Collections should not be included");
                 e.Entity3.OwnedList.ShouldHaveSingleItem();
             });
 
-            var e3 = context.Set<Entity3>().IncludeAllReferenced().ToList();
-            e3.Should().HaveCount(2);
+            e2 = context.Set<Entity2>()
+                .Include(x => x.Children)
+                .ThenIncludeAllReferenced();
+            e2.Should().HaveCount(2);
+            Assert.All(e2, e =>
+            {
+                e.Children.Should().HaveCount(1);
+                Assert.All(e.Children, c => c.Foreign.ShouldNotBeNull());
+            });
+
+            context.Set<Entity3>().IncludeAllReferenced().ToList().Should().HaveCount(2);
             
             var alone = context.Set<Alone>().IncludeAllReferenced();
             alone.Should().HaveCount(2);
@@ -71,10 +80,16 @@ public class EfCoreHelpersTests
         var model = context.Model;
 
         IncludeRelatedEntities.GetIncludeProperties(model, typeof(Entity1))
-            .Should().BeEquivalentTo(nameof(Entity1.Entity2), $"{nameof(Entity1.Entity2)}.{nameof(Entity2.Entity3)}");
+            .Should().BeEquivalentTo(
+                nameof(Entity1.Entity2),
+                $"{nameof(Entity1.Entity2)}.{nameof(Entity2.Entity3)}",
+                $"{nameof(Entity1.Entity2)}.{nameof(Entity2.Entity3)}.{nameof(Entity3.Other)}");
+
         IncludeRelatedEntities.GetIncludeProperties(model, typeof(Entity2))
-            .Should().BeEquivalentTo(nameof(Entity2.Parent), nameof(Entity2.Entity3));
-        IncludeRelatedEntities.GetIncludeProperties(model, typeof(Entity3)).ShouldBeEmpty();
+            .Should().BeEquivalentTo(nameof(Entity2.Parent), nameof(Entity2.Entity3), $"{nameof(Entity2.Entity3)}.{nameof(Entity3.Other)}");
+
+        IncludeRelatedEntities.GetIncludeProperties(model, typeof(Entity3)).Should()
+            .BeEquivalentTo(nameof(Entity3.Other));
 
         IncludeRelatedEntities.GetIncludeProperties(model, typeof(Alone)).ShouldBeEmpty();
     }
@@ -97,7 +112,9 @@ public class EfCoreHelpersTests
             .Select(e => e.Name)
             .Should().BeEquivalentTo(nameof(Entity1.Entity2));
         
-        IncludeRelatedEntities.GetNavigations(model, typeof(Entity3), null).ShouldBeEmpty();
+        IncludeRelatedEntities.GetNavigations(model, typeof(Entity3), null)
+            .Select(e => e.Name)
+            .Should().BeEquivalentTo(nameof(Entity3.Other));
     }
 
     [Fact]
@@ -110,20 +127,20 @@ public class EfCoreHelpersTests
         using var context = new TestContext(options);
         var model = context.Model;
 
-        //Entity1: referenced by Entity2 and itself
+        //Entity1: referenced by Entity2
         model.GetReferencingEntities(typeof(Entity1))
             .Select(e => e.ClrType)
-            .Should().BeEquivalentTo([typeof(Entity1), typeof(Entity2)]);
+            .Should().BeEquivalentTo([typeof(Entity2)]);
         
         //Entity2: referenced by Entity1
         model.GetReferencingEntities(typeof(Entity2))
             .Select(e => e.ClrType)
             .Should().BeEquivalentTo([typeof(Entity1)]);
         
-        //Entity3 and Child: referenced by Entity1 and Entity2
+        //Entity3 and Child: referenced by Entity1 and Entity2 and itself
         model.GetReferencingEntities(typeof(Entity3))
             .Select(e => e.ClrType)
-            .Should().BeEquivalentTo([typeof(Entity1), typeof(Entity2)]);
+            .Should().BeEquivalentTo([typeof(Entity1), typeof(Entity2), typeof(Entity3)]);
         
         //Alone: not referenced by any entity
         model.GetReferencingEntities(typeof(Alone)).ShouldBeEmpty();
@@ -134,11 +151,11 @@ public class EfCoreHelpersTests
             .Distinct()
             .Should().BeEquivalentTo([typeof(ParentEntity), typeof(Entity1), typeof(Entity2)]);
 
-        //OwnedForeign: referenced by Owned, which is owned by Entity3
+        //Foreign: referenced by Owned, which is owned by Entity3
         //NB: Owned itself is not an entity, so it should not be included
-        model.GetReferencingEntities(typeof(OwnedForeign))
+        model.GetReferencingEntities(typeof(Foreign))
             .Select(e => e.ClrType)
-            .Should().BeEquivalentTo([typeof(Entity1), typeof(Entity2), typeof(Entity3), typeof(ParentEntity)]);
+            .Should().BeEquivalentTo([typeof(Child), typeof(Entity1), typeof(Entity2), typeof(Entity3), typeof(ParentEntity)]);
     }
 
     [Fact]

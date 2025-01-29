@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata;
+﻿using Lynx.EfCore.Helpers;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Lynx.EfCore;
 

@@ -1,4 +1,5 @@
-﻿using Microsoft.Data.Sqlite;
+﻿using JetBrains.Annotations;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 // ReSharper disable UnusedAutoPropertyAccessor.Global
@@ -34,10 +35,13 @@ public class TestContext : DbContext
             b.OwnsMany(x => x.OwnedList);
         });
 
-        modelBuilder.Entity<Alone>()
-            .HasKey(x => new { x.Id1, x.Id2 });
+        modelBuilder.Entity<Alone>(b =>
+        {
+            b.HasKey(x => new { x.Id1, x.Id2 });
+            b.Property<bool>("Deleted");
+        });
 
-        modelBuilder.Entity<OwnedForeign>();
+        modelBuilder.Entity<Foreign>();
     }
 
     /// <summary>
@@ -65,6 +69,7 @@ public class TestContext : DbContext
     }
 }
 
+[UsedImplicitly(ImplicitUseTargetFlags.WithInheritors | ImplicitUseTargetFlags.WithMembers)]
 public class EntityBase
 {
     public required int Id { get; set; }
@@ -96,11 +101,6 @@ public class Entity1 : EntityBase
 
     public required bool Deleted { get; set; }
 
-    /// <summary>
-    /// Reference self (to test recursion)
-    /// </summary>
-    public Entity1? Other { get; set; }
-
     public static Entity1 New(int id, bool deleted = false) => new()
     {
         Id = id,
@@ -117,7 +117,14 @@ public class Entity1 : EntityBase
             },
             Children = new List<Child>
             {
-                new() { Id = id }
+                new()
+                {
+                    Id = id,
+                    Foreign = new Foreign()
+                    {
+                        Id = id
+                    }
+                }
             }
         }
     };
@@ -137,22 +144,30 @@ public class Entity3 : EntityBase
 {
     public required Owned Owned1 { get; set; }
     public required ICollection<Owned> OwnedList { get; set; }
+
+    /// <summary>
+    /// Reference self (to test recursion)
+    /// </summary>
+    public Entity3? Other { get; set; }
 }
 
 public class Owned : EntityBase
 {
-    public OwnedForeign? Child { get; set; }
+    public Foreign? Child { get; set; }
 }
 
-public class Child : EntityBase;
+public class Child : EntityBase
+{
+    public Foreign? Foreign { get; set; }
+}
 
 /// <summary>
 /// Entity referenced by an owned type
 /// </summary>
-public class OwnedForeign : EntityBase;
+public class Foreign : EntityBase;
 
 /// <summary>
-/// Not referenced. Also has composite key
+/// Not reference by any other entity. Has composite key. Has shadow property Deleted.
 /// </summary>
 public class Alone
 {

@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
+using Lynx.EfCore.Helpers;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Lynx.EfCore;
