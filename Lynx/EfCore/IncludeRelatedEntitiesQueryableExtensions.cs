@@ -36,6 +36,8 @@ public static class IncludeRelatedEntitiesQueryableExtensions
         where TEntity : class
         where TProperty : class
     {
+        //TODO: make this work with owned entities
+
         var context = query.GetDbContext();
 
         var key = (context.Model, typeof(TProperty));

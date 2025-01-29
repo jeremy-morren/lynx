@@ -1,6 +1,8 @@
 ﻿using System.Linq.Expressions;
+using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.EntityFrameworkCore.Query;
 
 namespace Lynx.EfCore.Helpers;
@@ -17,7 +19,7 @@ internal static class EfCoreIncludeHelpers
     {
         var properties = GetIncludeLambdas(query.Expression)
             .Reverse() // Reverse to get order from root to leaf
-            .Select(l => l.GetMemberAccess().Name);
+            .Select(l => l.GetMember()?.Name);
 
         return string.Join(".", properties);
     }
@@ -46,6 +48,25 @@ internal static class EfCoreIncludeHelpers
                 yield break;
 
             expression = previous;
+        }
+    }
+
+    private static MemberInfo? GetMember(this LambdaExpression lambda)
+    {
+        var expression = lambda.Body;
+        while (true)
+        {
+            switch (expression)
+            {
+                case MemberExpression { Member: { } member }:
+                    return member;
+                case MethodCallExpression { Arguments.Count: > 0 } method:
+                    expression = method.Arguments[0];
+                    break;
+                default:
+                    //Unknown expression
+                    return null;
+            }
         }
     }
 }

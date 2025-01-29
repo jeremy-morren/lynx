@@ -16,10 +16,11 @@ internal static class IncludeRelatedEntities
             .SelectMany(nav =>
             {
                 //Recursively get all children, except for this navigation
-                var children = GetIncludePropertiesInternal(nav.TargetEntityType, nav.ForeignKey)
-                    .Select(n => $"{nav.Name}.{n}");
+                var children = GetIncludePropertiesInternal(nav.TargetEntityType, nav.ForeignKey).Select(n => $"{nav.Name}.{n}");
 
-                return children.Prepend(nav.Name); // Return the navigation itself and its children
+                return nav.ForeignKey.IsOwnership
+                    ? children // For owned properties, return only the children
+                    : children.Prepend(nav.Name); // For non-owned properties, return the navigation itself and its children
             });
 
     /// <summary>
@@ -37,7 +38,6 @@ internal static class IncludeRelatedEntities
         // Exclude collections and owned properties
         // Exclude parent key (if properties on both sides are defined) to stop infinite recursion
         return entity.GetNavigations()
-            .Where(nav => nav.ForeignKey != parentKey 
-                          && nav is { IsCollection: false, ForeignKey.IsOwnership: false });
+            .Where(nav => nav.ForeignKey != parentKey && nav is { IsCollection: false });
     }
 }

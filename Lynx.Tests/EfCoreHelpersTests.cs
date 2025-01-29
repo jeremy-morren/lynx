@@ -70,51 +70,35 @@ public class EfCoreHelpersTests
     }
 
     [Fact]
-    public void GetIncludePropertiesShouldRecurse()
+    public void GetIncludeProperties()
     {
         var options = new DbContextOptionsBuilder()
-            .UseInMemoryDatabase(nameof(GetIncludePropertiesShouldRecurse))
+            .UseInMemoryDatabase(nameof(GetIncludeProperties))
             .Options;
 
         using var context = new TestContext(options);
         var model = context.Model;
+
+        //Properties included by Entity3
+        var entity3 = new[]
+        {
+            $"{nameof(Entity3.Owned1)}.{nameof(Owned.Child)}",
+            nameof(Entity3.Other), $"{nameof(Entity3.Other)}.{nameof(Entity3.Owned1)}.{nameof(Entity3.Owned1.Child)}"
+        };
+
+        IncludeRelatedEntities.GetIncludeProperties(model, typeof(Entity3)).Should().BeEquivalentTo(entity3);
+
+        IncludeRelatedEntities.GetIncludeProperties(model, typeof(Entity2))
+            .Should().BeEquivalentTo(
+                new [] {nameof(Entity2.Parent), nameof(Entity2.Entity3) }
+                    .Concat(entity3.Select(x => $"{nameof(Entity2.Entity3)}.{x}")));
 
         IncludeRelatedEntities.GetIncludeProperties(model, typeof(Entity1))
             .Should().BeEquivalentTo(
-                nameof(Entity1.Entity2),
-                $"{nameof(Entity1.Entity2)}.{nameof(Entity2.Entity3)}",
-                $"{nameof(Entity1.Entity2)}.{nameof(Entity2.Entity3)}.{nameof(Entity3.Other)}");
-
-        IncludeRelatedEntities.GetIncludeProperties(model, typeof(Entity2))
-            .Should().BeEquivalentTo(nameof(Entity2.Parent), nameof(Entity2.Entity3), $"{nameof(Entity2.Entity3)}.{nameof(Entity3.Other)}");
-
-        IncludeRelatedEntities.GetIncludeProperties(model, typeof(Entity3)).Should()
-            .BeEquivalentTo(nameof(Entity3.Other));
+                new[] { nameof(Entity1.Entity2), $"{nameof(Entity1.Entity2)}.{nameof(Entity2.Entity3)}" }
+                    .Concat(entity3.Select(x => $"{nameof(Entity1.Entity2)}.{nameof(Entity2.Entity3)}.{x}")));
 
         IncludeRelatedEntities.GetIncludeProperties(model, typeof(Alone)).ShouldBeEmpty();
-    }
-    
-    [Fact]
-    public void IncludeShadowPropertiesShouldBeIgnored()
-    {
-        var options = new DbContextOptionsBuilder()
-            .UseInMemoryDatabase(nameof(IncludeShadowPropertiesShouldBeIgnored))
-            .Options;
-
-        using var context = new TestContext(options);
-        var model = context.Model;
-        
-        IncludeRelatedEntities.GetNavigations(model, typeof(Entity2), null)
-            .Select(e => e.Name)
-            .Should().BeEquivalentTo(nameof(Entity2.Entity3), nameof(Entity2.Parent));
-        
-        IncludeRelatedEntities.GetNavigations(model, typeof(Entity1), null)
-            .Select(e => e.Name)
-            .Should().BeEquivalentTo(nameof(Entity1.Entity2));
-        
-        IncludeRelatedEntities.GetNavigations(model, typeof(Entity3), null)
-            .Select(e => e.Name)
-            .Should().BeEquivalentTo(nameof(Entity3.Other));
     }
 
     [Fact]

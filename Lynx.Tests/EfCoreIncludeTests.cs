@@ -33,6 +33,24 @@ public class EfCoreIncludeTests
             .ShouldBe($"{nameof(E1.E2s)}.{nameof(E2.E3s)}.{nameof(E3.E4s)}");
     }
 
+    [Fact]
+    public void GetIncludePathsWithSubExpression()
+    {
+        var options = new DbContextOptionsBuilder()
+            .UseInMemoryDatabase(nameof(GetIncludePaths))
+            .Options;
+
+        using var context = new Context(options);
+
+        context.Set<E1>()
+            .Include(e => e.E2s.OrderByDescending(x => x.Id))
+            .ThenInclude(e => e.E3s)
+            .ThenInclude(e => e.E4s.Where(x => x.Id == 0).OrderBy(x => x.Id))
+            .GetFullIncludePath()
+
+            .ShouldBe($"{nameof(E1.E2s)}.{nameof(E2.E3s)}.{nameof(E3.E4s)}");
+    }
+
     private class Context(DbContextOptions options) : DbContext(options)
     {
         protected override void OnModelCreating(ModelBuilder modelBuilder)
