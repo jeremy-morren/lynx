@@ -140,7 +140,7 @@ public static class PgDataDump
                 $"COPY \"{schema}\".\"{table}\" FROM STDIN (FORMAT BINARY)",
                 cancellationToken);
             var stream = reader.CreateStream(bufferSize);
-            await stream.CopyToAsync(writer, bufferSize, cancellationToken);
+            await stream.CopyToAsync(writer, cancellationToken);
         }
         await transaction.CommitAsync(cancellationToken);
     }
@@ -176,7 +176,7 @@ public static class PgDataDump
             using var writer = connection.BeginRawBinaryCopy(
                 $"COPY \"{schema}\".\"{table}\" FROM STDIN (FORMAT BINARY)");
             var stream = reader.CreateStream(bufferSize);
-            stream.CopyTo(writer, bufferSize);
+            stream.CopyTo(writer);
         }
         transaction.Commit();
     }

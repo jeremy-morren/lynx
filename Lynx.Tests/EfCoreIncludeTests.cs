@@ -76,7 +76,7 @@ public class EfCoreIncludeTests
     {
         public required Child Child { get; set; }
 
-        public ICollection<E4> E4s { get; set; }
+        public required ICollection<E4> E4s { get; set; }
     }
 
     private class E4 : EntityBase
