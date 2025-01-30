@@ -34,9 +34,9 @@ public class PgRestoreTests : PgToolTestsBase
             Format = format,
             ExitOnError = true
         };
-        await PgRestore.RestoreAsync(ConnString, options, filename, ct);
+        await PgRestore.RestoreAsync(MasterConnString, options, filename, ct);
 
-        ExecuteScalar($"{ConnString};Database={database}", "select count(*) from public.\"Child\"").ShouldBe(3);
+        ExecuteScalar($"{MasterConnString};Database={database}", "select count(*) from public.\"Child\"").ShouldBe(3);
 
         DropDatabase(database);
     }
@@ -63,9 +63,9 @@ public class PgRestoreTests : PgToolTestsBase
             ExitOnError = true
         };
         await using var fs = File.OpenRead(filename);
-        await PgRestore.RestoreAsync(ConnString, options, fs, ct);
+        await PgRestore.RestoreAsync(MasterConnString, options, fs, ct);
 
-        ExecuteScalar($"{ConnString};Database={database}", "select count(*) from public.\"Child\"").ShouldBe(3);
+        ExecuteScalar($"{MasterConnString};Database={database}", "select count(*) from public.\"Child\"").ShouldBe(3);
 
         DropDatabase(database);
     }

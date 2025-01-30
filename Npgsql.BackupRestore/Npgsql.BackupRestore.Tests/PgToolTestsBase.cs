@@ -8,9 +8,14 @@ namespace Npgsql.BackupRestore.Tests;
 [SuppressMessage("Performance", "SYSLIB1045:Convert to \'GeneratedRegexAttribute\'.")]
 public class PgToolTestsBase
 {
-    protected const string ConnString = "Host=localhost;Username=postgres;Password=postgres";
-    protected const string Database = "postgres";
-    protected const string FullConnString = $"{ConnString};Database={Database}";
+    protected const string MasterConnString =  SampleDatabase.MasterConnString;
+    protected const string Database = SampleDatabase.DatabaseName;
+    protected const string ConnString = SampleDatabase.ConnString;
+
+    static PgToolTestsBase()
+    {
+        SampleDatabase.EnsureCreated();
+    }
 
     /// <summary>
     /// Gets all option names for the given tool, by running --help
@@ -23,24 +28,6 @@ public class PgToolTestsBase
         optionNames.Should().HaveCountGreaterThan(1);
         optionNames.ShouldAllBe(n => n.StartsWith("--"));
         return optionNames;
-    }
-    
-    protected static string GetSchemaWithTables()
-    {
-        using var conn = new NpgsqlConnection(FullConnString);
-        if (conn.State != ConnectionState.Open)
-            conn.Open();
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = """
-                          SELECT table_schema, COUNT(1) AS table_count
-                          FROM information_schema.tables
-                          WHERE table_type = 'BASE TABLE'
-                          GROUP BY table_schema
-                          ORDER BY table_count
-                          LIMIT 1
-                          """;
-        var result = cmd.ExecuteScalar();
-        return result.ShouldBeOfType<string>().ShouldNotBeNull();
     }
 
     protected static object? ExecuteScalar(string connString, string sql)
@@ -70,7 +57,7 @@ public class PgToolTestsBase
     protected static void CleanDatabase(string dbName)
     {
         DropDatabase(dbName);
-        ExecuteNonQuery(ConnString, $"CREATE DATABASE \"{dbName}\"");
+        ExecuteNonQuery(MasterConnString, $"CREATE DATABASE \"{dbName}\"");
     }
     
     /// <summary>
@@ -81,7 +68,7 @@ public class PgToolTestsBase
     {
         try
         {
-            ExecuteNonQuery(ConnString, $"DROP DATABASE \"{dbName}\" WITH (FORCE)");
+            ExecuteNonQuery(MasterConnString, $"DROP DATABASE \"{dbName}\" WITH (FORCE)");
         }
         catch (NpgsqlException e) when (e.SqlState == "3D000")
         {
