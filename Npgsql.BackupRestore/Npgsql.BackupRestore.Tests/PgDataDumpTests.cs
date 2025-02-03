@@ -18,6 +18,7 @@ public class PgDataDumpTests : PgToolTestsBase
             ? await PgTableReader.GetTablesAsync(connection, default)
             : PgTableReader.GetTables(connection);
         tables.Should().NotBeEmpty();
+        tables.ShouldAllBe(t => t.Columns.Count > 0);
         tables.OrderBy(x => x.Dependencies.Count)
             .ThenBy(x => x.Schema)
             .ThenBy(x => x.Table)
@@ -32,6 +33,7 @@ public class PgDataDumpTests : PgToolTestsBase
     public async Task RoundTrip(short segmentSize, int bufferSize)
     {
         var schema = await DumpSchemaAsync();
+        var data = await DumpDatabase(Database);
         foreach (var async in new[] { false, true })
         {
             using var ms = new MemoryStream();
@@ -53,6 +55,9 @@ public class PgDataDumpTests : PgToolTestsBase
                     await PgDataDump.RestoreAsync(outConnString, ms, bufferSize);
                 else
                     PgDataDump.Restore(outConnString, ms, bufferSize);
+
+                // Ensure that the restored database has same data as original
+                (await DumpDatabase(outDatabase)).ShouldBeEquivalentTo(data);
 
                 // Backing up the restored database should be equivalent to original
                 using var finalBackup = new MemoryStream();
@@ -81,5 +86,18 @@ public class PgDataDumpTests : PgToolTestsBase
         using var ms = new MemoryStream();
         await PgBackup.BackupAsync(MasterConnString, options, Database, ms);
         return Encoding.UTF8.GetString(ms.ToArray());
+    }
+
+    private static async Task<byte[]> DumpDatabase(string database)
+    {
+        var options = new PgBackupOptions()
+        {
+            Format = PgBackupFormat.Plain,
+            NoOwner = true,
+            NoPrivileges = true
+        };
+        using var ms = new MemoryStream();
+        await PgBackup.BackupAsync(MasterConnString, options, Database, ms);
+        return ms.ToArray();
     }
 }

@@ -8,35 +8,6 @@ namespace Npgsql.BackupRestore.DataDump;
 /// </summary>
 internal static class PgTableReader
 {
-    /// <summary>
-    /// A postgres table
-    /// </summary>
-    public record PgTable
-    {
-        public PgTable(DbDataReader reader)
-        {
-            Schema = reader.GetString("Schema");
-            Table = reader.GetString("Table");
-        }
-
-        /// <summary>Table schema</summary>
-        public string Schema { get; }
-
-        /// <summary>Table name</summary>
-        public string Table { get; }
-
-
-        /// <summary>Table dependencies (i.e. tables that this table has foreign keys to)</summary>
-        public List<PgTable> Dependencies { get; } = [];
-
-        public void Deconstruct(out string schema, out string table)
-        {
-            schema = Schema;
-            table = Table;
-        }
-
-        public override string ToString() => $"{Schema}.{Table}";
-    }
 
     /// <summary>
     /// Gets tables sorted in order that they can be restored
@@ -44,26 +15,10 @@ internal static class PgTableReader
     /// <param name="connection"></param>
     public static List<PgTable> GetTables(NpgsqlConnection connection)
     {
-        var tables = Read(connection, GetTablesSql, r => new PgTable(r))
-            .ToDictionary(t => (t.Schema, t.Table));
-
-        var dependencies = Read(connection,
-            GetDependenciesSql,
-            r => new
-            {
-                Schema = r.GetString("Schema"),
-                Table = r.GetString("Table"),
-                ForeignSchema = r.GetString("ForeignSchema"),
-                ForeignTable = r.GetString("ForeignTable")
-            });
-
-        foreach (var d in dependencies)
-        {
-            var table = tables[(d.Schema, d.Table)];
-            var dependency = tables[(d.ForeignSchema, d.ForeignTable)];
-            table.Dependencies.Add(dependency);
-        }
-        return Sort(tables.Values);
+        var tables = Read(connection, GetTablesSql, r => new PgTable(r));
+        var dependencies = Read(connection, GetDependenciesSql, r => new Dependency(r));
+        var columns = Read(connection, GetColumnsSql, r => new Column(r));
+        return Merge(tables, dependencies, columns);
     }
 
     /// <summary>
@@ -74,45 +29,60 @@ internal static class PgTableReader
     /// <returns></returns>
     public static async Task<List<PgTable>> GetTablesAsync(NpgsqlConnection connection, CancellationToken ct)
     {
-        var tables = (await ReadAsync(connection, GetTablesSql, r => new PgTable(r), ct))
-            .ToDictionary(t => (t.Schema, t.Table));
+        var tables = await ReadAsync(connection, GetTablesSql, r => new PgTable(r), ct);
+        var dependencies = await ReadAsync(connection, GetDependenciesSql, r => new Dependency(r), ct);
+        var columns = await ReadAsync(connection, GetColumnsSql, r => new Column(r), ct);
 
-        var dependencies = await ReadAsync(connection,
-            GetDependenciesSql,
-            r => new
-            {
-                Schema = r.GetString("Schema"),
-                Table = r.GetString("Table"),
-                ForeignSchema = r.GetString("ForeignSchema"),
-                ForeignTable = r.GetString("ForeignTable")
-            },
-            ct);
-
-        foreach (var d in dependencies)
-        {
-            var table = tables[(d.Schema, d.Table)];
-            var dependency = tables[(d.ForeignSchema, d.ForeignTable)];
-            table.Dependencies.Add(dependency);
-        }
-        return Sort(tables.Values);
+        return Merge(tables, dependencies, columns);
     }
 
     /// <summary>
-    /// Sorts tables in order that they can be restored
+    /// Merges dependencies and columns into tables, and sorts tables in order that they can be restored
     /// </summary>
-    private static List<PgTable> Sort(IEnumerable<PgTable> tables)
+    private static List<PgTable> Merge(List<PgTable> tables, List<Dependency> dependencies, List<Column> columns)
     {
+        foreach (var t in tables)
+        {
+            t.Dependencies.AddRange(
+                from d in dependencies
+                where d.Schema == t.Schema && d.Table == t.Table
+                select tables.Single(x => x.Schema == d.ForeignSchema && x.Table == d.ForeignTable));
+            t.Columns.AddRange(
+                from c in columns
+                where c.Schema == t.Schema && c.Table == t.Table
+                orderby c.Position
+                select c.Name);
+        }
+
         var list = tables.OrderBy(t => t.Schema).ThenBy(t => t.Table).ToList();
         var sorted = new List<PgTable>();
         while (list.Count > 0)
         {
-            var canAdd = list.Where(d => d.Dependencies.All(sorted.Contains)).ToList();
+            var canAdd = list.Where(t => t.Dependencies.All(d => sorted.Contains(d) || d == t)).ToList();
             if (canAdd.Count == 0)
                 throw new InvalidOperationException("Circular dependency detected");
             sorted.AddRange(canAdd);
             list.RemoveAll(sorted.Contains);
         }
         return sorted;
+    }
+
+    private record Dependency(string Schema, string Table, string ForeignTable, string ForeignSchema)
+    {
+        public Dependency(DbDataReader reader)
+            : this(reader.GetString(nameof(Schema)),
+                reader.GetString(nameof(Table)),
+                reader.GetString(nameof(ForeignTable)),
+                reader.GetString(nameof(ForeignSchema))) {}
+    }
+
+    private record Column(string Schema, string Table, string Name, int Position)
+    {
+        public Column(DbDataReader reader)
+            : this(reader.GetString(nameof(Schema)),
+                reader.GetString(nameof(Table)),
+                reader.GetString(nameof(Name)),
+                reader.GetInt32(nameof(Position))) {}
     }
 
     #region SQL
@@ -139,6 +109,17 @@ internal static class PgTableReader
                                                 JOIN information_schema.constraint_column_usage AS ccu ON ccu.constraint_name = tc.constraint_name
                                             WHERE tc.constraint_type = 'FOREIGN KEY'
                                             """;
+
+    private const string GetColumnsSql = """
+                                         select table_schema as "Schema", 
+                                                table_name as "Table", 
+                                                column_name as "Name",
+                                                ordinal_position as "Position"
+                                         from information_schema.columns
+                                         where is_generated='NEVER' -- exclude generated columns
+                                           AND table_schema !~ ALL ('{^pg_,^information_schema$}') -- exclude system schemas
+                                         order by table_schema, table_name, ordinal_position;
+                                         """;
 
     #endregion
 

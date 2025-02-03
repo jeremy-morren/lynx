@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using JetBrains.Annotations;
 using Npgsql.BackupRestore.DataDump;
+// ReSharper disable ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
 
 namespace Npgsql.BackupRestore;
 
@@ -48,13 +49,16 @@ public static class PgDataDump
         var writer = new DataDumpWriter(output);
 
         await using var cmd = connection.CreateCommand();
-        foreach (var (schema, table) in tables)
+        foreach (var t in tables)
         {
-            await writer.WriteStringAsync(schema, cancellationToken);
-            await writer.WriteStringAsync(table, cancellationToken);
+            if (await t.IsEmptyAsync(cmd, cancellationToken))
+                continue; // Skip empty tables
+
+            // Will be used to restore the table
+            await writer.WriteStringAsync(t.GetCopyStdInCommand(), cancellationToken);
 
             await using var data = await connection.BeginRawBinaryCopyAsync(
-                $"COPY \"{schema}\".\"{table}\" TO STDOUT (FORMAT BINARY)",
+                t.GetCopyStdOutCommand(),
                 cancellationToken);
             await writer.CopyFromStreamAsync(data, segmentSize, cancellationToken);
         }
@@ -87,13 +91,13 @@ public static class PgDataDump
         var writer = new DataDumpWriter(output);
 
         using var cmd = connection.CreateCommand();
-        foreach (var (schema, table) in tables)
+        foreach (var t in tables)
         {
-            writer.WriteString(schema);
-            writer.WriteString(table);
+            if (t.IsEmpty(cmd))
+                continue; // Skip empty tables
 
-            using var data = connection.BeginRawBinaryCopy(
-                $"COPY \"{schema}\".\"{table}\" TO STDOUT (FORMAT BINARY)");
+            writer.WriteString(t.GetCopyStdInCommand());
+            using var data = connection.BeginRawBinaryCopy(t.GetCopyStdOutCommand());
             writer.CopyFromStream(data, segmentSize);
         }
     }
@@ -129,16 +133,11 @@ public static class PgDataDump
         var reader = new DataDumpReader(input);
         while (true)
         {
-            var schema = await reader.ReadStringAsync(cancellationToken);
-            if (schema == null)
+            var copy = await reader.ReadStringAsync(cancellationToken);
+            if (copy == null)
                 break;
 
-            var table = await reader.ReadStringAsync(cancellationToken)
-                ?? throw new InvalidDataException("Unexpected end of stream");
-
-            await using var writer = await connection.BeginRawBinaryCopyAsync(
-                $"COPY \"{schema}\".\"{table}\" FROM STDIN (FORMAT BINARY)",
-                cancellationToken);
+            await using var writer = await connection.BeginRawBinaryCopyAsync(copy, cancellationToken);
             var stream = reader.CreateStream(bufferSize);
             await stream.CopyToAsync(writer, cancellationToken);
         }
@@ -166,15 +165,10 @@ public static class PgDataDump
         var reader = new DataDumpReader(input);
         while (true)
         {
-            var schema = reader.ReadString();
-            if (schema == null)
+            var copy = reader.ReadString();
+            if (copy == null)
                 break;
-
-            var table = reader.ReadString()
-                        ?? throw new InvalidDataException("Unexpected end of stream");
-
-            using var writer = connection.BeginRawBinaryCopy(
-                $"COPY \"{schema}\".\"{table}\" FROM STDIN (FORMAT BINARY)");
+            using var writer = connection.BeginRawBinaryCopy(copy);
             var stream = reader.CreateStream(bufferSize);
             stream.CopyTo(writer);
         }
