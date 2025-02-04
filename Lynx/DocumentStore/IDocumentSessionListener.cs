@@ -16,7 +16,8 @@ public interface IDocumentSessionListener
 
     internal void AfterCommit(IEnumerable<IDocumentSessionOperation> operations, DbContext context)
     {
-        foreach (var o in operations)
-            o.AfterCommit(this, context);
+        var insertedOrUpdated = operations.SelectMany(o => o.InsertedOrUpdatedDocuments).ToList();
+        if (insertedOrUpdated.Count > 0)
+            OnInsertedOrUpdated(insertedOrUpdated, context);
     }
 }

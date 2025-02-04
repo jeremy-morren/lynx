@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Lynx.DocumentStore;
 using Microsoft.EntityFrameworkCore;
 using Moq;
@@ -35,6 +36,9 @@ public class DocumentSessionTests
             session.Insert(ParentEntity.Create(5));
             session.Insert(ParentEntity.Create(6), ParentEntity.Create(7));
             session.Insert<ParentEntity>(new List<ParentEntity>() { ParentEntity.Create(8) });
+
+            //EF operation
+            session.StoreViaContext(Alone.New(1));
             
             if (isAsync)
                 await session.SaveChangesAsync();
@@ -49,13 +53,17 @@ public class DocumentSessionTests
             context.Query<ParentEntity>().Should().HaveCount(8);
             context.Query<ParentEntity>().Single(e => e.Id == 3).Iteration.ShouldBe(1,
                 "Existing entity should be overwritten");
-            
+
+            context.Query<Alone>().Should().HaveCount(1);
+
             //Upsert and delete
             var session = store.OpenSession();
             session.DeleteWhere<ParentEntity>(x => x.Id == 1);
             session.Delete<ParentEntity>(2);
             
             session.Store(ParentEntity.Create(3, 2)); //Overwrite previous insert
+
+            session.StoreViaContext(Alone.New(1)); //Overwrite previous store
             
             if (isAsync)
                 await session.SaveChangesAsync();
@@ -71,9 +79,11 @@ public class DocumentSessionTests
                 .And.AllSatisfy(e => e.Owned.ShouldNotBeNull().Id.ShouldBe(e.Id));
             
             context.Query<ParentEntity>().Single(e => e.Id == 3).Iteration.ShouldBe(2);
+
+            context.Query<Alone>().Should().HaveCount(1);
         }
 
-        listener.Verify(l => l.OnInsertedOrUpdated(It.IsAny<IReadOnlyList<object>>(), It.IsAny<DbContext>()), Times.Exactly(8));
+        listener.Verify(l => l.OnInsertedOrUpdated(It.IsAny<IReadOnlyList<object>>(), It.IsAny<DbContext>()), Times.Exactly(2));
     }
 
     [Fact]

@@ -29,7 +29,7 @@ internal class DocumentSession : IDocumentSession
         DbContext = context ?? throw new ArgumentNullException(nameof(context));
     }
 
-    public IReadOnlyList<IDocumentSessionOperation> Operations => _unitOfWork;
+    public IReadOnlyList<object> Operations => _unitOfWork;
     
     public DbContext DbContext { get; }
     
@@ -37,6 +37,9 @@ internal class DocumentSession : IDocumentSession
 
     public void SaveChanges()
     {
+        if (_unitOfWork.Count == 0)
+            return; //Nothing to save
+
         using var transaction = _isolationLevel.HasValue 
             ? DbContext.Database.BeginTransaction(_isolationLevel.Value)
             : DbContext.Database.BeginTransaction();
@@ -51,6 +54,9 @@ internal class DocumentSession : IDocumentSession
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        if (_unitOfWork.Count == 0)
+            return; //Nothing to save
+
         await using var transaction = _isolationLevel.HasValue 
             ? await DbContext.Database.BeginTransactionAsync(_isolationLevel.Value, cancellationToken)
             : await DbContext.Database.BeginTransactionAsync(cancellationToken);
@@ -66,8 +72,7 @@ internal class DocumentSession : IDocumentSession
     
     #region Operations
 
-
-    private IQueryable<T> EnsureEntityType<T>() where T : class
+    private DbSet<T> EnsureEntityType<T>() where T : class
     {
         //Will throw if the entity type is not found
         DbContext.Model.GetEntityType(typeof(T));
@@ -142,7 +147,7 @@ internal class DocumentSession : IDocumentSession
         ArgumentNullException.ThrowIfNull(id);
 
         //Ensure the filter operation is valid
-        EnsureEntityType<T>().FilterByKey(DbContext, id);
+        EnsureEntityType<T>().FilterByKey(id);
         _unitOfWork.Add(new DeleteByIdOperation<T>(id));
     }
 
@@ -153,6 +158,13 @@ internal class DocumentSession : IDocumentSession
         EnsureEntityType<T>();
         _unitOfWork.Add(new DeleteWhereOperation<T>(predicate));
     }
-    
+
+    public void StoreViaContext<T>(T entity) where T : class
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        EnsureEntityType<T>();
+        _unitOfWork.Add(new UpsertViaEFOperation<T>(entity));
+    }
+
     #endregion
 }

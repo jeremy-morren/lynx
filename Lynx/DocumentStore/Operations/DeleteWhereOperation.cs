@@ -30,8 +30,5 @@ internal class DeleteWhereOperation<T> : IDocumentSessionOperation
         return context.Set<T>().Where(_predicate).ExecuteDeleteAsync(cancellationToken);
     }
 
-    public void AfterCommit(IDocumentSessionListener listener, DbContext context)
-    {
-        // Listener is not invoked for delete operations.
-    }
+    public IEnumerable<object> InsertedOrUpdatedDocuments => [];
 }

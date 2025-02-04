@@ -12,10 +12,10 @@ internal static class EntityKeyFilterHelpers
     /// <summary>
     /// Filter query by entity key.
     /// </summary>
-    public static IQueryable<T> FilterByKey<T>(this IQueryable<T> query, DbContext context, object key) where T : class
+    public static IQueryable<T> FilterByKey<T>(this IQueryable<T> query, object key) where T : class
     {
         ArgumentNullException.ThrowIfNull(key);
-
+        var context = query.GetDbContext();
         var properties = GetKeyNames(typeof(T), context);
 
         if (properties.Count == 1)
@@ -29,7 +29,6 @@ internal static class EntityKeyFilterHelpers
             case 1:
                 //Single key
                 return query.Where(x => EF.Property<object>(x, properties[0]) == key);
-
             case > 1:
                 //Composite key
                 foreach (var (property, getValue) in GetKeyValues(context.Model, typeof(T), key.GetType(), properties))
@@ -69,26 +68,58 @@ internal static class EntityKeyFilterHelpers
 
     private static IEnumerable<(string Property, Func<object, object>)> BuildGetKeyValues(Type keyType, List<string> properties)
     {
-        const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
-        var props = keyType.GetProperties(flags).ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
-        if (props.Count != properties.Count)
-            throw new InvalidOperationException($"Composite key properties count mismatch. Expected: {properties.Count}, Actual: {props.Count}");
+        //TODO: Handle Dictionary<string, object> keys
 
-        foreach (var p in properties)
+        var param = Expression.Parameter(typeof(object), "key");
+
+        if (keyType.IsAssignableTo(DictionaryType))
         {
-            if (!props.TryGetValue(p, out var propInfo))
-                throw new InvalidOperationException($"Composite key property '{p}' not found on composite id '{keyType}'");
+            foreach (var p in properties)
+            {
+                var func = Expression.Lambda<Func<object, object>>(
+                        Expression.Call(
+                            Expression.Convert(param, DictionaryType),
+                            DictionaryGetItem,
+                            Expression.Constant(p)),
+                        param)
+                    .Compile();
+                yield return (p, func);
+            }
+        }
+        else
+        {
+            //Composite object key
 
-            var param = Expression.Parameter(typeof(object), "key");
+            var props = keyType.GetProperties(InstanceFlags).ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
+            if (props.Count != properties.Count)
+                throw new InvalidOperationException($"Composite key properties count mismatch. Expected: {properties.Count}, Actual: {props.Count}");
 
-            var func = Expression.Lambda<Func<object, object>>(
-                    Expression.Convert(
-                        Expression.Property(
-                            Expression.Convert(param, keyType), propInfo),
-                        typeof(object)),
-                    param)
-                .Compile();
-            yield return (p, func);
+            foreach (var p in properties)
+            {
+                if (!props.TryGetValue(p, out var propInfo))
+                    throw new InvalidOperationException($"Composite key property '{p}' not found on composite id '{keyType}'");
+
+                var func = Expression.Lambda<Func<object, object>>(
+                        Expression.Convert(
+                            Expression.Property(
+                                Expression.Convert(param, keyType), propInfo),
+                            typeof(object)),
+                        param)
+                    .Compile();
+                yield return (p, func);
+            }
         }
     }
+
+    private const BindingFlags InstanceFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+
+    /// <summary>
+    /// IReadOnlyDictionary{string, object} type.
+    /// </summary>
+    private static readonly Type DictionaryType = typeof(IReadOnlyDictionary<string, object>);
+
+    /// <summary>
+    /// IReadOnlyDictionary{string, object}.get_Item method.
+    /// </summary>
+    private static readonly MethodInfo DictionaryGetItem = DictionaryType.GetMethod("get_Item", InstanceFlags)!;
 }

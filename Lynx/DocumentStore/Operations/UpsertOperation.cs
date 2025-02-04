@@ -30,9 +30,5 @@ internal class UpsertOperation<T> : IDocumentSessionOperation
         return context.BulkInsertOrUpdateAsync(_entities, cancellationToken: cancellationToken);
     }
 
-    public void AfterCommit(IDocumentSessionListener listener, DbContext context)
-    {
-        ArgumentNullException.ThrowIfNull(listener);
-        listener.OnInsertedOrUpdated(_entities, context);
-    }
+    public IEnumerable<object> InsertedOrUpdatedDocuments => _entities;
 }

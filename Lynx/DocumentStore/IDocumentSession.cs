@@ -20,7 +20,7 @@ public interface IDocumentSession
     /// <summary>
     /// Operations to be applied to the database when <see cref="SaveChanges"/> or <see cref="SaveChangesAsync"/> is called.
     /// </summary>
-    IReadOnlyList<IDocumentSessionOperation> Operations { get; }
+    IReadOnlyList<object> Operations { get; }
     
     /// <summary>
     /// Saves the changes to the database as a single transaction.
@@ -93,6 +93,11 @@ public interface IDocumentSession
     /// <param name="predicate"></param>
     /// <typeparam name="T"></typeparam>
     void DeleteWhere<T>(Expression<Func<T, bool>> predicate) where T : class;
+
+    /// <summary>
+    /// Upserts the entity in the database using the default EF operations.
+    /// </summary>
+    void StoreViaContext<T>(T entity) where T : class;
     
     #endregion
 }
