@@ -70,7 +70,7 @@ internal static class EntityKeyFilterHelpers
     private static IEnumerable<(string Property, Func<object, object>)> BuildGetKeyValues(Type keyType, List<string> properties)
     {
         const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
-        var props = keyType.GetProperties(flags).ToDictionary(p => p.Name);
+        var props = keyType.GetProperties(flags).ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
         if (props.Count != properties.Count)
             throw new InvalidOperationException($"Composite key properties count mismatch. Expected: {properties.Count}, Actual: {props.Count}");
 
