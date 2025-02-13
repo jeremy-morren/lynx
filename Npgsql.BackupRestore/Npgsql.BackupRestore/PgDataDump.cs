@@ -55,7 +55,7 @@ public static class PgDataDump
                 continue; // Skip empty tables
 
             // Will be used to restore the table
-            await writer.WriteStringAsync(t.GetCopyStdInCommand(), cancellationToken);
+            await writer.WriteStringAsync(t.ToJson(), cancellationToken);
 
             await using var data = await connection.BeginRawBinaryCopyAsync(
                 t.GetCopyStdOutCommand(),
@@ -96,7 +96,7 @@ public static class PgDataDump
             if (t.IsEmpty(cmd))
                 continue; // Skip empty tables
 
-            writer.WriteString(t.GetCopyStdInCommand());
+            writer.WriteString(t.ToJson());
             using var data = connection.BeginRawBinaryCopy(t.GetCopyStdOutCommand());
             writer.CopyFromStream(data, segmentSize);
         }
@@ -133,11 +133,10 @@ public static class PgDataDump
         var reader = new DataDumpReader(input);
         while (true)
         {
-            var copy = await reader.ReadStringAsync(cancellationToken);
-            if (copy == null)
+            var table = PgTable.FromJson(await reader.ReadStringAsync(cancellationToken));
+            if (table == null)
                 break;
-
-            await using var writer = await connection.BeginRawBinaryCopyAsync(copy, cancellationToken);
+            await using var writer = await connection.BeginRawBinaryCopyAsync(table.GetCopyStdInCommand(), cancellationToken);
             var stream = reader.CreateStream(bufferSize);
             await stream.CopyToAsync(writer, cancellationToken);
         }
@@ -165,10 +164,10 @@ public static class PgDataDump
         var reader = new DataDumpReader(input);
         while (true)
         {
-            var copy = reader.ReadString();
-            if (copy == null)
+            var table = PgTable.FromJson(reader.ReadString());
+            if (table == null)
                 break;
-            using var writer = connection.BeginRawBinaryCopy(copy);
+            using var writer = connection.BeginRawBinaryCopy(table.GetCopyStdInCommand());
             var stream = reader.CreateStream(bufferSize);
             stream.CopyTo(writer);
         }

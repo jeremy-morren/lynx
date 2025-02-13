@@ -13,9 +13,9 @@ internal static class PgTableReader
     /// Gets tables sorted in order that they can be restored
     /// </summary>
     /// <param name="connection"></param>
-    public static List<PgTable> GetTables(NpgsqlConnection connection)
+    public static List<PgTableGraph> GetTables(NpgsqlConnection connection)
     {
-        var tables = Read(connection, GetTablesSql, r => new PgTable(r));
+        var tables = Read(connection, GetTablesSql, r => new PgTableGraph(r));
         var dependencies = Read(connection, GetDependenciesSql, r => new Dependency(r));
         var columns = Read(connection, GetColumnsSql, r => new Column(r));
         return Merge(tables, dependencies, columns);
@@ -27,9 +27,9 @@ internal static class PgTableReader
     /// <param name="connection"></param>
     /// <param name="ct"></param>
     /// <returns></returns>
-    public static async Task<List<PgTable>> GetTablesAsync(NpgsqlConnection connection, CancellationToken ct)
+    public static async Task<List<PgTableGraph>> GetTablesAsync(NpgsqlConnection connection, CancellationToken ct)
     {
-        var tables = await ReadAsync(connection, GetTablesSql, r => new PgTable(r), ct);
+        var tables = await ReadAsync(connection, GetTablesSql, r => new PgTableGraph(r), ct);
         var dependencies = await ReadAsync(connection, GetDependenciesSql, r => new Dependency(r), ct);
         var columns = await ReadAsync(connection, GetColumnsSql, r => new Column(r), ct);
 
@@ -39,7 +39,7 @@ internal static class PgTableReader
     /// <summary>
     /// Merges dependencies and columns into tables, and sorts tables in order that they can be restored
     /// </summary>
-    private static List<PgTable> Merge(List<PgTable> tables, List<Dependency> dependencies, List<Column> columns)
+    private static List<PgTableGraph> Merge(List<PgTableGraph> tables, List<Dependency> dependencies, List<Column> columns)
     {
         foreach (var t in tables)
         {
@@ -55,7 +55,7 @@ internal static class PgTableReader
         }
 
         var list = tables.OrderBy(t => t.Schema).ThenBy(t => t.Table).ToList();
-        var sorted = new List<PgTable>();
+        var sorted = new List<PgTableGraph>();
         while (list.Count > 0)
         {
             var canAdd = list.Where(t => t.Dependencies.All(d => sorted.Contains(d) || d == t)).ToList();
