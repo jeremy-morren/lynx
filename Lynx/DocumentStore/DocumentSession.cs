@@ -39,22 +39,11 @@ internal class DocumentSession : IDocumentSession
 
         var unitOfWork = _unitOfWork;
 
-        var executionStrategy = DbContext.Database.CreateExecutionStrategy();
-
-        // executionStrategy.Execute(() =>
-        // {
-        //     if (setConstraints != null)
-        //         DbContext.Database.ExecuteSqlRaw(setConstraints);
-        //     foreach (var o in unitOfWork)
-        //         o.Execute(DbContext);
-        // });
-
-        using (var transaction = DbContext.Database.BeginTransaction())
+        DbContext.Database.CreateExecutionStrategy().Execute(() =>
         {
             foreach (var o in unitOfWork)
                 o.Execute(DbContext);
-            transaction.Commit();
-        }
+        });
 
         foreach (var listener in _listeners)
             listener.AfterCommit(unitOfWork, DbContext);
@@ -68,21 +57,11 @@ internal class DocumentSession : IDocumentSession
 
         var unitOfWork = _unitOfWork;
 
-        var executionStrategy = DbContext.Database.CreateExecutionStrategy();
-        // await executionStrategy.ExecuteAsync(async () =>
-        // {
-        //     if (setConstraints != null)
-        //         await DbContext.Database.ExecuteSqlRawAsync(setConstraints, cancellationToken);
-        //     foreach (var o in unitOfWork)
-        //         await o.SaveChangesAsync(DbContext, cancellationToken);
-        // });
-
-        await using (var transaction = await DbContext.Database.BeginTransactionAsync(cancellationToken))
+        await DbContext.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
             foreach (var o in unitOfWork)
                 await o.SaveChangesAsync(DbContext, cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-        }
+        });
 
         foreach (var listener in _listeners)
             listener.AfterCommit(unitOfWork, DbContext);
