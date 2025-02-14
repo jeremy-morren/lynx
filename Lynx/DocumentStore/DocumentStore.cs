@@ -16,6 +16,6 @@ internal class DocumentStore<TContext> : IDocumentStore where TContext : DbConte
 
     public DbContext Context { get; }
 
-    public IDocumentSession OpenSession(IsolationLevel? isolationLevel = null) =>
-        new DocumentSession(Context, isolationLevel, _listeners);
+    public IDocumentSession OpenSession() =>
+        new DocumentSession(Context, _listeners);
 }

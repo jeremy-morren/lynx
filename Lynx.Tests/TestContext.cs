@@ -1,6 +1,7 @@
 ﻿using JetBrains.Annotations;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 // ReSharper disable EntityFramework.ModelValidation.UnlimitedStringLength
@@ -42,6 +43,17 @@ public class TestContext : DbContext
         });
 
         modelBuilder.Entity<Foreign>();
+
+        modelBuilder.Entity<EntityStrongId>();
+
+        modelBuilder.Entity<EntityStrongIdComposite>()
+            .HasKey(x => new { x.Id1, x.Id2 });
+    }
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        configurationBuilder.Properties<StrongId>()
+            .HaveConversion<StrongId.EfCoreValueConverter>();
     }
 
     /// <summary>
@@ -185,4 +197,40 @@ public class Alone
     }
 
     public static Alone New(int id) => new() { Id1 = id };
+}
+
+/// <summary>
+/// Entity with a strong id
+/// </summary>
+public class EntityStrongId
+{
+    public required StrongId Id { get; set; }
+
+    public static EntityStrongId New(int id) => new() { Id = new StrongId(id) };
+}
+
+/// <summary>
+/// Entity with a composite strong id
+/// </summary>
+public class EntityStrongIdComposite
+{
+    public required StrongId Id1 { get; set; }
+    public required StrongId Id2 { get; set; }
+
+    public static EntityStrongIdComposite New(int id) => new()
+    {
+        Id1 = new StrongId(id),
+        Id2 = new StrongId(id * 2)
+    };
+}
+
+public readonly record struct StrongId(int Value)
+{
+    public class EfCoreValueConverter : ValueConverter<StrongId, int>
+    {
+        public EfCoreValueConverter()
+            : base(x => x.Value, x => new StrongId(x))
+        {
+        }
+    }
 }

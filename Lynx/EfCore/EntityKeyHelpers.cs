@@ -58,12 +58,19 @@ public static class EntityKeyHelpers
 
     private static Expression CreateDictionary(Expression source, IEnumerable<PropertyInfo> properties)
     {
+        const BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
+
+        properties = properties.ToList();
+
         var dictionary = Expression.Variable(typeof(Dictionary<string, object>));
-        var add = dictionary.Type.GetMethod("Add", BindingFlags.Public | BindingFlags.Instance)!;
+        var constructor = dictionary.Type.GetConstructor([typeof(int)])!;
+
+        var add = dictionary.Type.GetMethod("Add", flags)!;
 
         var expressions = new List<Expression>()
         {
-            Expression.Assign(dictionary, Expression.New(dictionary.Type)),
+            //Optimization: Set capacity to the number of properties
+            Expression.Assign(dictionary, Expression.New(constructor, Expression.Constant(properties.Count())))
         };
         expressions.AddRange(
             from p in properties

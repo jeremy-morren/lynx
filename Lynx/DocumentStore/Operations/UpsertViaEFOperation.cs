@@ -1,4 +1,5 @@
 ﻿using Lynx.EfCore;
+using Lynx.EfCore.KeyFilter;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore.Operations;

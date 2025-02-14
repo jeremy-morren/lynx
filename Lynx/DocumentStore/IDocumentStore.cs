@@ -18,6 +18,5 @@ public interface IDocumentStore
     /// <summary>
     /// Opens a new document session to write to the store
     /// </summary>
-    /// <param name="isolationLevel">Transaction isolation level</param>
-    IDocumentSession OpenSession(IsolationLevel? isolationLevel = null);
+    IDocumentSession OpenSession();
 }

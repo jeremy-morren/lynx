@@ -1,9 +1,11 @@
 ﻿using System.Collections;
+using System.Collections.Immutable;
 using System.Data;
 using System.Linq.Expressions;
 using Lynx.DocumentStore.Operations;
 using Lynx.EfCore;
 using Lynx.EfCore.Helpers;
+using Lynx.EfCore.KeyFilter;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore;
@@ -13,17 +15,12 @@ namespace Lynx.DocumentStore;
 /// </summary>
 internal class DocumentSession : IDocumentSession
 {
-    private readonly UnitOfWork _unitOfWork = [];
-    
-    private readonly IsolationLevel? _isolationLevel;
+    private UnitOfWork _unitOfWork = [];
+
     private readonly List<IDocumentSessionListener> _listeners;
     
-    public DocumentSession(
-        DbContext context, 
-        IsolationLevel? isolationLevel,
-        List<IDocumentSessionListener> listeners)
+    public DocumentSession(DbContext context, List<IDocumentSessionListener> listeners)
     {
-        _isolationLevel = isolationLevel;
         _listeners = listeners;
 
         DbContext = context ?? throw new ArgumentNullException(nameof(context));
@@ -40,16 +37,28 @@ internal class DocumentSession : IDocumentSession
         if (_unitOfWork.Count == 0)
             return; //Nothing to save
 
-        using var transaction = _isolationLevel.HasValue 
-            ? DbContext.Database.BeginTransaction(_isolationLevel.Value)
-            : DbContext.Database.BeginTransaction();
-        foreach (var o in _unitOfWork)
-            o.Execute(DbContext);
-        transaction.Commit();
+        var unitOfWork = _unitOfWork;
+
+        var executionStrategy = DbContext.Database.CreateExecutionStrategy();
+
+        // executionStrategy.Execute(() =>
+        // {
+        //     if (setConstraints != null)
+        //         DbContext.Database.ExecuteSqlRaw(setConstraints);
+        //     foreach (var o in unitOfWork)
+        //         o.Execute(DbContext);
+        // });
+
+        using (var transaction = DbContext.Database.BeginTransaction())
+        {
+            foreach (var o in unitOfWork)
+                o.Execute(DbContext);
+            transaction.Commit();
+        }
 
         foreach (var listener in _listeners)
-            listener.AfterCommit(_unitOfWork, DbContext);
-        _unitOfWork.Reset();
+            listener.AfterCommit(unitOfWork, DbContext);
+        _unitOfWork = [];
     }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -57,15 +66,29 @@ internal class DocumentSession : IDocumentSession
         if (_unitOfWork.Count == 0)
             return; //Nothing to save
 
-        await using var transaction = _isolationLevel.HasValue 
-            ? await DbContext.Database.BeginTransactionAsync(_isolationLevel.Value, cancellationToken)
-            : await DbContext.Database.BeginTransactionAsync(cancellationToken);
-        foreach (var o in _unitOfWork)
-            await o.SaveChangesAsync(DbContext, cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        var unitOfWork = _unitOfWork;
+
+        var executionStrategy = DbContext.Database.CreateExecutionStrategy();
+        // await executionStrategy.ExecuteAsync(async () =>
+        // {
+        //     if (setConstraints != null)
+        //         await DbContext.Database.ExecuteSqlRawAsync(setConstraints, cancellationToken);
+        //     foreach (var o in unitOfWork)
+        //         await o.SaveChangesAsync(DbContext, cancellationToken);
+        // });
+
+        await using (var transaction = await DbContext.Database.BeginTransactionAsync(cancellationToken))
+        {
+            foreach (var o in unitOfWork)
+                await o.SaveChangesAsync(DbContext, cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+
         foreach (var listener in _listeners)
-            listener.AfterCommit(_unitOfWork, DbContext);
-        _unitOfWork.Reset();
+            listener.AfterCommit(unitOfWork, DbContext);
+
+        // Reset the unit of work
+        _unitOfWork = [];
     }
     
     #endregion
@@ -164,6 +187,26 @@ internal class DocumentSession : IDocumentSession
         ArgumentNullException.ThrowIfNull(entity);
         EnsureEntityType<T>();
         _unitOfWork.Add(new UpsertViaEFOperation<T>(entity));
+    }
+
+    public void Replace<T>(IEnumerable<T> entities, Expression<Func<T, bool>> predicate) where T : class
+    {
+        ArgumentNullException.ThrowIfNull(entities);
+        ArgumentNullException.ThrowIfNull(predicate);
+
+        EnsureEntityType<T>();
+
+        var list = entities as IReadOnlyList<T> ?? entities.ToList();
+
+        if (list.Count == 0)
+        {
+            //Nothing to replace. We can use DeleteWhere instead.
+            DeleteWhere(predicate);
+        }
+        else
+        {
+            _unitOfWork.Add(new ReplaceOperation<T>(list, predicate, DbContext.Model));
+        }
     }
 
     #endregion
