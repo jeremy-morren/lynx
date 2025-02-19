@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
 using System.Data;
+using System.Diagnostics;
 using System.Linq.Expressions;
 using Lynx.DocumentStore.Operations;
 using Lynx.EfCore;
@@ -32,8 +33,18 @@ internal class DocumentSession : IDocumentSession
     
     #region Save Changes
 
+    private Activity? StartSaveChangesActivity()
+    {
+        var activity = LynxTelemetry.ActivitySource.StartActivity(nameof(SaveChanges));
+        activity?.AddTag("Context", DbContext.GetType());
+        activity?.AddTag("Operations", _unitOfWork.Count);
+        return activity;
+    }
+
     public void SaveChanges()
     {
+        using var activity = StartSaveChangesActivity();
+
         if (_unitOfWork.Count == 0)
             return; //Nothing to save
 
@@ -52,6 +63,8 @@ internal class DocumentSession : IDocumentSession
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        using var activity = StartSaveChangesActivity();
+
         if (_unitOfWork.Count == 0)
             return; //Nothing to save
 
