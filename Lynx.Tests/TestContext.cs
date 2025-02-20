@@ -207,6 +207,12 @@ public class EntityStrongId
     public required StrongId Id { get; set; }
 
     public static EntityStrongId New(int id) => new() { Id = new StrongId(id) };
+
+    /// <summary>
+    /// For testing <see cref="LynxDoNotIncludeReferencedAttribute"/>
+    /// </summary>
+    [LynxDoNotIncludeReferenced]
+    public Foreign? Foreign { get; set; }
 }
 
 /// <summary>

@@ -61,7 +61,7 @@ internal static class EfCoreQueryableHelpers
         return Expression.Lambda<Func<EntityQueryProvider, DbContext>>(body, parameter).Compile();
     }
 
-    private  const BindingFlags InstanceFlags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
+    private const BindingFlags InstanceFlags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
 
     private static FieldInfo GetField(Type type, string name) =>
         type.GetField(name, InstanceFlags) ?? throw new InvalidOperationException($"Field {name} not found on {type}");

@@ -1,4 +1,5 @@
-﻿using Lynx.EfCore.Helpers;
+﻿using System.Reflection;
+using Lynx.EfCore.Helpers;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Lynx.EfCore;
@@ -24,20 +25,15 @@ internal static class IncludeRelatedEntities
             });
 
     /// <summary>
-    /// Gets all navigations for the entity type that should be included.
-    /// Optionally exclude the navigation with the parent key.
+    /// Gets all navigations for the entity type, excluding the parent key.
     /// </summary>
-    public static IEnumerable<INavigation> GetNavigations(IModel model, Type entityType, IForeignKey? parentKey)
-    {
-        return GetNavigations(model.GetEntityType(entityType), parentKey);
-    }
-
-    private static IEnumerable<INavigation> GetNavigations(IEntityType entity, IForeignKey? parentKey)
-    {
-        // Get all navigations
-        // Exclude collections and owned properties
+    private static IEnumerable<INavigation> GetNavigations(IEntityType entity, IForeignKey? parentKey) =>
+        from nav in entity.GetNavigations()
         // Exclude parent key (if properties on both sides are defined) to stop infinite recursion
-        return entity.GetNavigations()
-            .Where(nav => nav.ForeignKey != parentKey && nav is { IsCollection: false });
-    }
+        where nav.ForeignKey != parentKey &&
+              // Exclude collections
+              nav is { IsCollection: false } &&
+              // Exclude navigations marked with LynxDoNotIncludeReferencedAttribute
+              nav.PropertyInfo?.GetCustomAttribute<LynxDoNotIncludeReferencedAttribute>() == null
+        select nav;
 }
