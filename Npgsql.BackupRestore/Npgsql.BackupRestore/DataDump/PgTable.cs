@@ -1,6 +1,4 @@
-﻿using System.Data;
-using System.Data.Common;
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace Npgsql.BackupRestore.DataDump;
 

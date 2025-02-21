@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using System.Text;
+﻿using System.Text;
 using Npgsql.BackupRestore.DataDump;
 
 // ReSharper disable MethodHasAsyncOverload

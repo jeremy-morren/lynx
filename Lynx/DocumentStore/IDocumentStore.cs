@@ -1,5 +1,4 @@
-﻿using System.Data;
-using JetBrains.Annotations;
+﻿using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore;

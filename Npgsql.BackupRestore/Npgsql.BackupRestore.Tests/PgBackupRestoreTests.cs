@@ -1,6 +1,4 @@
-﻿using Xunit.Abstractions;
-
-namespace Npgsql.BackupRestore.Tests;
+﻿namespace Npgsql.BackupRestore.Tests;
 
 public class PgBackupRestoreTests : PgToolTestsBase
 {

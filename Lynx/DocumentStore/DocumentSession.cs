@@ -1,10 +1,7 @@
 ﻿using System.Collections;
-using System.Collections.Immutable;
-using System.Data;
 using System.Diagnostics;
 using System.Linq.Expressions;
 using Lynx.DocumentStore.Operations;
-using Lynx.EfCore;
 using Lynx.EfCore.Helpers;
 using Lynx.EfCore.KeyFilter;
 using Microsoft.EntityFrameworkCore;

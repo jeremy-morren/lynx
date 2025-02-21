@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using EFCore.BulkExtensions;
+﻿using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore.Operations;
