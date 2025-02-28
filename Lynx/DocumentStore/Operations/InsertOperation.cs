@@ -20,13 +20,13 @@ internal class InsertOperation<T> : IDocumentSessionOperation
     public void Execute(DbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        context.BulkInsert(_entities);
+        context.BulkInsert(_entities, BulkOptions.Config);
     }
 
     public Task SaveChangesAsync(DbContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return context.BulkInsertAsync(_entities, cancellationToken: cancellationToken);
+        return context.BulkInsertAsync(_entities, BulkOptions.Config, cancellationToken: cancellationToken);
     }
 
     public IEnumerable<object> InsertedOrUpdatedDocuments => _entities;

@@ -1,4 +1,5 @@
 ﻿using JetBrains.Annotations;
+using Lynx.EfCore;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -48,6 +49,8 @@ public class TestContext : DbContext
 
         modelBuilder.Entity<EntityStrongIdComposite>()
             .HasKey(x => new { x.Id1, x.Id2 });
+
+        ForeignKeyHelpers.SetForeignKeyCascadeMode(modelBuilder, DeleteBehavior.NoAction);
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
@@ -132,6 +135,7 @@ public class Entity1 : EntityBase
                 new()
                 {
                     Id = id,
+                    ForeignId = id,
                     Foreign = new Foreign()
                     {
                         Id = id
@@ -170,6 +174,7 @@ public class Owned : EntityBase
 
 public class Child : EntityBase
 {
+    public int? ForeignId { get; set; }
     public Foreign? Foreign { get; set; }
 }
 

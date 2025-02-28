@@ -1,4 +1,5 @@
-﻿using EFCore.BulkExtensions;
+﻿using System.Diagnostics;
+using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore.Operations;
@@ -20,13 +21,15 @@ internal class UpsertOperation<T> : IDocumentSessionOperation
     public void Execute(DbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        context.BulkInsertOrUpdate(_entities);
+        Debug.Assert(context.Database.CurrentTransaction != null);
+        context.BulkInsertOrUpdate(_entities, BulkOptions.Config);
     }
 
     public Task SaveChangesAsync(DbContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return context.BulkInsertOrUpdateAsync(_entities, cancellationToken: cancellationToken);
+        Debug.Assert(context.Database.CurrentTransaction != null);
+        return context.BulkInsertOrUpdateAsync(_entities, BulkOptions.Config, cancellationToken: cancellationToken);
     }
 
     public IEnumerable<object> InsertedOrUpdatedDocuments => _entities;

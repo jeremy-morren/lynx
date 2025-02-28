@@ -47,11 +47,15 @@ internal class DocumentSession : IDocumentSession
 
         var unitOfWork = _unitOfWork;
 
-        DbContext.Database.CreateExecutionStrategy().Execute(() =>
-        {
-            foreach (var o in unitOfWork)
-                o.Execute(DbContext);
-        });
+        DbContext.Database.CreateExecutionStrategy()
+            .Execute(() =>
+            {
+                using var conn = DocumentStoreConnection.OpenConnection(DbContext);
+                using var transaction = conn.BeginTransaction();
+                foreach (var o in unitOfWork)
+                    o.Execute(DbContext);
+                transaction?.Commit();
+            });
 
         foreach (var listener in _listeners)
             listener.AfterCommit(unitOfWork, DbContext);
@@ -67,11 +71,16 @@ internal class DocumentSession : IDocumentSession
 
         var unitOfWork = _unitOfWork;
 
-        await DbContext.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
-        {
-            foreach (var o in unitOfWork)
-                await o.SaveChangesAsync(DbContext, cancellationToken);
-        });
+        await DbContext.Database.CreateExecutionStrategy()
+            .ExecuteAsync(async () =>
+            {
+                await using var conn = await DocumentStoreConnection.OpenConnectionAsync(DbContext, cancellationToken);
+                await using var transaction = await conn.BeginTransactionAsync(cancellationToken);
+                foreach (var o in unitOfWork)
+                    await o.SaveChangesAsync(DbContext, cancellationToken);
+                if (transaction != null)
+                    await transaction.CommitAsync(cancellationToken);
+            });
 
         foreach (var listener in _listeners)
             listener.AfterCommit(unitOfWork, DbContext);
@@ -194,7 +203,7 @@ internal class DocumentSession : IDocumentSession
         }
         else
         {
-            _unitOfWork.Add(new ReplaceOperation<T>(list, predicate, DbContext.Model));
+            _unitOfWork.Add(new ReplaceOperation<T>(list, predicate));
         }
     }
 
