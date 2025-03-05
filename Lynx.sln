@@ -25,6 +25,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Providers", "Providers", "{
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lynx.Provider.Sqlite", "Lynx.Provider.Sqlite\Lynx.Provider.Sqlite.csproj", "{1FBC4863-84A7-4792-BC29-1A7D73AC243D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lynx.Providers.Tests", "Lynx.Providers.Tests\Lynx.Providers.Tests.csproj", "{18A2105A-2705-4967-A1AE-183B972164A1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lynx.Provider.Common", "Lynx.Provider.Common\Lynx.Provider.Common.csproj", "{C9240339-E52C-4D49-88B2-555E4BCDE601}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +55,14 @@ Global
 		{1FBC4863-84A7-4792-BC29-1A7D73AC243D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1FBC4863-84A7-4792-BC29-1A7D73AC243D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1FBC4863-84A7-4792-BC29-1A7D73AC243D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{18A2105A-2705-4967-A1AE-183B972164A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{18A2105A-2705-4967-A1AE-183B972164A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{18A2105A-2705-4967-A1AE-183B972164A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{18A2105A-2705-4967-A1AE-183B972164A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C9240339-E52C-4D49-88B2-555E4BCDE601}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C9240339-E52C-4D49-88B2-555E4BCDE601}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C9240339-E52C-4D49-88B2-555E4BCDE601}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C9240339-E52C-4D49-88B2-555E4BCDE601}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -62,5 +74,7 @@ Global
 		{7DC090A1-1503-43EE-A924-393AC19B2D55} = {98FF1C8B-D597-4465-91A6-20E750F76A39}
 		{692E5C6C-FE08-454B-84F7-E78C23C16861} = {B8992424-17F8-476F-B136-EEECC230FAC7}
 		{1FBC4863-84A7-4792-BC29-1A7D73AC243D} = {692E5C6C-FE08-454B-84F7-E78C23C16861}
+		{18A2105A-2705-4967-A1AE-183B972164A1} = {692E5C6C-FE08-454B-84F7-E78C23C16861}
+		{C9240339-E52C-4D49-88B2-555E4BCDE601} = {692E5C6C-FE08-454B-84F7-E78C23C16861}
 	EndGlobalSection
 EndGlobal
