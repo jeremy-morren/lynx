@@ -1,24 +1,28 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Lynx.DocumentStore;
 
 /// <summary>
 /// Represents a lynx database operation that will be applied to the database.
 /// </summary>
-public interface IDocumentSessionOperation
+internal interface IDocumentSessionOperation
 {
     /// <summary>
     /// Saves the changes to the database.
     /// </summary>
-    internal void Execute(DbContext context);
+    void SaveChanges(DbContext context);
     
     /// <summary>
     /// Saves the changes to the database asynchronously.
     /// </summary>
-    internal Task SaveChangesAsync(DbContext context, CancellationToken cancellationToken);
+    Task SaveChangesAsync(DbContext context, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Invoked after the transaction is committed if a listener is attached.
+    /// Documents that will be inserted or updated
     /// </summary>
-    internal void AfterCommit(IDocumentSessionListener listener, DbContext context);
+    /// <remarks>
+    /// Sent to listeners
+    /// </remarks>
+    IEnumerable<object> InsertedOrUpdatedDocuments { get; }
 }

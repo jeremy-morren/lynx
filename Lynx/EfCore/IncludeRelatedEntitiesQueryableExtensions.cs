@@ -18,10 +18,29 @@ public static class IncludeRelatedEntitiesQueryableExtensions
     /// <exception cref="NotImplementedException"></exception>
     public static IQueryable<T> IncludeAllReferenced<T>(this IQueryable<T> query) where T : class
     {
-        var context = query.GetDbContext();
-        var key = (context.Model, typeof(T));
-        var properties = Cache.GetOrAdd(key, GetIncludeProperties);
+        var properties = GetIncludeProperties(query.GetDbContext(), typeof(T));
         return properties.Aggregate(query, (current, includeProperty) => current.Include(includeProperty));
+    }
+
+    /// <summary>
+    /// Includes all entities referenced by a navigation property in the query.
+    /// </summary>
+    /// <param name="query"></param>
+    /// <param name="selector">Property to include references for</param>
+    /// <typeparam name="TEntity"></typeparam>
+    /// <typeparam name="TProperty"></typeparam>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public static IQueryable<TEntity> IncludeAllReferenced<TEntity, TProperty>(this IQueryable<TEntity> query, Expression<Func<TEntity, TProperty?>> selector)
+        where TEntity : class
+        where TProperty : class
+    {
+        var properties = GetIncludeProperties(query.GetDbContext(), typeof(TProperty));
+
+        //Get root property path, to prefix all properties
+        var rootPath = selector.GetMembers();
+        return properties.Aggregate(query, (current, includeProperty) =>
+            current.Include($"{rootPath}.{includeProperty}"));
     }
 
     /// <summary>
@@ -38,12 +57,9 @@ public static class IncludeRelatedEntitiesQueryableExtensions
     {
         //TODO: make this work with owned entities
 
-        var context = query.GetDbContext();
+        var properties = GetIncludeProperties(query.GetDbContext(), typeof(TProperty));
 
-        var key = (context.Model, typeof(TProperty));
-        var properties = Cache.GetOrAdd(key, GetIncludeProperties);
-
-        //Get root property path
+        //Get root property path, to prefix all properties
         var rootPath = query.GetFullIncludePath();
         return properties.Aggregate<string, IQueryable<TEntity>>(query,
             (current, property) => current.Include($"{rootPath}.{property}"));
@@ -51,6 +67,10 @@ public static class IncludeRelatedEntitiesQueryableExtensions
 
     private static readonly ConcurrentDictionary<(IModel, Type), string[]> Cache = new();
 
-    private static string[] GetIncludeProperties((IModel, Type) key) => 
-        IncludeRelatedEntities.GetIncludeProperties(key.Item1, key.Item2).ToArray();
+    private static string[] GetIncludeProperties(DbContext context, Type propertyType)
+    {
+        var key = (context.Model, propertyType);
+        return Cache.GetOrAdd(key, _ =>
+            IncludeRelatedEntities.GetIncludeProperties(context.Model, propertyType).ToArray());
+    }
 }

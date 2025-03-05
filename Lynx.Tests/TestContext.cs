@@ -1,6 +1,8 @@
 ﻿using JetBrains.Annotations;
+using Lynx.EfCore;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 // ReSharper disable EntityFramework.ModelValidation.UnlimitedStringLength
@@ -42,6 +44,19 @@ public class TestContext : DbContext
         });
 
         modelBuilder.Entity<Foreign>();
+
+        modelBuilder.Entity<EntityStrongId>();
+
+        modelBuilder.Entity<EntityStrongIdComposite>()
+            .HasKey(x => new { x.Id1, x.Id2 });
+
+        ForeignKeyHelpers.SetForeignKeyCascadeMode(modelBuilder, DeleteBehavior.NoAction);
+    }
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        configurationBuilder.Properties<StrongId>()
+            .HaveConversion<StrongId.EfCoreValueConverter>();
     }
 
     /// <summary>
@@ -120,6 +135,7 @@ public class Entity1 : EntityBase
                 new()
                 {
                     Id = id,
+                    ForeignId = id,
                     Foreign = new Foreign()
                     {
                         Id = id
@@ -158,6 +174,7 @@ public class Owned : EntityBase
 
 public class Child : EntityBase
 {
+    public int? ForeignId { get; set; }
     public Foreign? Foreign { get; set; }
 }
 
@@ -185,4 +202,46 @@ public class Alone
     }
 
     public static Alone New(int id) => new() { Id1 = id };
+}
+
+/// <summary>
+/// Entity with a strong id
+/// </summary>
+public class EntityStrongId
+{
+    public required StrongId Id { get; set; }
+
+    public static EntityStrongId New(int id) => new() { Id = new StrongId(id) };
+
+    /// <summary>
+    /// For testing <see cref="LynxDoNotIncludeReferencedAttribute"/>
+    /// </summary>
+    [LynxDoNotIncludeReferenced]
+    public Foreign? Foreign { get; set; }
+}
+
+/// <summary>
+/// Entity with a composite strong id
+/// </summary>
+public class EntityStrongIdComposite
+{
+    public required StrongId Id1 { get; set; }
+    public required StrongId Id2 { get; set; }
+
+    public static EntityStrongIdComposite New(int id) => new()
+    {
+        Id1 = new StrongId(id),
+        Id2 = new StrongId(id * 2)
+    };
+}
+
+public readonly record struct StrongId(int Value)
+{
+    public class EfCoreValueConverter : ValueConverter<StrongId, int>
+    {
+        public EfCoreValueConverter()
+            : base(x => x.Value, x => new StrongId(x))
+        {
+        }
+    }
 }

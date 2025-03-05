@@ -66,6 +66,10 @@ public class EfCoreHelpersTests
             
             var alone = context.Set<Alone>().IncludeAllReferenced();
             alone.Should().HaveCount(2);
+
+            context.Set<EntityStrongId>()
+                .IncludeAllReferenced(e => e.Foreign)
+                .ShouldBeEmpty();
         }
     }
 
@@ -99,6 +103,9 @@ public class EfCoreHelpersTests
                     .Concat(entity3.Select(x => $"{nameof(Entity1.Entity2)}.{nameof(Entity2.Entity3)}.{x}")));
 
         IncludeRelatedEntities.GetIncludeProperties(model, typeof(Alone)).ShouldBeEmpty();
+
+        IncludeRelatedEntities.GetIncludeProperties(model, typeof(EntityStrongId))
+            .ShouldBeEmpty($"Should not include properties marked with {nameof(LynxDoNotIncludeReferencedAttribute)}");
     }
 
     [Fact]
@@ -137,9 +144,10 @@ public class EfCoreHelpersTests
 
         //Foreign: referenced by Owned, which is owned by Entity3
         //NB: Owned itself is not an entity, so it should not be included
+        //NB: EntityStrongId.Foreign is decorated with LynxDoNotIncludeReferenced, but it should still be regarded as a reference (just not loaded)
         model.GetReferencingEntities(typeof(Foreign))
             .Select(e => e.ClrType)
-            .Should().BeEquivalentTo([typeof(Child), typeof(Entity1), typeof(Entity2), typeof(Entity3), typeof(ParentEntity)]);
+            .Should().BeEquivalentTo([typeof(Child), typeof(Entity1), typeof(Entity2), typeof(Entity3), typeof(ParentEntity), typeof(EntityStrongId)]);
     }
 
     [Fact]

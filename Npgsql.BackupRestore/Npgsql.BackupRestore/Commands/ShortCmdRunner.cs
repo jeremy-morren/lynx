@@ -7,8 +7,15 @@ internal static class ShortCmdRunner
     /// <summary>
     /// Runs a command to completion and returns the output.
     /// </summary>
-    public static string Run(string cmd, params string[] args)
+    public static string Run(string cmd, params string[] args) =>
+        Run(cmd, args, new Dictionary<string, string?>(), TimeSpan.FromMinutes(1));
+
+    /// <summary>
+    /// Runs a command to completion and returns the output.
+    /// </summary>
+    public static string Run(string cmd, string[] args, IDictionary<string, string?> envVariables, TimeSpan timeout)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(timeout.Ticks, nameof(timeout));
         var psi = new ProcessStartInfo
         {
             FileName = cmd,
@@ -19,6 +26,8 @@ internal static class ShortCmdRunner
         };
         foreach (var a in args)
             psi.ArgumentList.Add(a);
+        foreach (var (k, v) in envVariables)
+            psi.Environment.Add(k, v);
 
         using var process = Process.Start(psi);
         if (process == null)
@@ -26,14 +35,14 @@ internal static class ShortCmdRunner
 
         var output = process.StandardOutput.ReadToEnd();
         var error = process.StandardError.ReadToEnd();
-        
+
         if (!process.WaitForExit(TimeSpan.FromMinutes(1)))
         {
             //Timed out
             process.Kill();
             throw new InvalidOperationException($"Process timed out. {cmd}");
         }
-        
+
         if (process.ExitCode != 0)
             throw new PgToolCommandFailedException(cmd, args, process.ExitCode, error);
 

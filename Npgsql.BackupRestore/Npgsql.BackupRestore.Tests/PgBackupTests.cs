@@ -25,13 +25,13 @@ public class PgBackupTests(ITestOutputHelper output) : PgToolTestsBase
         options.FileName = file;
         try
         {
-            await PgBackup.BackupAsync(ConnString,  options, Database, ct);
+            await PgBackup.BackupAsync(MasterConnString, options, Database, ct);
             new FileInfo(file).Exists.ShouldBeTrue();
             new FileInfo(file).Length.ShouldBePositive();
             
             options.FileName = null;
             using var ms = new MemoryStream();
-            await PgBackup.BackupAsync(ConnString, options, Database, ms, ct);
+            await PgBackup.BackupAsync(MasterConnString, options, Database, ms, ct);
             ms.Length.ShouldBe(new FileInfo(file).Length);
             
             if (options.SchemaOnly)
@@ -59,13 +59,13 @@ public class PgBackupTests(ITestOutputHelper output) : PgToolTestsBase
         new PgBackupOptions()
         {
             Format = PgBackupFormat.Custom,
-            Schema = GetSchemaWithTables(),
+            Schema = "public",
             DataOnly = true
         },
         new PgBackupOptions()
         {
             Format = PgBackupFormat.Tar,
-            Schema = GetSchemaWithTables()
+            Schema = "public"
         }
     };
 }

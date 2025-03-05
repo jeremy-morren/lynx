@@ -1,14 +1,12 @@
-﻿using System.Linq.Expressions;
-using System.Reflection;
-using Lynx.EfCore;
+﻿using Lynx.EfCore;
 using Lynx.EfCore.Helpers;
+using Lynx.EfCore.KeyFilter;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore.Query;
 
 public static class DocumentStoreQueryExtensions
 {
-
     /// <summary>
     /// Queries documents of type <typeparamref name="T"/>.
     /// Excludes deleted entities.
@@ -45,6 +43,19 @@ public static class DocumentStoreQueryExtensions
         ArgumentNullException.ThrowIfNull(store);
 
         return store.Context.Query<T>();
+    }
+
+    /// <summary>
+    /// Filters query by entity keys.
+    /// </summary>
+    /// <remarks>
+    /// Note that type of <typeparamref name="TKey"/> is irrelevant (underlying type is used) (i.e. TKey can be object).
+    /// </remarks>
+    public static IQueryable<TSource> FilterByIds<TSource, TKey>(this IQueryable<TSource> source, IEnumerable<TKey> ids) where TSource : class
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+
+        return source.FilterByKeys(ids.Cast<object>());
     }
 
     private static IQueryable<T> Query<T>(this DbContext context)

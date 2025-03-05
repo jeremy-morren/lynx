@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore.Operations;
@@ -18,7 +17,7 @@ internal class DeleteWhereOperation<T> : IDocumentSessionOperation
         _predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
     }
 
-    public void Execute(DbContext context)
+    public void SaveChanges(DbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         context.Set<T>().Where(_predicate).ExecuteDelete();
@@ -30,8 +29,5 @@ internal class DeleteWhereOperation<T> : IDocumentSessionOperation
         return context.Set<T>().Where(_predicate).ExecuteDeleteAsync(cancellationToken);
     }
 
-    public void AfterCommit(IDocumentSessionListener listener, DbContext context)
-    {
-        // Listener is not invoked for delete operations.
-    }
+    public IEnumerable<object> InsertedOrUpdatedDocuments => [];
 }

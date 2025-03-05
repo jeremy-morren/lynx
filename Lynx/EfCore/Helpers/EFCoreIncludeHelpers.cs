@@ -1,8 +1,6 @@
 ﻿using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.EntityFrameworkCore.Query;
 
 namespace Lynx.EfCore.Helpers;
@@ -10,10 +8,39 @@ namespace Lynx.EfCore.Helpers;
 internal static class EfCoreIncludeHelpers
 {
     /// <summary>
+    /// Gets the path for the selector
+    /// </summary>
+    public static string GetMembers<TEntity, TProperty>(this Expression<Func<TEntity, TProperty>> selector)
+    {
+        var properties = GetMembers(selector.Body)
+            .Reverse() // Reverse to get order from root to leaf
+            .Select(m => m.Name);
+        return string.Join(".", properties);
+    }
+
+    private static IEnumerable<MemberInfo> GetMembers(Expression expression)
+    {
+        while (true)
+        {
+            switch (expression)
+            {
+                case ParameterExpression:
+                    yield break; //Reached the end
+                case MemberExpression { Member: { } m } member:
+                    yield return m;
+                    expression = member.Expression ?? throw new InvalidOperationException("Member expression is null");
+                    break;
+                default:
+                    throw new InvalidOperationException($"Unknown expression type {expression.NodeType}");
+            }
+        }
+    }
+
+    /// <summary>
     /// Gets include path from the root of the query.
     /// </summary>
     public static string GetFullIncludePath<TEntity, TProperty>(
-        this IIncludableQueryable<TEntity, IEnumerable<TProperty>?> query)
+        this IIncludableQueryable<TEntity, TProperty?> query)
         where TEntity : class
         where TProperty : class
     {

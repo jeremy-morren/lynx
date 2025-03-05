@@ -1,5 +1,4 @@
-﻿using Lynx.EfCore;
-using Lynx.EfCore.Helpers;
+﻿using Lynx.EfCore.Helpers;
 using Microsoft.EntityFrameworkCore;
 // ReSharper disable InconsistentNaming
 // ReSharper disable CollectionNeverUpdated.Local
@@ -8,6 +7,16 @@ namespace Lynx.Tests;
 
 public class EfCoreIncludeTests
 {
+    [Fact]
+    public void GetMemberPath()
+    {
+        EfCoreIncludeHelpers.GetMembers<E1, ICollection<E2>>(e => e.E2s).ShouldBe($"{nameof(E1.E2s)}");
+        EfCoreIncludeHelpers.GetMembers<E1, Entity2>(e => e.Entity1!.Entity2)
+            .ShouldBe($"{nameof(E1.Entity1)}.{nameof(Entity1.Entity2)}");
+        EfCoreIncludeHelpers.GetMembers<E1, ICollection<Child>?>(e => e.Entity1!.Entity2.Children)
+            .ShouldBe($"{nameof(E1.Entity1)}.{nameof(Entity1.Entity2)}.{nameof(Entity2.Children)}");
+    }
+
     [Fact]
     public void GetIncludePaths()
     {
@@ -76,7 +85,7 @@ public class EfCoreIncludeTests
     {
         public required Child Child { get; set; }
 
-        public ICollection<E4> E4s { get; set; }
+        public required ICollection<E4> E4s { get; set; }
     }
 
     private class E4 : EntityBase

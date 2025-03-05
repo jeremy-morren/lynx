@@ -17,7 +17,7 @@ public class PgBackupRestoreTests : PgToolTestsBase
         
         try
         {
-            await PgBackup.BackupAsync(ConnString, options, Database, ct);
+            await PgBackup.BackupAsync(MasterConnString, options, Database, ct);
 
             if (options.Format != PgBackupFormat.Directory)
                 new FileInfo(path).Exists.ShouldBeTrue();
@@ -28,7 +28,7 @@ public class PgBackupRestoreTests : PgToolTestsBase
             {
                 // We should be able to execute the SQL file directly
                 var sql = await File.ReadAllTextAsync(path, ct);
-                ExecuteNonQuery($"{ConnString};Database={database}", sql);
+                ExecuteNonQuery($"{MasterConnString};Database={database}", sql);
             }
             else
             {
@@ -39,10 +39,10 @@ public class PgBackupRestoreTests : PgToolTestsBase
                     Clean = true,
                     IfExists = true
                 };
-                await PgRestore.RestoreAsync(ConnString, restoreOpts, path, ct);
+                await PgRestore.RestoreAsync(MasterConnString, restoreOpts, path, ct);
             }
 
-            ExecuteScalar($"{ConnString};Database={database}", 
+            ExecuteScalar($"{MasterConnString};Database={database}", 
                     "SELECT COUNT(*) FROM information_schema.tables WHERE table_type = 'BASE TABLE'")
                 .ShouldBeOfType<long>().ShouldBePositive();
 
@@ -77,13 +77,13 @@ public class PgBackupRestoreTests : PgToolTestsBase
         new PgBackupOptions()
         {
             Format = PgBackupFormat.Tar,
-            Schema = GetSchemaWithTables(),
+            Schema = "public",
         },
         new PgBackupOptions()
         {
             Format = PgBackupFormat.Directory,
             Compression = "5",
-            Schema = GetSchemaWithTables(),
+            Schema = "public",
         }
     };
 }

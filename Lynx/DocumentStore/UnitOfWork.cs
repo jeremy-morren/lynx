@@ -15,13 +15,11 @@ internal class UnitOfWork : IReadOnlyList<IDocumentSessionOperation>
         _operations.Add(operation);
     }
 
-    public void Reset() => _operations.Clear();
-
     #region IReadOnlyList<ILynxOperation>
     
-    public IEnumerator<IDocumentSessionOperation> GetEnumerator() => _operations.GetEnumerator();
+    public IEnumerator<IDocumentSessionOperation> GetEnumerator() => _operations.AsReadOnly().GetEnumerator();
 
-    IEnumerator IEnumerable.GetEnumerator() => _operations.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     public int Count => _operations.Count;
 

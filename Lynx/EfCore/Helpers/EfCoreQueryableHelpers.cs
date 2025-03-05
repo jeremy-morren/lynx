@@ -1,11 +1,7 @@
-﻿using System.Collections.Concurrent;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using System.Reflection;
-using Lynx.DocumentStore.Query;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -61,7 +57,7 @@ internal static class EfCoreQueryableHelpers
         return Expression.Lambda<Func<EntityQueryProvider, DbContext>>(body, parameter).Compile();
     }
 
-    private  const BindingFlags InstanceFlags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
+    private const BindingFlags InstanceFlags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
 
     private static FieldInfo GetField(Type type, string name) =>
         type.GetField(name, InstanceFlags) ?? throw new InvalidOperationException($"Field {name} not found on {type}");

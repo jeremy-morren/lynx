@@ -1,5 +1,5 @@
 ﻿using JetBrains.Annotations;
-using Lynx.EfCore;
+using Lynx.EfCore.KeyFilter;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore.Query;
@@ -105,8 +105,6 @@ public static class DocumentStoreLoadExtensions
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(id);
 
-        var query = store.Query<T>(includeDeleted);
-
-        return query.FilterByKey(store.Context, id);
+        return store.Query<T>(includeDeleted).FilterByKey(id);
     }
 }

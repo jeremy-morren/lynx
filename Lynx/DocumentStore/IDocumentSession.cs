@@ -20,7 +20,7 @@ public interface IDocumentSession
     /// <summary>
     /// Operations to be applied to the database when <see cref="SaveChanges"/> or <see cref="SaveChangesAsync"/> is called.
     /// </summary>
-    IReadOnlyList<IDocumentSessionOperation> Operations { get; }
+    IReadOnlyList<object> Operations { get; }
     
     /// <summary>
     /// Saves the changes to the database as a single transaction.
@@ -93,6 +93,29 @@ public interface IDocumentSession
     /// <param name="predicate"></param>
     /// <typeparam name="T"></typeparam>
     void DeleteWhere<T>(Expression<Func<T, bool>> predicate) where T : class;
+
+    /// <summary>
+    /// Upserts the entity in the database using the default EF operations.
+    /// </summary>
+    void StoreViaContext<T>(T entity) where T : class;
+
+    /// <summary>
+    /// Replaces entities in the database that match the predicate with the provided entities (via bulk upsert).
+    /// </summary>
+    /// <param name="entities">Entities to upsert</param>
+    /// <param name="predicate">Predicate to match entities to be replaced</param>
+    /// <typeparam name="T"></typeparam>
+    /// <remarks>
+    /// <para>
+    /// This method is useful for replacing entities in the database that match a certain condition with a new set of entities.
+    /// It is the equivalent of deleting entities that match the predicate and then inserting the provided entities.
+    /// </para>
+    /// <para>
+    /// The main difference is that this method will exclude the entities that are not being replaced from the delete operation (via ID),
+    /// which avoids foreign key constraint issues.
+    /// </para>
+    /// </remarks>
+    void Replace<T>(IEnumerable<T> entities, Expression<Func<T, bool>> predicate) where T : class;
     
     #endregion
 }
