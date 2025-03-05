@@ -4,6 +4,11 @@ namespace Lynx.Provider.Common;
 
 internal static class EntityModelExtensions
 {
-    public static IEnumerable<EntityPropertyInfo> GetAllProperties(this IStructureEntity entity) =>
-        entity.ScalarProps.Concat(entity.ComplexProps.SelectMany(c => c.GetAllProperties()));
+    /// <summary>
+    /// Gets all scalar properties of the entity, including nested properties.  Excludes key properties.
+    /// </summary>
+    public static IEnumerable<ScalarEntityPropertyInfo> GetAllScalarProps(this IStructureEntity entity)
+    {
+        return entity.ScalarProps.Concat(entity.ComplexProps.SelectMany(c => c.GetAllScalarProps()));
+    }
 }

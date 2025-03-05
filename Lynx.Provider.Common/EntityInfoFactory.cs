@@ -12,7 +12,7 @@ internal static class EntityInfoFactory
             ?? throw new InvalidOperationException($"Entity type {type} not found in model.");
 
         var info = CreateEntityInternal(entityType, null);
-        return new RootEntityInfo
+        var root = new RootEntityInfo
         {
             Type = info.Type,
             ScalarProps = info.ScalarProps,
@@ -24,6 +24,10 @@ internal static class EntityInfoFactory
                         throw new InvalidOperationException($"Table name not found for {type}"),
             Schema = entityType.GetSchema()
         };
+
+        SetColumnIndex(root, 0);
+        return root;
+        
     }
 
     private static EntityInfo CreateEntityInternal(IEntityType entityType, ColumnName? parentColumn)
@@ -49,6 +53,7 @@ internal static class EntityInfoFactory
             {
                 Parent = entityType,
                 EntityType = ownedType,
+                Navigation = navigation,
                 PropertyInfo = navigation.PropertyInfo,
                 ColumnName = colName,
                 Type = result.Type,
@@ -67,7 +72,7 @@ internal static class EntityInfoFactory
         };
     }
 
-    private static (List<EntityPropertyInfo> Scalar, List<ComplexEntityPropertyInfo> Complex) GetProperties(
+    private static (List<ScalarEntityPropertyInfo> Scalar, List<ComplexEntityPropertyInfo> Complex) GetProperties(
         ITypeBase parent, ColumnName? parentColumn)
     {
         var scalarProps =
@@ -75,7 +80,7 @@ internal static class EntityInfoFactory
             where !p.IsPrimaryKey() // Exclude keys
             let info = p.PropertyInfo
             where info != null // Exclude shadow properties
-            select new EntityPropertyInfo
+            select new ScalarEntityPropertyInfo
             {
                 Property = p,
                 Parent = parent,
@@ -102,20 +107,37 @@ internal static class EntityInfoFactory
         return (scalarProps.ToList(), complexProps.ToList());
     }
 
-    private static IEnumerable<EntityPropertyInfo> GetKeys(IEntityType entityType)
+    private static IEnumerable<ScalarEntityPropertyInfo> GetKeys(IEntityType entityType)
     {
         var key = entityType.FindPrimaryKey()
                   ?? throw new InvalidOperationException($"Primary key not found for {entityType.ClrType}");
 
         return
             from p in key.Properties
-            select new EntityPropertyInfo
+            select new ScalarEntityPropertyInfo
             {
                 Property = p,
                 Parent = entityType,
-                PropertyInfo = null,
+                PropertyInfo = p.PropertyInfo 
+                               ?? throw new InvalidOperationException("Shadow key properties not supported"),
                 ColumnName = GetColumnName(p, null)
             };
+    }
+
+    private static int SetColumnIndex(IStructureEntity entity, int startIndex)
+    {
+        //Key columns are first
+        if (entity is RootEntityInfo root)
+            foreach (var p in root.Keys) 
+                p.ColumnIndex = startIndex++;
+        
+        foreach (var s in entity.ScalarProps) 
+            s.ColumnIndex = startIndex++;
+
+        foreach (var c in entity.ComplexProps) 
+            startIndex = SetColumnIndex(c, startIndex);
+
+        return startIndex;
     }
 
     private static ColumnName GetColumnName(IPropertyBase property, ColumnName? parentColumn)

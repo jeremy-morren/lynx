@@ -5,13 +5,7 @@ namespace Lynx.Provider.Common;
 
 internal static class ReflectionItems
 {
-    private const BindingFlags InstanceFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
-
-    /// <summary>
-    /// <see cref="DbCommand.CreateParameter"/>
-    /// </summary>
-    public static readonly MethodInfo CreateParameterMethod =
-        typeof(DbCommand).GetMethod(nameof(DbCommand.CreateParameter), InstanceFlags)!;
+    public const BindingFlags InstanceFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
     /// <summary>
     /// <see cref="DbParameterCollection.Add"/>
@@ -24,6 +18,30 @@ internal static class ReflectionItems
     /// </summary>
     public static readonly PropertyInfo ParameterNameProperty =
         typeof(DbParameter).GetProperty(nameof(DbParameter.ParameterName), InstanceFlags)!;
+
+    /// <summary>
+    /// <see cref="DbParameter.DbType"/>
+    /// </summary>
+    public static readonly PropertyInfo DbParameterDbTypeProperty =
+        typeof(DbParameter).GetProperty(nameof(DbParameter.DbType), InstanceFlags)!;
+
+    /// <summary>
+    /// <see cref="DbParameter.Size"/>
+    /// </summary>
+    public static readonly PropertyInfo DbParameterSizeProperty =
+        typeof(DbParameter).GetProperty(nameof(DbParameter.Size), InstanceFlags)!;
+
+    /// <summary>
+    /// <see cref="DbParameter.Scale"/>
+    /// </summary>
+    public static readonly PropertyInfo DbParameterScaleProperty =
+        typeof(DbParameter).GetProperty(nameof(DbParameter.Scale), InstanceFlags)!;
+
+    /// <summary>
+    /// <see cref="DbParameter.Precision"/>
+    /// </summary>
+    public static readonly PropertyInfo DbParameterPrecisionProperty =
+        typeof(DbParameter).GetProperty(nameof(DbParameter.Precision), InstanceFlags)!;
 
     /// <summary>
     /// <see cref="DbParameter.Value"/>

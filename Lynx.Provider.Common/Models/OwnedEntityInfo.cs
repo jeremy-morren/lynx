@@ -15,6 +15,11 @@ internal class OwnedEntityInfo : EntityInfo, IEntityPropertyInfo
     public required ITypeBase Parent { get; init; }
 
     /// <summary>
+    /// Navigation to the owned entity
+    /// </summary>
+    public required INavigation Navigation { get; init; }
+
+    /// <summary>
     /// Owned entity type
     /// </summary>
     public required IEntityType EntityType { get; init; }
@@ -26,4 +31,6 @@ internal class OwnedEntityInfo : EntityInfo, IEntityPropertyInfo
     public required ColumnName ColumnName { get; init; }
 
     public bool IsJson => EntityType.IsMappedToJson();
+
+    IPropertyBase IEntityPropertyInfo.Property => Navigation;
 }

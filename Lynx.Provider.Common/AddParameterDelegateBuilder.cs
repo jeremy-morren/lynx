@@ -1,89 +1,122 @@
-﻿using System.Data.Common;
+﻿using System.Data;
+using System.Data.Common;
 using System.Linq.Expressions;
 using System.Reflection;
 using Lynx.Provider.Common.Models;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Lynx.Provider.Common;
 
 /// <summary>
-/// Builds expressions for adding parameters to a command.
+/// Builds expressions for adding all parameters for an entity to a command.
 /// </summary>
-internal static class AddParameterDelegateBuilder<T>
+internal static class AddParameterDelegateBuilder<TCommand> where TCommand : DbCommand
 {
-    public static Action<DbCommand, T> Build(EntityInfo entity)
+    public static Action<TCommand> Build(IStructureEntity entity)
     {
-        if (entity.Type.ClrType != typeof(T))
-            throw new ArgumentException("Entity type mismatch", nameof(entity));
+        var command = Expression.Parameter(typeof(TCommand), "command");
+        var parameter = Expression.Variable(CreateParameterMethod.ReturnType, "parameter");
 
-        var command = Expression.Parameter(typeof(DbCommand), "command");
-        var value = Expression.Parameter(typeof(T), typeof(T).Name.ToLowerInvariant());
+        var add = AddParameters(entity, command, parameter).ToList();
+        var block = Expression.Block([parameter], add);
 
-        var block = Expression.Block(AddParameters(command, entity, value));
-
-        return Expression.Lambda<Action<DbCommand, T>>(block, command, value).Compile();
+        return Expression.Lambda<Action<TCommand>>(block, command).Compile();
     }
 
-    private static IEnumerable<Expression> AddParameters(ParameterExpression command, IStructureEntity entity, Expression value)
+    private static IEnumerable<Expression> AddParameters(
+        IStructureEntity entity,
+        ParameterExpression command,
+        ParameterExpression parameter)
     {
-        foreach (var scalar in entity.ScalarProps)
-        {
-            var parameter = Expression.Variable(typeof(DbParameter), "parameter");
-            var parameterName = $"@{scalar.ColumnName.SqlColumnName}";
+        var keys = (entity as RootEntityInfo)?.Keys ?? [];
+        
+        var addScalars =
+            from scalar in keys.Concat(entity.ScalarProps)
+            let block = BuildAddParameter(scalar, command, parameter)
+            from e in block
+            select e;
 
-            var block = new List<Expression>()
-            {
-                Expression.Assign(
-                    parameter,
-                    Expression.Call(command, ReflectionItems.CreateParameterMethod)),
-                Expression.Assign(
-                    Expression.Property(parameter, ReflectionItems.ParameterNameProperty),
-                    Expression.Constant(parameterName)),
-            };
-
-            var property = Expression.Property(value, scalar.PropertyInfo);
-            var assign = Expression.Assign(
-                Expression.Property(parameter, ReflectionItems.ParameterValueProperty),
-                Expression.Convert(property, typeof(object)));
-
-            var notNull = GetNotNull(property);
-            if (notNull == null)
-            {
-                //No null check, assign the value
-                block.Add(assign);
-            }
-            else
-            {
-                //Set value only if not null
-                block.Add(Expression.IfThen(notNull, assign));
-            }
-
-            //Add the parameter to the command
-            block.Add(Expression.Call(
-                Expression.Property(command, ReflectionItems.CommandParametersProperty),
-                ReflectionItems.AddParameterMethod,
-                parameter));
-
-            yield return Expression.Block([parameter], block);
-        }
+        var addComplex =
+            from complex in entity.ComplexProps
+            let block = AddParameters(complex, command, parameter)
+            from e in block
+            select e;
+        
+        return addScalars.Concat(addComplex);
     }
 
     /// <summary>
     /// Returns an expression that checks if the given expression is not null null, or null if the expression is not nullable.
     /// </summary>
-    private static Expression? GetNotNull(Expression expression)
+    private static List<Expression> BuildAddParameter(
+        ScalarEntityPropertyInfo property,
+        ParameterExpression command,
+        ParameterExpression parameter)
     {
-        if (expression.Type.IsValueType)
+        var mapping = property.TypeMapping;
+        var parameterName = $"@{property.ColumnName.SqlColumnName}";
+        var result = new List<Expression>()
         {
-            if (Nullable.GetUnderlyingType(expression.Type) == null)
-                return null; // Value type not nullable, no need to check for null
 
-            // Nullable value type
-            // return expression.HasValue;
-            return Expression.Property(expression, nameof(Nullable<int>.HasValue));
+            //Create parameter and assign to the command
+            Expression.Assign(
+                parameter,
+                Expression.Call(command, CreateParameterMethod)),
+
+            //Set parameter name
+            Expression.Assign(
+                Expression.Property(parameter, ReflectionItems.ParameterNameProperty),
+                Expression.Constant(parameterName))
+        };
+        if (mapping.DbType != null)
+        {
+            //Set DB type
+            result.Add(
+                Expression.Assign(
+                    Expression.Property(parameter, ReflectionItems.DbParameterDbTypeProperty),
+                    Expression.Constant(mapping.DbType.Value)));
         }
-        var nullValue = Expression.Constant(null, expression.Type);
-        return Expression.ReferenceNotEqual(expression, nullValue);
-    }
 
+        if (mapping.Size != null)
+        {
+            //Set size
+            result.Add(
+                Expression.Assign(
+                    Expression.Property(parameter, ReflectionItems.DbParameterSizeProperty),
+                    Expression.Constant(mapping.Size.Value)));
+        }
+        if (mapping.Scale != null)
+        {
+            //Set scale
+            result.Add(
+                Expression.Assign(
+                    Expression.Property(parameter, ReflectionItems.DbParameterScaleProperty),
+                    Expression.Constant(mapping.Scale.Value)));
+        }
+        if (mapping.Precision != null)
+        {
+            //Set precision
+            result.Add(
+                Expression.Assign(
+                    Expression.Property(parameter, ReflectionItems.DbParameterPrecisionProperty),
+                    Expression.Constant(mapping.Precision.Value)));
+        }
+        
+        //Add the parameter to the command
+        result.Add(
+            Expression.Call(
+                Expression.Property(command, ReflectionItems.CommandParametersProperty),
+                ReflectionItems.AddParameterMethod,
+                parameter));
+
+        return result;
+    }
+    
+    /// <summary>
+    /// <see cref="DbCommand.CreateParameter"/>
+    /// </summary>
+    public static readonly MethodInfo CreateParameterMethod =
+        typeof(TCommand).GetMethod(nameof(DbCommand.CreateParameter), ReflectionItems.InstanceFlags)!;
 }

@@ -8,7 +8,7 @@ internal interface IStructureEntity
     /// <summary>
     /// Scalar properties
     /// </summary>
-    IReadOnlyList<EntityPropertyInfo> ScalarProps { get; init; }
+    IReadOnlyList<ScalarEntityPropertyInfo> ScalarProps { get; init; }
 
     /// <summary>
     /// Complex properties

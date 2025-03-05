@@ -8,7 +8,7 @@ internal class RootEntityInfo : EntityInfo
     /// <summary>
     /// Key properties
     /// </summary>
-    public required IReadOnlyList<EntityPropertyInfo> Keys { get; init; }
+    public required IReadOnlyList<ScalarEntityPropertyInfo> Keys { get; init; }
 
     /// <summary>
     /// Database table name

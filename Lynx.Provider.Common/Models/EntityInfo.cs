@@ -15,7 +15,7 @@ internal class EntityInfo : IStructureEntity
     public required IEntityType Type { get; init; }
 
     /// <inheritdoc />
-    public required IReadOnlyList<EntityPropertyInfo> ScalarProps { get; init; }
+    public required IReadOnlyList<ScalarEntityPropertyInfo> ScalarProps { get; init; }
 
     /// <inheritdoc />
     public required IReadOnlyList<ComplexEntityPropertyInfo> ComplexProps { get; init; }
@@ -24,16 +24,4 @@ internal class EntityInfo : IStructureEntity
     /// Owned entities
     /// </summary>
     public required IReadOnlyList<OwnedEntityInfo> Owned { get; init; }
-}
-
-/// <summary>
-/// Complex entity property information.
-/// </summary>
-internal class ComplexEntityPropertyInfo : EntityPropertyInfo, IStructureEntity
-{
-    /// <inheritdoc />
-    public required IReadOnlyList<EntityPropertyInfo> ScalarProps { get; init; }
-
-    /// <inheritdoc />
-    public required IReadOnlyList<ComplexEntityPropertyInfo> ComplexProps { get; init; }
 }

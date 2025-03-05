@@ -13,7 +13,7 @@ internal static class SqliteCommandGenerator
     /// </summary>
     public static string GetInsertWithKeyCommand(RootEntityInfo entity)
     {
-        var properties = entity.Keys.Concat(entity.GetAllProperties());
+        var properties = entity.Keys.Concat(entity.GetAllScalarProps());
         return GetInsertCommand(entity, properties).ToString();
     }
 
@@ -24,7 +24,7 @@ internal static class SqliteCommandGenerator
     {
         if (entity.Keys.Count != 1)
             throw new NotImplementedException("Cannot insert identity without exactly one key");
-        var sb = GetInsertCommand(entity, entity.GetAllProperties());
+        var sb = GetInsertCommand(entity, entity.GetAllScalarProps());
         var identity = entity.Keys[0].ColumnName.SqlColumnName;
         sb.Append($" RETURNING \"{identity}\"");
         return sb.ToString();
@@ -33,7 +33,7 @@ internal static class SqliteCommandGenerator
     /// <summary>
     /// Insert command including primary key.
     /// </summary>
-    private static StringBuilder GetInsertCommand(RootEntityInfo entity, IEnumerable<EntityPropertyInfo> properties)
+    private static StringBuilder GetInsertCommand(RootEntityInfo entity, IEnumerable<IEntityPropertyInfo> properties)
     {
         var list = properties.ToList();
         if (list.Count == 0)
@@ -62,7 +62,7 @@ internal static class SqliteCommandGenerator
 
     public static string GetUpsertCommand(RootEntityInfo entity)
     {
-        var properties = entity.GetAllProperties().ToList();
+        var properties = entity.GetAllScalarProps().ToList();
         var sb = GetInsertCommand(entity, entity.Keys.Concat(properties));
         sb.Append(" ON CONFLICT (");
         foreach (var p in entity.Keys)

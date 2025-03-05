@@ -8,12 +8,12 @@ namespace Lynx.Provider.Common.Models;
 /// Information about a CLR property of an entity.
 /// </summary>
 [DebuggerDisplay($"{{{nameof(Property)}}}")]
-internal class EntityPropertyInfo : IEntityPropertyInfo
+internal abstract class EntityPropertyInfo<T> : IEntityPropertyInfo where T : IPropertyBase
 {
     /// <summary>
     /// Underlying EF Core property
     /// </summary>
-    public required IPropertyBase Property { get; init; }
+    public required T Property { get; init; }
 
     /// <inheritdoc />
     public required ITypeBase Parent { get; init; }
@@ -23,22 +23,6 @@ internal class EntityPropertyInfo : IEntityPropertyInfo
 
     /// <inheritdoc />
     public required ColumnName ColumnName { get; init; }
-}
-
-internal interface IEntityPropertyInfo
-{
-    /// <summary>
-    /// Owning entity type
-    /// </summary>
-    ITypeBase Parent { get; }
-
-    /// <summary>
-    /// Property info
-    /// </summary>
-    PropertyInfo PropertyInfo { get; }
-
-    /// <summary>
-    /// Full column name
-    /// </summary>
-    ColumnName ColumnName { get; }
+    
+    IPropertyBase IEntityPropertyInfo.Property => Property;
 }
