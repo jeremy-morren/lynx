@@ -12,6 +12,12 @@ internal static class ReflectionItems
     /// </summary>
     public static readonly MethodInfo AddParameterMethod =
         typeof(DbParameterCollection).GetMethod(nameof(DbParameterCollection.Add), InstanceFlags)!;
+    
+    /// <summary>
+    /// Gets the item at the specified index.
+    /// </summary>
+    public static readonly MethodInfo ParameterGetItemMethod =
+        typeof(DbParameterCollection).GetMethod("get_Item", InstanceFlags, [typeof(int)])!;
 
     /// <summary>
     /// <see cref="DbParameter.ParameterName"/>

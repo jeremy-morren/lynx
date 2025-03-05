@@ -48,21 +48,18 @@ internal static class SetParameterValueDelegateBuilder<TCommand, TEntity>
         var setComplexNotNull =
             from complex in entity.ComplexProps
             let property = Expression.Property(entityValue, complex.PropertyInfo)
-            from e in SetParameters(complex, property, command)
-            select e;
-
-        var notNull = GetNotNull(entityValue);
-        if (notNull == null)
-            // Entity is not nullable, no need to check for null
-            return setScalars.Concat(setComplexNotNull);
-        
-        // Entity is nullable, use an if-else block to set parameters
-        var nullCheck = Expression.IfThenElse(
-            notNull,
-            Expression.Block(setComplexNotNull),
-            Expression.Block(setComplexNull));
-
-        return setScalars.Append(nullCheck);
+            let setNotNull = SetParameters(complex, property, command)
+            let setNull = SetParameters(complex, null, command)
+            let notNull = GetNotNull(property)
+            select notNull != null
+                //Nullable check, set parameters if not null otherwise set all null
+                ? (Expression)Expression.IfThenElse(
+                    notNull,
+                    Expression.Block(setNotNull),
+                    Expression.Block(setNull))
+                // Not nullable, we can ignore setNull
+                : Expression.Block(setNotNull);
+        return setScalars.Concat(setComplexNotNull);
     }
 
     private static Expression BuildSetParameter(
@@ -71,9 +68,12 @@ internal static class SetParameterValueDelegateBuilder<TCommand, TEntity>
         ParameterExpression command)
     {
         Debug.Assert(property.ColumnIndex >= 0);
-        var parameter = Expression.ArrayIndex(
-            Expression.Property(command, ReflectionItems.CommandParametersProperty),
-            Expression.Constant(property.ColumnIndex));
+        var parameterValue = Expression.Property(
+            Expression.Call(
+                Expression.Property(command, ReflectionItems.CommandParametersProperty),
+                ReflectionItems.ParameterGetItemMethod,
+                Expression.Constant(property.ColumnIndex)),
+            ReflectionItems.ParameterValueProperty);
 
         //If entity is null, we are inside a null check
         Expression value = entity != null
@@ -82,7 +82,7 @@ internal static class SetParameterValueDelegateBuilder<TCommand, TEntity>
                 typeof(object))
             : Expression.Constant(null, typeof(object));
 
-        return Expression.Assign(parameter, value);
+        return Expression.Assign(parameterValue, value);
     }
 
     /// <summary>

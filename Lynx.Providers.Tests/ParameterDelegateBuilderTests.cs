@@ -27,12 +27,6 @@ public class ParameterDelegateBuilderTests
         action(command);
         command.Parameters.Count.ShouldBe(entity.GetAllScalarProps().Count() + entity.Keys.Count);
     }
-
-    [Fact]
-    public void Test()
-    {
-        Expression<Func<DbCommand, object>> action = cmd => cmd.Parameters[0].Value;
-    }
     
     [Fact]
     public void BuildSetParametersDelegate()
