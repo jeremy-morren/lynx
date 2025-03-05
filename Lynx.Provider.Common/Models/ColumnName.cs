@@ -17,6 +17,9 @@ internal class ColumnName : IReadOnlyList<string>, IEquatable<IReadOnlyList<stri
         SqlColumnName = string.Join("_", columnNames);
     }
 
+    /// <summary>
+    /// SQL column name (underscore separated)
+    /// </summary>
     public string SqlColumnName { get; }
 
     /// <summary>

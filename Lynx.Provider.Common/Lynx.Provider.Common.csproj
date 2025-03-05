@@ -13,6 +13,8 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="Lynx.Providers.Tests"/>
+        
+        <InternalsVisibleTo Include="Lynx.Provider.Sqlite"/>
     </ItemGroup>
 
 </Project>

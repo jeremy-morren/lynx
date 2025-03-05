@@ -19,13 +19,14 @@ public class EntityInfoFactoryTests
     public void TestEntityInfoFactory(Type entityType, params string[] keys)
     {
         using var harness = new SqliteTestHarness();
-
         using var context = harness.CreateContext();
 
         var info = EntityInfoFactory.Create(entityType, context.Model);
 
         info.Keys.Should().AllSatisfy(k => k.ColumnName.Should().HaveCount(1));
         info.Keys.Select(k => k.ColumnName.SqlColumnName).Should().BeEquivalentTo(keys);
+
+        keys.Should().AllSatisfy(k => info.ScalarProps.Should().NotContain(p => p.Property.Name == k));
 
         Verify(info, null, keys, context.Model);
     }

@@ -10,4 +10,12 @@
       <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.13" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Lynx.Provider.Common\Lynx.Provider.Common.csproj" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <InternalsVisibleTo Include="Lynx.Providers.Tests"/>
+    </ItemGroup>
+
 </Project>

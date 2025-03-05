@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Lynx.Provider.Common.Models;
@@ -23,4 +24,6 @@ internal class OwnedEntityInfo : EntityInfo, IEntityPropertyInfo
 
     /// <inheritdoc />
     public required ColumnName ColumnName { get; init; }
+
+    public bool IsJson => EntityType.IsMappedToJson();
 }

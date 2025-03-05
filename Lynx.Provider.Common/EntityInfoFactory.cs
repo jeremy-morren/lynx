@@ -72,6 +72,7 @@ internal static class EntityInfoFactory
     {
         var scalarProps =
             from p in parent.GetProperties()
+            where !p.IsPrimaryKey() // Exclude keys
             let info = p.PropertyInfo
             where info != null // Exclude shadow properties
             select new EntityPropertyInfo
