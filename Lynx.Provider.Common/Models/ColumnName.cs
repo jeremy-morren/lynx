@@ -2,12 +2,12 @@
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 
-namespace Lynx.Provider.Common;
+namespace Lynx.Provider.Common.Models;
 
 /// <summary>
 /// A column name (with nested owned types) for a given entity.
 /// </summary>
-internal class ColumnName : IReadOnlyList<string>, IEquatable<ColumnName>
+internal class ColumnName : IReadOnlyList<string>, IEquatable<IReadOnlyList<string>>, IEquatable<ColumnName>
 {
     private readonly ImmutableArray<string> _columnNames;
 
@@ -33,6 +33,8 @@ internal class ColumnName : IReadOnlyList<string>, IEquatable<ColumnName>
     [Pure]
     public ColumnName Add(string columnName) => new(_columnNames.Add(columnName));
 
+    public override string ToString() => $"[ {string.Join(", ", _columnNames)} ]";
+
     #region Implementation of IReadOnlyList<string>
 
     public IEnumerator<string> GetEnumerator()
@@ -53,19 +55,26 @@ internal class ColumnName : IReadOnlyList<string>, IEquatable<ColumnName>
 
     #region Equality members
 
+    public bool Equals(IReadOnlyList<string>? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return _columnNames.Length == other.Count
+               && Enumerable.Range(0, _columnNames.Length).All(i => _columnNames[i] == other[i]);
+    }
+
     public bool Equals(ColumnName? other)
     {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
-        return _columnNames.Length == other._columnNames.Length
-               && Enumerable.Range(0, _columnNames.Length).All(i => _columnNames[i] == other._columnNames[i]);
+        return Equals((IReadOnlyList<string>)other);
     }
 
     public override bool Equals(object? obj)
     {
         if (obj is null) return false;
         if (ReferenceEquals(this, obj)) return true;
-        return obj is ColumnName columnName && Equals(columnName);
+        return obj is IReadOnlyList<string> columnName && Equals(columnName);
     }
 
     public override int GetHashCode()
@@ -73,15 +82,13 @@ internal class ColumnName : IReadOnlyList<string>, IEquatable<ColumnName>
         return HashCode.Combine(_columnNames, SqlColumnName);
     }
 
-    public static bool operator ==(ColumnName? left, ColumnName? right)
-    {
-        return Equals(left, right);
-    }
+    public static bool operator ==(ColumnName? left, IReadOnlyList<string>? right) => Equals(left, right);
 
-    public static bool operator !=(ColumnName? left, ColumnName? right)
-    {
-        return !Equals(left, right);
-    }
+    public static bool operator !=(ColumnName? left, IReadOnlyList<string>? right) => !Equals(left, right);
+
+    public static bool operator ==(ColumnName? left, ColumnName? right) => Equals(left, right);
+
+    public static bool operator !=(ColumnName? left, ColumnName? right) => !Equals(left, right);
 
     #endregion
 }

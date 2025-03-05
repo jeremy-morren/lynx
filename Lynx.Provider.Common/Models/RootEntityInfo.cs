@@ -1,4 +1,4 @@
-﻿namespace Lynx.Provider.Common;
+﻿namespace Lynx.Provider.Common.Models;
 
 /// <summary>
 /// Root entity (i.e. not owned by any other entity).
@@ -8,7 +8,7 @@ internal class RootEntityInfo : EntityInfo
     /// <summary>
     /// Key properties
     /// </summary>
-    public required IReadOnlyList<EntityClrPropertyInfo> Keys { get; init; }
+    public required IReadOnlyList<EntityPropertyInfo> Keys { get; init; }
 
     /// <summary>
     /// Database table name

@@ -23,6 +23,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Lynx.Provider.Common\Lynx.Provider.Common.csproj" />
       <ProjectReference Include="..\Lynx.Provider.Sqlite\Lynx.Provider.Sqlite.csproj" />
     </ItemGroup>
 
