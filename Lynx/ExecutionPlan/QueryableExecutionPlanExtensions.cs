@@ -1,9 +1,7 @@
 ﻿using System.Data;
 using Lynx.ExecutionPlan.Npgsql;
 using Lynx.ExecutionPlan.Sqlite;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Lynx.ExecutionPlan;
 

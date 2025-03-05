@@ -1,7 +1,6 @@
 ﻿using System.Data;
 using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Lynx.DocumentStore;
 

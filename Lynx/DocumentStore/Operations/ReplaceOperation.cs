@@ -1,11 +1,5 @@
 ﻿using System.Linq.Expressions;
-using EFCore.BulkExtensions;
-using Lynx.EfCore;
-using Lynx.EfCore.KeyFilter;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Storage;
-using Npgsql;
 
 namespace Lynx.DocumentStore.Operations;
 
