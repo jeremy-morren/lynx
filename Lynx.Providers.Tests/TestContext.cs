@@ -1,7 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+
 // ReSharper disable NotAccessedPositionalProperty.Global
+// ReSharper disable ClassNeverInstantiated.Global
+// ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace Lynx.Providers.Tests;
 
@@ -89,22 +92,23 @@ public record Building
     public required string Name { get; init; }
 
     public BuildingPurpose? Purpose { get; init; }
+
+    public BuildingOwner? Owner { get; init; }
+}
+
+[Owned]
+public record BuildingOwner
+{
+    public string? Company { get; init; }
+
+    public DateTime? Since { get; init; }
 }
 
 public enum BuildingPurpose
 {
     Residential,
     Commercial,
-    Industrial,
-    Religious,
-    Educational,
-    Governmental,
-    Recreational,
-    Healthcare,
-    Transportation,
-    Military,
-    Agricultural,
-    Other
+    Governmental
 }
 
 public record Customer
@@ -113,18 +117,21 @@ public record Customer
 
     public string? Name { get; init; }
 
-    public required CustomerContactInfo OrderContact { get; init; }
-
-    public CustomerContactInfo? InvoiceContact { get; init; }
+    public string[]? Tags { get; init; }
 
     public required Address BillingAddress { get; init; }
 
     public required Address ShippingAddress { get; init; }
 
+    public required CustomerContactInfo OrderContact { get; init; }
+
+    public CustomerContactInfo? InvoiceContact { get; init; }
+
     public static Customer New(int id) => new()
     {
         Id = id,
         Name = $"Customer {id}",
+        Tags = [$"Tag 1 {id}", $"Tag 2 {id}"],
         OrderContact = new CustomerContactInfo()
         {
             ContactId = id,

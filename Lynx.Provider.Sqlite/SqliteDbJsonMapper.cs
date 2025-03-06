@@ -24,9 +24,16 @@ internal class SqliteDbJsonMapper : IDbJsonMapper
     public static Expression CreateJsonValue(Expression value)
     {
         var options = Expression.Property(null, DefaultJsonSerializerOptions);
-        var serialize = SerializeMethod.MakeGenericMethod(value.Type); // JsonSerializer.Serialize<T>(T, JsonSerializerOptions)
+        var serializeMethod = SerializeMethod.MakeGenericMethod(value.Type); // JsonSerializer.Serialize<T>(T, JsonSerializerOptions)
 
-        return Expression.Call(null, serialize, value, options);
+        var serialize = Expression.Call(null, serializeMethod, value, options);
+        // Check value for null
+        var ifNotNull = ScalarPropertyHelpers.GetIfNotNull(value);
+        if (ifNotNull == null)
+            return serialize; // Value is not nullable, no need to check for null
+
+        // Value is nullable, check for null
+        return Expression.Condition(ifNotNull, serialize, Expression.Constant(null, serialize.Type));
     }
 
     /// <summary>

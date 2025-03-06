@@ -36,11 +36,9 @@ internal static class ScalarPropertyHelpers
 
         if (!expression.Type.IsValueType)
         {
+            var invoke = Expression.Invoke(convertToProvider, expression);
             // Reference type, no conversion needed
-            return Expression.Condition(
-                isNotNull,
-                Expression.Invoke(convertToProvider, expression),
-                Expression.Constant(null, expression.Type));
+            return Expression.Condition(isNotNull, invoke, Expression.Constant(null, invoke.Type));
         }
 
         // Value type, invoke with underlying value and convert back to nullable type

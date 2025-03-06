@@ -61,9 +61,13 @@ public class EntityInfoFactoryTests
                     Verify(owned, owned.ColumnName, null, model);
                     entityProp = owned;
                 }
+                else if (p.PropertyType.IsArray && IsSimpleType(p.PropertyType.GetElementType()!))
+                {
+                    //Array of simple types, should be treated as scalar
+                    entityProp = info.ScalarProps.Where(x => x.PropertyInfo == p).ShouldHaveSingleItem();
+                }
                 else
                 {
-                    //TODO: Handle navigation properties
                     throw new NotImplementedException($"Unknown property type {p.Name}");
                 }
 
