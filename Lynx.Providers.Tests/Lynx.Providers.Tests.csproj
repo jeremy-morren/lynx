@@ -21,6 +21,8 @@
 
     <ItemGroup>
         <Using Include="Xunit"/>
+        <Using Include="Shouldly"/>
+        <Using Include="FluentAssertions"/>
     </ItemGroup>
 
     <ItemGroup>

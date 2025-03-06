@@ -1,9 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+
 // ReSharper disable ConvertIfStatementToReturnStatement
 
-namespace Lynx.Provider.Common;
+namespace Lynx.Provider.Common.Reflection;
 
 internal static class ScalarPropertyHelpers
 {

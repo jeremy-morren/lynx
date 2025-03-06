@@ -1,6 +1,6 @@
 ﻿using Lynx.Provider.Common.Models;
 
-namespace Lynx.Provider.Common;
+namespace Lynx.Provider.Common.Entities;
 
 internal static class EntityModelExtensions
 {

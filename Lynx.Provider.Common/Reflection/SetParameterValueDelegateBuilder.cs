@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Lynx.Provider.Common.Models;
 
-namespace Lynx.Provider.Common;
+namespace Lynx.Provider.Common.Reflection;
 
 /// <summary>
 /// Builds expressions for adding parameters to a command.
@@ -28,7 +28,6 @@ internal static class SetParameterValueDelegateBuilder<TCommand, TMapper, TEntit
         var entityValue = Expression.Parameter(typeof(TEntity), typeof(TEntity).Name.ToLowerInvariant());
 
         var block = Expression.Block(SetParameters(entity, entityValue));
-
         return Expression.Lambda<Action<TCommand, TEntity>>(block, Command, entityValue).Compile();
     }
 

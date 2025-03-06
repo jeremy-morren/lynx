@@ -1,14 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using FluentAssertions;
 using Lynx.Provider.Common;
+using Lynx.Provider.Common.Entities;
 using Lynx.Provider.Common.Models;
 using Lynx.Providers.Tests.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Shouldly;
 
 namespace Lynx.Providers.Tests;
 

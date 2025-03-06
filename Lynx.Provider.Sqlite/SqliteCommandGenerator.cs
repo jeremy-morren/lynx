@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Lynx.Provider.Common;
+using Lynx.Provider.Common.Entities;
 using Lynx.Provider.Common.Models;
 
 namespace Lynx.Provider.Sqlite;

@@ -1,7 +1,6 @@
-using FluentAssertions;
 using Lynx.Provider.Common;
+using Lynx.Provider.Common.Entities;
 using Lynx.Provider.Sqlite;
-using Shouldly;
 
 namespace Lynx.Providers.Tests.Sqlite;
 

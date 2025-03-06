@@ -1,17 +1,15 @@
-﻿using System.Data;
-using System.Data.Common;
+﻿using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using Lynx.Provider.Common.Models;
-using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.EntityFrameworkCore.Storage;
 
-namespace Lynx.Provider.Common;
+namespace Lynx.Provider.Common.Reflection;
 
 /// <summary>
 /// Builds expressions for adding all parameters for an entity to a command.
 /// </summary>
+[SuppressMessage("ReSharper", "StaticMemberInGenericType")]
 internal static class AddParameterDelegateBuilder<TCommand, TMapper>
     where TCommand : DbCommand
     where TMapper : IDbJsonMapper
@@ -19,7 +17,7 @@ internal static class AddParameterDelegateBuilder<TCommand, TMapper>
     /// <summary>
     /// <see cref="DbCommand.CreateParameter"/>
     /// </summary>
-    public static readonly MethodInfo CreateParameterMethod =
+    private static readonly MethodInfo CreateParameterMethod =
         typeof(TCommand).GetMethod(nameof(DbCommand.CreateParameter), ReflectionItems.InstanceFlags)!;
 
     /// <summary>

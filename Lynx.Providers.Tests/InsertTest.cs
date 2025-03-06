@@ -1,5 +1,4 @@
-﻿using FluentAssertions;
-using Lynx.Providers.Tests.Sqlite;
+﻿using Lynx.Providers.Tests.Sqlite;
 
 namespace Lynx.Providers.Tests;
 

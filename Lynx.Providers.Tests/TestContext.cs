@@ -55,23 +55,23 @@ public class TestContext : DbContext
 
 public record City
 {
-    public required CityId Id { get; init; }
+    public required CityId Id { get; set; }
 
-    public required string Name { get; init; }
+    public required string Name { get; set; }
 
     [Column("Country_Name")]
-    public string? Country { get; init; }
+    public string? Country { get; set; }
 
-    public long? Population { get; init; }
+    public long? Population { get; set; }
 
-    public required CityLocation Location { get; init; }
+    public required CityLocation Location { get; set; }
 
-    public LegalSystem LegalSystem { get; init; }
+    public LegalSystem LegalSystem { get; set; }
 
-    public Building? FamousBuilding { get; init; }
+    public Building? FamousBuilding { get; set; }
 
     [Column("Buildings_Json")] // Not used, set above in OnModelCreating
-    public Building[]? Buildings { get; init; }
+    public Building[]? Buildings { get; set; }
 }
 
 public readonly record struct LegalSystem(bool CommonLaw, bool CivilLaw);
@@ -79,29 +79,29 @@ public readonly record struct LegalSystem(bool CommonLaw, bool CivilLaw);
 [ComplexType]
 public record CityLocation
 {
-    public decimal Latitude { get; init; }
+    public decimal Latitude { get; set; }
 
-    public double Longitude { get; init; }
+    public double Longitude { get; set; }
 
-    public float Elevation { get; init; }
+    public float Elevation { get; set; }
 }
 
 [Owned]
 public record Building
 {
-    public required string Name { get; init; }
+    public required string Name { get; set; }
 
-    public BuildingPurpose? Purpose { get; init; }
+    public BuildingPurpose? Purpose { get; set; }
 
-    public BuildingOwner? Owner { get; init; }
+    public BuildingOwner? Owner { get; set; }
 }
 
 [Owned]
 public record BuildingOwner
 {
-    public string? Company { get; init; }
+    public string? Company { get; set; }
 
-    public DateTime? Since { get; init; }
+    public DateTime? Since { get; set; }
 }
 
 public enum BuildingPurpose
@@ -113,19 +113,19 @@ public enum BuildingPurpose
 
 public record Customer
 {
-    public required int Id { get; init; }
+    public required int Id { get; set; }
 
-    public string? Name { get; init; }
+    public string? Name { get; set; }
 
-    public string[]? Tags { get; init; }
+    public string[]? Tags { get; set; }
 
-    public required Address BillingAddress { get; init; }
+    public required Address BillingAddress { get; set; }
 
-    public required Address ShippingAddress { get; init; }
+    public required Address ShippingAddress { get; set; }
 
-    public required CustomerContactInfo OrderContact { get; init; }
+    public required CustomerContactInfo OrderContact { get; set; }
 
-    public CustomerContactInfo? InvoiceContact { get; init; }
+    public CustomerContactInfo? InvoiceContact { get; set; }
 
     public static Customer New(int id) => new()
     {
@@ -155,27 +155,27 @@ public record Customer
 
 public record Contact
 {
-    public required int Id { get; init; }
+    public required int Id { get; set; }
 
-    public string? Name { get; init; }
+    public string? Name { get; set; }
 }
 
 [ComplexType]
 public record Address
 {
-    public required string Street { get; init; }
+    public required string Street { get; set; }
 
-    public required string City { get; init; }
+    public required string City { get; set; }
 }
 
 [Owned]
 public record CustomerContactInfo
 {
-    public DateTime? LastContact { get; init; }
+    public DateTime? LastContact { get; set; }
 
-    public required int ContactId { get; init; }
+    public required int ContactId { get; set; }
 
-    public Contact Contact { get; init; } = null!;
+    public Contact Contact { get; set; } = null!;
 }
 
 public readonly record struct CityId(int Value) : IStrongId

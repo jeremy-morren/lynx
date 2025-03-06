@@ -2,7 +2,7 @@
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace Lynx.Provider.Common;
+namespace Lynx.Provider.Common.Reflection;
 
 internal static class ReflectionItems
 {

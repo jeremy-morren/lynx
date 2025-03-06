@@ -1,9 +1,10 @@
 ﻿using Lynx.Provider.Common.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+
 // ReSharper disable LoopCanBeConvertedToQuery
 
-namespace Lynx.Provider.Common;
+namespace Lynx.Provider.Common.Entities;
 
 internal static class EntityInfoFactory
 {
