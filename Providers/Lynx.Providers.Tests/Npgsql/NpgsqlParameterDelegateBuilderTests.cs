@@ -16,6 +16,7 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
     [Theory]
     [InlineData(typeof(City))]
     [InlineData(typeof(Customer))]
+    [InlineData(typeof(ConverterEntity))]
     public void BuildAddDelegate(Type entityType)
     {
         using var harness = new NpgsqlTestHarness(nameof(BuildAddDelegate), entityType.Name);
@@ -23,7 +24,7 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
 
         var entity = EntityInfoFactory.Create(entityType, context.Model);
 
-        var action = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlDbJsonMapper>.Build(entity);
+        var action = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder>.Build(entity);
 
         var command = new NpgsqlCommand();
         action(command);
@@ -50,12 +51,12 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
 
         var entity = EntityInfoFactory.Create(typeof(City), context.Model);
 
-        var addParameters = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlDbJsonMapper>.Build(entity);
+        var addParameters = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder>.Build(entity);
 
         var command = new NpgsqlCommand();
         addParameters(command);
 
-        var setParameters = SetParameterValueDelegateBuilder<NpgsqlCommand, NpgsqlDbJsonMapper, City>.Build(entity);
+        var setParameters = SetParameterValueDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder, City>.Build(entity);
 
         Assert.All(GetTestCities(), city =>
         {
@@ -94,12 +95,12 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
 
         var entity = EntityInfoFactory.Create(typeof(Customer), context.Model);
 
-        var addParameters = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlDbJsonMapper>.Build(entity);
+        var addParameters = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder>.Build(entity);
 
         var command = new NpgsqlCommand();
         addParameters(command);
 
-        var setParameters = SetParameterValueDelegateBuilder<NpgsqlCommand, NpgsqlDbJsonMapper, Customer>.Build(entity);
+        var setParameters = SetParameterValueDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder, Customer>.Build(entity);
 
         Assert.All(GetTestCustomers(), customer =>
         {
@@ -125,7 +126,44 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
                 VerifyParameter(property, value, entity, command);
         });
     }
+    
+    
+    [Fact]
+    public void BuildConverterEntitySetParametersDelegate()
+    {
+        using var harness = new NpgsqlTestHarness(nameof(BuildConverterEntitySetParametersDelegate));
+        using var context = harness.CreateContext();
 
-    private static string? SerializeJson<T>(T? value) =>
-        value == null ? null : JsonSerializer.Serialize(value, JsonSerializerOptions.Default);
+        var entity = EntityInfoFactory.Create(typeof(ConverterEntity), context.Model);
+
+        var addParameters = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder>.Build(entity);
+
+        var command = new NpgsqlCommand();
+        addParameters(command);
+
+        var setParameters = SetParameterValueDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder, ConverterEntity>.Build(entity);
+
+        Assert.All(GetTestConverterEntities(), value =>
+        {
+            setParameters(command, value);
+            
+            Verify([nameof(ConverterEntity.Id1)], value.Id1.Value);
+            Verify([nameof(ConverterEntity.Id2)], value.Id2.Value);
+            Verify([nameof(ConverterEntity.NullableId)], value.NullableId?.Value);
+            Verify([nameof(ConverterEntity.NullableValueId)], value.NullableValueId?.Value);
+            Verify([nameof(ConverterEntity.ReferenceId)], value.ReferenceId?.Value);
+            Verify([nameof(ConverterEntity.ReferenceNullableIntId)], value.ReferenceNullableIntId?.Value);
+            Verify([nameof(ConverterEntity.ReferenceIntId)], value.ReferenceIntId?.Value);
+            Verify([nameof(ConverterEntity.IntValue)], value.IntValue);
+            Verify([nameof(ConverterEntity.StringValue)], value.StringValue);
+            Verify([nameof(ConverterEntity.IntValueNull)], value.IntValueNull);
+            
+            command.Parameters.Count.ShouldBe(entity.Keys.Count + entity.GetAllScalarColumns().Count());
+
+            return;
+
+            void Verify(ImmutableArray<string> property, object? v) =>
+                VerifyParameter(property, v, entity, command);
+        });
+    }
 }

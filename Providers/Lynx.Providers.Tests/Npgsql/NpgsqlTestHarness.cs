@@ -27,7 +27,11 @@ public sealed class NpgsqlTestHarness : IDisposable
 
     private const string ConnString = "Host=localhost;Username=postgres;Password=postgres;Include Error Detail=true";
 
-    private static void DeleteDatabase(string dbName) => ExecuteNonQuery($"DROP DATABASE IF EXISTS {dbName}");
+    private static void DeleteDatabase(string dbName)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(dbName);
+        ExecuteNonQuery($"DROP DATABASE IF EXISTS \"{dbName}\"");
+    }
 
     private static void ExecuteNonQuery(string command)
     {

@@ -3,12 +3,18 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json;
 using Lynx.Provider.Common;
+using Lynx.Provider.Common.Models;
 using Lynx.Provider.Common.Reflection;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Lynx.Provider.Sqlite;
 
-internal abstract class SqliteDbJsonMapper : IDbJsonMapper
+internal abstract class SqliteProviderDelegateBuilder : IProviderDelegateBuilder
 {
+    // No Sqlite-specific parameter setup is needed
+    public static Expression? SetupParameterDbType(ParameterExpression parameter, ScalarEntityPropertyInfo property)
+        => null;
+
     // Microsoft.Data.Sqlite has no built in support for JSON, so we have to serialize it ourselves
 
     public static Expression SetupJsonParameter(Expression command)

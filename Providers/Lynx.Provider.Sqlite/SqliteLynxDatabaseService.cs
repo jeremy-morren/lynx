@@ -17,8 +17,8 @@ internal class SqliteLynxDatabaseService<T> : ILynxDatabaseService<T>
         _insertWithKeyCommand = CommandGenerator.GetInsertWithKeyCommand(entity);
         _upsertCommand = CommandGenerator.GetUpsertCommand(entity);
 
-        _addParameters = AddParameterDelegateBuilder<SqliteCommand, SqliteDbJsonMapper>.Build(entity);
-        _setParameterValues = SetParameterValueDelegateBuilder<SqliteCommand, SqliteDbJsonMapper, T>.Build(entity);
+        _addParameters = AddParameterDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder>.Build(entity);
+        _setParameterValues = SetParameterValueDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder, T>.Build(entity);
     }
 
     /// <summary>

@@ -23,7 +23,7 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
 
         var entity = EntityInfoFactory.Create(entityType, context.Model);
 
-        var action = AddParameterDelegateBuilder<SqliteCommand, SqliteDbJsonMapper>.Build(entity);
+        var action = AddParameterDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder>.Build(entity);
 
         var command = new SqliteCommand();
         action(command);
@@ -50,12 +50,12 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
 
         var entity = EntityInfoFactory.Create(typeof(City), context.Model);
 
-        var addParameters = AddParameterDelegateBuilder<SqliteCommand, SqliteDbJsonMapper>.Build(entity);
+        var addParameters = AddParameterDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder>.Build(entity);
 
         var command = new SqliteCommand();
         addParameters(command);
 
-        var setParameters = SetParameterValueDelegateBuilder<SqliteCommand, SqliteDbJsonMapper, City>.Build(entity);
+        var setParameters = SetParameterValueDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder, City>.Build(entity);
 
         Assert.All(GetTestCities(), city =>
         {
@@ -95,12 +95,12 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
 
         var entity = EntityInfoFactory.Create(typeof(Customer), context.Model);
 
-        var addParameters = AddParameterDelegateBuilder<SqliteCommand, SqliteDbJsonMapper>.Build(entity);
+        var addParameters = AddParameterDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder>.Build(entity);
 
         var command = new SqliteCommand();
         addParameters(command);
 
-        var setParameters = SetParameterValueDelegateBuilder<SqliteCommand, SqliteDbJsonMapper, Customer>.Build(entity);
+        var setParameters = SetParameterValueDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder, Customer>.Build(entity);
 
         Assert.All(GetTestCustomers(), customer =>
         {
@@ -135,12 +135,12 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
 
         var entity = EntityInfoFactory.Create(typeof(ConverterEntity), context.Model);
 
-        var addParameters = AddParameterDelegateBuilder<SqliteCommand, SqliteDbJsonMapper>.Build(entity);
+        var addParameters = AddParameterDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder>.Build(entity);
 
         var command = new SqliteCommand();
         addParameters(command);
 
-        var setParameters = SetParameterValueDelegateBuilder<SqliteCommand, SqliteDbJsonMapper, ConverterEntity>.Build(entity);
+        var setParameters = SetParameterValueDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder, ConverterEntity>.Build(entity);
 
         Assert.All(GetTestConverterEntities(), value =>
         {

@@ -17,8 +17,8 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseService<T>
         _insertWithKeyCommand = CommandGenerator.GetInsertWithKeyCommand(entity);
         _upsertCommand = CommandGenerator.GetUpsertCommand(entity);
 
-        _addParameters = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlDbJsonMapper>.Build(entity);
-        _setParameterValues = SetParameterValueDelegateBuilder<NpgsqlCommand, NpgsqlDbJsonMapper, T>.Build(entity);
+        _addParameters = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder>.Build(entity);
+        _setParameterValues = SetParameterValueDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder, T>.Build(entity);
     }
 
     /// <summary>

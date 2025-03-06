@@ -1,8 +1,10 @@
-﻿using System.Data.Common;
+﻿using System.Data;
+using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using Lynx.Provider.Common.Models;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Lynx.Provider.Common.Reflection;
 
@@ -10,9 +12,9 @@ namespace Lynx.Provider.Common.Reflection;
 /// Builds expressions for adding all parameters for an entity to a command.
 /// </summary>
 [SuppressMessage("ReSharper", "StaticMemberInGenericType")]
-internal static class AddParameterDelegateBuilder<TCommand, TMapper>
+internal static class AddParameterDelegateBuilder<TCommand, TDelegateBuilder>
     where TCommand : DbCommand
-    where TMapper : IDbJsonMapper
+    where TDelegateBuilder : IProviderDelegateBuilder
 {
     /// <summary>
     /// <see cref="DbCommand.CreateParameter"/>
@@ -78,7 +80,7 @@ internal static class AddParameterDelegateBuilder<TCommand, TMapper>
                 Expression.Property(Parameter, ReflectionItems.ParameterNameProperty),
                 Expression.Constant(json.ColumnName.SqlParamName)),
             //Setup JSON mapper
-            TMapper.SetupJsonParameter(Parameter),
+            TDelegateBuilder.SetupJsonParameter(Parameter),
             //Add the parameter to the command
             Expression.Call(
                 Expression.Property(Command, ReflectionItems.CommandParametersProperty),
@@ -91,8 +93,7 @@ internal static class AddParameterDelegateBuilder<TCommand, TMapper>
     /// <summary>
     /// Returns an expression that checks if the given expression is not null null, or null if the expression is not nullable.
     /// </summary>
-    private static List<Expression> BuildAddParameter(
-        ScalarEntityPropertyInfo property)
+    private static List<Expression> BuildAddParameter(ScalarEntityPropertyInfo property)
     {
         var mapping = property.TypeMapping;
         var result = new List<Expression>()
@@ -106,38 +107,53 @@ internal static class AddParameterDelegateBuilder<TCommand, TMapper>
                 Expression.Property(Parameter, ReflectionItems.ParameterNameProperty),
                 Expression.Constant(property.ColumnName.SqlParamName))
         };
-        if (mapping.DbType != null)
+        
+        //Get provider-specific expression to set DbType
+        var setDbType = TDelegateBuilder.SetupParameterDbType(Parameter, property);
+        if (setDbType != null)
+            result.Add(setDbType);
+        
+        //Set size, scale, and precision
+        var elementTypeMapping = mapping.ElementTypeMapping as RelationalTypeMapping;
+        var dbType = mapping.DbType ?? elementTypeMapping?.DbType;
+        var size = mapping.Size ?? elementTypeMapping?.Size;
+        var scale = mapping.Scale ?? elementTypeMapping?.Scale;
+        var precision = mapping.Precision ?? elementTypeMapping?.Precision;
+        
+        if (dbType != null && setDbType == null)
         {
-            //Set DB type
+            //No provider-specific expression to set DbType, set it here
             result.Add(
                 Expression.Assign(
                     Expression.Property(Parameter, ReflectionItems.DbParameterDbTypeProperty),
-                    Expression.Constant(mapping.DbType.Value)));
+                    Expression.Constant(dbType.Value, typeof(DbType))));
         }
 
-        if (mapping.Size != null)
+        if (size != null)
         {
             //Set size
             result.Add(
                 Expression.Assign(
                     Expression.Property(Parameter, ReflectionItems.DbParameterSizeProperty),
-                    Expression.Constant(mapping.Size.Value)));
+                    Expression.Constant(size.Value)));
         }
-        if (mapping.Scale != null)
+        
+        
+        if (scale != null)
         {
             //Set scale
             result.Add(
                 Expression.Assign(
                     Expression.Property(Parameter, ReflectionItems.DbParameterScaleProperty),
-                    Expression.Constant(mapping.Scale.Value)));
+                    Expression.Constant(scale.Value)));
         }
-        if (mapping.Precision != null)
+        if (precision != null)
         {
             //Set precision
             result.Add(
                 Expression.Assign(
                     Expression.Property(Parameter, ReflectionItems.DbParameterPrecisionProperty),
-                    Expression.Constant(mapping.Precision.Value)));
+                    Expression.Constant(precision.Value)));
         }
 
         //Add the parameter to the command

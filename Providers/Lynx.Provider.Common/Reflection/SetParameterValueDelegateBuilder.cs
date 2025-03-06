@@ -13,7 +13,7 @@ namespace Lynx.Provider.Common.Reflection;
 internal static class SetParameterValueDelegateBuilder<TCommand, TMapper, TEntity>
     where TCommand : DbCommand 
     where TEntity : class
-    where TMapper : IDbJsonMapper
+    where TMapper : IProviderDelegateBuilder
 {
     /// <summary>
     /// Parameter expression for the command.
