@@ -1,11 +1,13 @@
 ﻿using System.Text;
-using Lynx.Provider.Common;
 using Lynx.Provider.Common.Entities;
 using Lynx.Provider.Common.Models;
 
-namespace Lynx.Provider.Sqlite;
+namespace Lynx.Provider.Common;
 
-internal static class SqliteCommandGenerator
+/// <summary>
+/// Generates commands (Postgres dialect, understood by Sqlite)
+/// </summary>
+internal static class CommandGenerator
 {
     #region Insert
 
@@ -41,7 +43,10 @@ internal static class SqliteCommandGenerator
             throw new NotImplementedException("No properties selected");
 
         var sb = new StringBuilder();
-        sb.Append($"INSERT INTO \"{entity.TableName}\" (");
+        sb.Append("INSERT INTO ");
+        if (entity.Schema != null)
+            sb.Append($"\"{entity.Schema}\".");
+        sb.Append($"\"{entity.TableName}\" (");
         foreach (var p in list)
         {
             sb.Append($"\"{p.ColumnName.SqlColumnName}\", ");

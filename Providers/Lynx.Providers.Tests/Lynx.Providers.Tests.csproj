@@ -11,9 +11,11 @@
 
     <ItemGroup>
         <PackageReference Include="coverlet.collector" Version="6.0.0"/>
+        <PackageReference Include="EntityFrameworkCore.Sqlite.NodaTime" Version="8.0.1" />
         <PackageReference Include="FluentAssertions" Version="8.1.1" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.13" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0"/>
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NodaTime" Version="8.0.11" />
         <PackageReference Include="Shouldly" Version="4.3.0" />
         <PackageReference Include="xunit" Version="2.5.3"/>
         <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3"/>
@@ -27,6 +29,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Lynx.Provider.Common\Lynx.Provider.Common.csproj" />
+      <ProjectReference Include="..\Lynx.Provider.Npgsql\Lynx.Provider.Npgsql.csproj" />
       <ProjectReference Include="..\Lynx.Provider.Sqlite\Lynx.Provider.Sqlite.csproj" />
     </ItemGroup>
 

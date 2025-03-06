@@ -14,8 +14,8 @@ internal class SqliteLynxDatabaseService<T> : ILynxDatabaseService<T>
         if (entity.Type.ClrType != typeof(T))
             throw new ArgumentException("Entity type mismatch", nameof(entity));
 
-        _insertWithKeyCommand = SqliteCommandGenerator.GetInsertWithKeyCommand(entity);
-        _upsertCommand = SqliteCommandGenerator.GetUpsertCommand(entity);
+        _insertWithKeyCommand = CommandGenerator.GetInsertWithKeyCommand(entity);
+        _upsertCommand = CommandGenerator.GetUpsertCommand(entity);
 
         _addParameters = AddParameterDelegateBuilder<SqliteCommand, SqliteDbJsonMapper>.Build(entity);
         _setParameterValues = SetParameterValueDelegateBuilder<SqliteCommand, SqliteDbJsonMapper, T>.Build(entity);

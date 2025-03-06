@@ -1,8 +1,8 @@
 using Lynx.Provider.Common;
 using Lynx.Provider.Common.Entities;
-using Lynx.Provider.Sqlite;
+using Lynx.Providers.Tests.Sqlite;
 
-namespace Lynx.Providers.Tests.Sqlite;
+namespace Lynx.Providers.Tests;
 
 public class CommandGeneratorTests
 {
@@ -15,14 +15,14 @@ public class CommandGeneratorTests
         using var context = harness.CreateContext();
 
         var entity = EntityInfoFactory.Create(entityType, context.Model);
-        SqliteCommandGenerator.GetInsertWithKeyCommand(entity).ShouldEndWith(")");
+        CommandGenerator.GetInsertWithKeyCommand(entity).ShouldEndWith(")");
 
         if (entity.Keys.Count == 1)
-            SqliteCommandGenerator.GetInsertIdentityCommand(entity).ShouldNotEndWith(")");
+            CommandGenerator.GetInsertIdentityCommand(entity).ShouldNotEndWith(")");
         else
-            Assert.Throws<InvalidOperationException>(() => SqliteCommandGenerator.GetInsertIdentityCommand(entity));
+            Assert.Throws<InvalidOperationException>(() => CommandGenerator.GetInsertIdentityCommand(entity));
 
-        SqliteCommandGenerator.GetUpsertCommand(entity)
+        CommandGenerator.GetUpsertCommand(entity)
             .Should().NotEndWith(")").And.Contain("ON CONFLICT");
     }
 }

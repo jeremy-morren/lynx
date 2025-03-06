@@ -129,7 +129,7 @@ internal static class SetParameterValueDelegateBuilder<TCommand, TMapper, TEntit
 
         //Get the value of the property and convert it to JSON
         Expression value = Expression.Property(entity, json.PropertyInfo);
-        value = TMapper.CreateJsonValue(value) ?? value;
+        value = TMapper.SerializeJson(value);
         return [SetParameterValue(json.ColumnIndex, value)];
     }
 

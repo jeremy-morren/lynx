@@ -7,10 +7,9 @@ using Lynx.Provider.Common.Reflection;
 
 namespace Lynx.Provider.Sqlite;
 
-internal class SqliteDbJsonMapper : IDbJsonMapper
+internal abstract class SqliteDbJsonMapper : IDbJsonMapper
 {
     // Microsoft.Data.Sqlite has no built in support for JSON, so we have to serialize it ourselves
-
 
     public static Expression SetupJsonParameter(Expression command)
     {
@@ -20,7 +19,7 @@ internal class SqliteDbJsonMapper : IDbJsonMapper
             Expression.Constant(DbType.String, typeof(DbType)));
     }
 
-    public static Expression CreateJsonValue(Expression value)
+    public static Expression SerializeJson(Expression value)
     {
         var options = Expression.Property(null, DefaultJsonSerializerOptions);
         var serializeMethod = SerializeMethod.MakeGenericMethod(value.Type); // JsonSerializer.Serialize<T>(T, JsonSerializerOptions)

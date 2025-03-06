@@ -5,9 +5,11 @@ using System.Reflection;
 using Lynx.Provider.Common;
 using Lynx.Provider.Common.Entities;
 using Lynx.Provider.Common.Models;
+using Lynx.Providers.Tests.Npgsql;
 using Lynx.Providers.Tests.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using NodaTime;
 
 namespace Lynx.Providers.Tests;
 
@@ -18,17 +20,25 @@ public class EntityInfoFactoryTests
     [InlineData(typeof(City), nameof(City.Id))]
     public void TestEntityInfoFactory(Type entityType, params string[] keys)
     {
-        using var harness = new SqliteTestHarness();
-        using var context = harness.CreateContext();
+        using var sqliteHarness = new SqliteTestHarness();
+        using var npgsqlHarness = new NpgsqlTestHarness(nameof(TestEntityInfoFactory), entityType.Name);
 
-        var info = EntityInfoFactory.Create(entityType, context.Model);
+        var contexts = new[]
+        {
+            sqliteHarness.CreateContext(),
+            npgsqlHarness.CreateContext()
+        };
+        foreach (var context in contexts)
+        {
+            var info = EntityInfoFactory.Create(entityType, context.Model);
 
-        info.Keys.Should().AllSatisfy(k => k.ColumnName.Should().HaveCount(1));
-        info.Keys.Select(k => k.ColumnName.SqlColumnName).Should().BeEquivalentTo(keys);
+            info.Keys.Should().AllSatisfy(k => k.ColumnName.Should().HaveCount(1));
+            info.Keys.Select(k => k.ColumnName.SqlColumnName).Should().BeEquivalentTo(keys);
 
-        keys.Should().AllSatisfy(k => info.ScalarProps.Should().NotContain(p => p.Property.Name == k));
+            keys.Should().AllSatisfy(k => info.ScalarProps.Should().NotContain(p => p.Property.Name == k));
 
-        Verify(info, null, keys, context.Model);
+            Verify(info, null, keys, context.Model);
+        }
     }
 
     private static void Verify(EntityInfo info, PropertyChain? baseColumn, string[]? keys, IModel model)
@@ -67,7 +77,7 @@ public class EntityInfoFactoryTests
                 }
                 else
                 {
-                    throw new NotImplementedException($"Unknown property type {p.Name}");
+                    throw new NotImplementedException($"Unknown property {p}. Type {p.PropertyType}");
                 }
 
                 if (baseColumn != null)
@@ -93,6 +103,10 @@ public class EntityInfoFactoryTests
             || type == typeof(DateTimeOffset)
             || type == typeof(TimeSpan)
             || type == typeof(DateOnly)
+            
+            || type == typeof(Instant)
+            || type == typeof(LocalDate)
+            || type == typeof(LocalDateTime)
 
             || type.IsEnum
 

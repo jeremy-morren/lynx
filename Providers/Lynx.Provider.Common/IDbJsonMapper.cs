@@ -10,7 +10,7 @@ internal interface IDbJsonMapper
     static abstract Expression SetupJsonParameter(Expression parameter);
 
     /// <summary>
-    /// Convert a value to a JSON parameter value, if a conversion is necessary
+    /// Convert a value to a JSON parameter value
     /// </summary>
-    static abstract Expression? CreateJsonValue(Expression value);
+    static abstract Expression SerializeJson(Expression value);
 }

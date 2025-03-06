@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using NodaTime;
 
 // ReSharper disable NotAccessedPositionalProperty.Global
 // ReSharper disable ClassNeverInstantiated.Global
@@ -84,6 +85,8 @@ public record CityLocation
     public double Longitude { get; set; }
 
     public float Elevation { get; set; }
+    
+    public required short[] StreetWidths { get; set; }
 }
 
 [Owned]
@@ -101,7 +104,7 @@ public record BuildingOwner
 {
     public string? Company { get; set; }
 
-    public DateTime? Since { get; set; }
+    public LocalDate? Since { get; set; }
 }
 
 public enum BuildingPurpose

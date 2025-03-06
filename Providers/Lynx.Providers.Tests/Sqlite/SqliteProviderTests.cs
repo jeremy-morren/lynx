@@ -151,7 +151,8 @@ public class SqliteProviderTests
         {
             Elevation = id * 10,
             Latitude = id * 1.1m,
-            Longitude = id * 100.1
+            Longitude = id * 100.1,
+            StreetWidths = Enumerable.Range(0, id).Select(i => (short)i).ToArray()
         },
         Population = id % 3 == 0 ? null : id * 1000,
         LegalSystem = new LegalSystem(id % 2 == 0, id % 3 == 0),
