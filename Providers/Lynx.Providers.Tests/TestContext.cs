@@ -1,8 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NodaTime;
+using NodaTime.Text;
 
+// ReSharper disable ClassNeverInstantiated.Local
+// ReSharper disable PropertyCanBeMadeInitOnly.Global
 // ReSharper disable NotAccessedPositionalProperty.Global
 // ReSharper disable ClassNeverInstantiated.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Global
@@ -35,12 +40,41 @@ public class TestContext : DbContext
         modelBuilder.Entity<Contact>();
 
         modelBuilder.Entity<Customer>();
+
+        modelBuilder.Entity<ConverterEntity>(b =>
+        {
+            b.HasKey(c => new { c.Id1, c.Id2 });
+
+            b.Property(x => x.IntValue)
+                .HasConversion<ConverterHandleNulls<int>>();
+            
+            b.Property(x => x.IntValueNull)
+                .HasConversion<ConverterHandleNulls<int?>>();
+            b.Property(x => x.StringValue)
+                .HasConversion<ConverterHandleNulls<string>>();
+        });
+
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         configurationBuilder.Properties<CityId>()
             .HaveConversion<CityId.EfCoreValueConverter>();
+        configurationBuilder.Properties<StringId>()
+            .HaveConversion<StringId.EfCoreValueConverter>();
+        configurationBuilder.Properties<ReferenceStringId>()
+            .HaveConversion<ReferenceStringId.EfCoreValueConverter>();
+        configurationBuilder.Properties<ReferenceIntId>()
+            .HaveConversion<ReferenceIntId.EfCoreValueConverter>();
+        configurationBuilder.Properties<ReferenceNullableIntId>()
+            .HaveConversion<ReferenceNullableIntId.EfCoreValueConverter>();
+        
+        // provider-specific converter
+        if (Database.ProviderName?.Contains("Sqlite") == true)
+        {
+            configurationBuilder.Properties<LocalDate>()
+                .HaveConversion<LocalDateConverter>();
+        }
     }
 }
 
@@ -156,6 +190,11 @@ public record CustomerContactInfo
     public Contact Contact { get; set; } = null!;
 }
 
+/// <summary>
+/// Tagging interface for strong identifiers.
+/// </summary>
+public interface IStrongId {}
+
 public readonly record struct CityId(int Value) : IStrongId
 {
     public class EfCoreValueConverter : ValueConverter<CityId, int>
@@ -167,6 +206,99 @@ public readonly record struct CityId(int Value) : IStrongId
 }
 
 /// <summary>
-/// Tagging interface for strong identifiers.
+/// Entity with various types of converters.
 /// </summary>
-public interface IStrongId {}
+public class ConverterEntity
+{
+    // Not null value type -> reference type
+    public StringId Id1 { get; set; }
+    
+    // value type -> value type
+    public CityId Id2 { get; set; }
+    
+    // Null value type -> reference type
+    public StringId? NullableId { get; set; }
+    
+    // value type -> nullable value type
+    public CityId? NullableValueId { get; set; }
+    
+    // reference type -> reference type
+    public ReferenceStringId? ReferenceId { get; set; }
+    
+    // reference type -> value type
+    public ReferenceIntId? ReferenceIntId { get; set; }
+    
+    // reference type -> nullable value type
+    public ReferenceNullableIntId? ReferenceNullableIntId { get; set; }
+    
+    // For testing converter that handles nulls
+    
+    public int IntValue { get; set; }
+    
+    public int? IntValueNull { get; set; }
+    
+    public string? StringValue { get; set; }
+}
+
+public readonly record struct StringId(string Value) : IStrongId
+{
+    public class EfCoreValueConverter : ValueConverter<StringId, string>
+    {
+        public EfCoreValueConverter() : base(
+            v => v.Value,
+            v => new StringId(v)) {}
+    }
+}
+
+[SuppressMessage("Usage", "EF1001:Internal EF Core API usage.")]
+public class ConverterHandleNulls<T> : ValueConverter<T, T>
+{
+    public ConverterHandleNulls() : base(
+        v => v,
+        v => v,
+        true) {}
+}
+
+public record ReferenceIntId(int Value) : IStrongId
+{
+    public class EfCoreValueConverter : ValueConverter<ReferenceIntId, int>
+    {
+        public EfCoreValueConverter() : base(
+            v => v.Value,
+            v => new ReferenceIntId(v)) {}
+    }
+}
+
+// NB: we don't handle nulls, because we're testing converter processing
+// These converters don't make sense in real life,
+// because EF core will handle nulls by setting the property to null i.e. converter isn't called
+
+public record ReferenceStringId(string? Value) : IStrongId
+{
+    public class EfCoreValueConverter : ValueConverter<ReferenceStringId, string?>
+    {
+        public EfCoreValueConverter() : base(
+            v => v.Value,
+            v => new ReferenceStringId(v)) {}
+    }
+}
+
+public record ReferenceNullableIntId(int? Value) : IStrongId
+{
+    public class EfCoreValueConverter : ValueConverter<ReferenceNullableIntId, int?>
+    {
+        public EfCoreValueConverter() : base(
+            v => v.Value,
+            v => new ReferenceNullableIntId(v)) {}
+    }
+}
+
+    
+public class LocalDateConverter : ValueConverter<LocalDate, string>
+{
+    public LocalDateConverter() : base(
+        v => LocalDatePattern.Iso.Format(v),
+        v => LocalDatePattern.Iso.Parse(v).Value) 
+    {
+    }
+}

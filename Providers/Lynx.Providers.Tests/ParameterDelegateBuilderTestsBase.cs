@@ -24,9 +24,15 @@ public class ParameterDelegateBuilderTestsBase
         var parameter = command.Parameters[column.ColumnIndex];
         parameter.ParameterName.ShouldBe(column.ColumnName.SqlParamName);
         if (value == null)
+        {
             parameter.Value.ShouldBe(DBNull.Value, $"{name} should be DBNull.Value");
+        }
         else
+        {
+            if (value.GetType().IsEnum)
+                value = Convert.ToInt32(value);
             parameter.Value.ShouldBe(value, $"Invalid value for {name}");
+        }
     }
 
     protected static City[] GetTestCities() =>
@@ -154,6 +160,36 @@ public class ParameterDelegateBuilderTestsBase
                 LastContact = DateTime.UnixEpoch
             },
             OrderContact = null!
+        }
+    ];
+
+    protected static ConverterEntity[] GetTestConverterEntities() =>
+    [
+        new ConverterEntity()
+        {
+            Id1 = new StringId("1"),
+            Id2 = new CityId(2),
+            IntValueNull = 3
+        },
+        new ConverterEntity()
+        {
+            Id1 = default,
+            Id2 = new CityId(-1),
+            NullableValueId = new CityId(-2),
+            StringValue = "-3"
+        },
+        new ConverterEntity()
+        {
+            Id1 = new StringId(string.Empty),
+            ReferenceNullableIntId = new ReferenceNullableIntId(-5),
+            ReferenceIntId = new ReferenceIntId(5),
+            ReferenceId = new ReferenceStringId("-5")
+        },
+        new ConverterEntity()
+        {
+            ReferenceNullableIntId = new ReferenceNullableIntId(null),
+            ReferenceId = new ReferenceStringId(null),
+            IntValueNull = 7
         }
     ];
 }

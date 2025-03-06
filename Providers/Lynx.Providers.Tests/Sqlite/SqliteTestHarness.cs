@@ -16,7 +16,7 @@ public sealed class SqliteTestHarness : IDisposable
     public TestContext CreateContext()
     {
         var options = new DbContextOptionsBuilder()
-            .UseSqlite(Connection, x => x.UseNodaTime())
+            .UseSqlite(Connection)
             .Options;
 
         return new TestContext(options);

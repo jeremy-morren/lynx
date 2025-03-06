@@ -15,6 +15,7 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
     [Theory]
     [InlineData(typeof(City))]
     [InlineData(typeof(Customer))]
+    [InlineData(typeof(ConverterEntity))]
     public void BuildAddDelegate(Type entityType)
     {
         using var harness = new SqliteTestHarness();
@@ -73,7 +74,8 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
             Verify([nameof(City.FamousBuilding), nameof(Building.Name)], city.FamousBuilding?.Name);
             Verify([nameof(City.FamousBuilding), nameof(Building.Purpose)], city.FamousBuilding?.Purpose);
             Verify([nameof(City.FamousBuilding), nameof(Building.Owner), nameof(BuildingOwner.Company)], city.FamousBuilding?.Owner?.Company);
-            Verify([nameof(City.FamousBuilding), nameof(Building.Owner), nameof(BuildingOwner.Since)], city.FamousBuilding?.Owner?.Since);
+            Verify([nameof(City.FamousBuilding), nameof(Building.Owner), nameof(BuildingOwner.Since)], 
+                city.FamousBuilding?.Owner?.Since?.ToString("yyyy-MM-dd", null));
             Verify([nameof(City.Buildings)], SerializeJson(city.Buildings));
 
             command.Parameters.Count.ShouldBe(entity.GetAllScalarColumns().Count() + entity.Keys.Count);
@@ -122,6 +124,45 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
 
             void Verify(ImmutableArray<string> property, object? value) =>
                 VerifyParameter(property, value, entity, command);
+        });
+    }
+
+    [Fact]
+    public void BuildConverterEntitySetParametersDelegate()
+    {
+        using var harness = new SqliteTestHarness();
+        using var context = harness.CreateContext();
+
+        var entity = EntityInfoFactory.Create(typeof(ConverterEntity), context.Model);
+
+        var addParameters = AddParameterDelegateBuilder<SqliteCommand, SqliteDbJsonMapper>.Build(entity);
+
+        var command = new SqliteCommand();
+        addParameters(command);
+
+        var setParameters = SetParameterValueDelegateBuilder<SqliteCommand, SqliteDbJsonMapper, ConverterEntity>.Build(entity);
+
+        Assert.All(GetTestConverterEntities(), value =>
+        {
+            setParameters(command, value);
+            
+            Verify([nameof(ConverterEntity.Id1)], value.Id1.Value);
+            Verify([nameof(ConverterEntity.Id2)], value.Id2.Value);
+            Verify([nameof(ConverterEntity.NullableId)], value.NullableId?.Value);
+            Verify([nameof(ConverterEntity.NullableValueId)], value.NullableValueId?.Value);
+            Verify([nameof(ConverterEntity.ReferenceId)], value.ReferenceId?.Value);
+            Verify([nameof(ConverterEntity.ReferenceNullableIntId)], value.ReferenceNullableIntId?.Value);
+            Verify([nameof(ConverterEntity.ReferenceIntId)], value.ReferenceIntId?.Value);
+            Verify([nameof(ConverterEntity.IntValue)], value.IntValue);
+            Verify([nameof(ConverterEntity.StringValue)], value.StringValue);
+            Verify([nameof(ConverterEntity.IntValueNull)], value.IntValueNull);
+            
+            command.Parameters.Count.ShouldBe(entity.Keys.Count + entity.GetAllScalarColumns().Count());
+
+            return;
+
+            void Verify(ImmutableArray<string> property, object? v) =>
+                VerifyParameter(property, v, entity, command);
         });
     }
 

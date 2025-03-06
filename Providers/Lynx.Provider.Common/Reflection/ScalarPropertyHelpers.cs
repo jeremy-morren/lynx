@@ -28,26 +28,52 @@ internal static class ScalarPropertyHelpers
 
         // Converter does not handle nulls, so we need to check for null
 
-        var isNotNull = GetIfNotNull(expression);
-        if (isNotNull == null)
+        var ifNotNull = GetIfNotNull(expression);
+        if (ifNotNull == null)
             // Expression is not nullable, no need to check for null
             return Expression.Invoke(convertToProvider, expression);
 
-        // Expression is nullable, so we need to check for null
+        // Expression is nullable
+        // We need to check for null before calling the converter
+        // The resulting expression must be a nullable type
 
         if (!expression.Type.IsValueType)
         {
+            // Input is reference type, no need to get underlying value
             var invoke = Expression.Invoke(convertToProvider, expression);
-            // Reference type, no conversion needed
-            return Expression.Condition(isNotNull, invoke, Expression.Constant(null, invoke.Type));
+            if (!invoke.Type.IsValueType || Nullable.GetUnderlyingType(invoke.Type) != null)
+            {
+                // Output is reference type or Nullable<>, no conversion needed
+                return Expression.Condition(ifNotNull, invoke, Expression.Constant(null, invoke.Type));
+            }
+            // Output is non-null value type, convert to Nullable<>
+            var nullable = typeof(Nullable<>).MakeGenericType(invoke.Type);
+            return Expression.Condition(ifNotNull, 
+                Expression.Convert(invoke, nullable), 
+                Expression.Constant(null, nullable));
         }
+        else
+        {
+            // Input is Nullable<>
+            Debug.Assert(Nullable.GetUnderlyingType(expression.Type) != null);
+            
+            var invoke = Expression.Invoke(convertToProvider, GetNullableValue(expression));
 
-        // Value type, invoke with underlying value and convert back to nullable type
-        expression = Expression.Convert(
-            Expression.Invoke(convertToProvider, GetNullableValue(expression)),
-            expression.Type);
-
-        return Expression.Condition(isNotNull, expression, Expression.Constant(null, expression.Type));
+            if (!invoke.Type.IsValueType || Nullable.GetUnderlyingType(invoke.Type) != null)
+            {
+                //Output is reference type or Nullable<>, no conversion needed
+                return Expression.Condition(ifNotNull, invoke, Expression.Constant(null, invoke.Type));
+            }
+            
+            //Output is non-null value type, convert to Nullable<>
+            
+            var nullable = typeof(Nullable<>).MakeGenericType(invoke.Type);
+            return Expression.Condition(
+                ifNotNull, 
+                Expression.Convert(invoke, nullable), 
+                Expression.Constant(null, nullable));
+        }
+        
     }
 
     /// <summary>
@@ -82,7 +108,7 @@ internal static class ScalarPropertyHelpers
     /// <summary>
     /// Gets the underlying value of a nullable expression
     /// </summary>
-    public static Expression GetNullableValue(Expression expression)
+    private static Expression GetNullableValue(Expression expression)
     {
         var type = expression.Type;
         if (!type.IsValueType)
