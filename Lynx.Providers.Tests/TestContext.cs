@@ -71,7 +71,7 @@ public record City
     public Building? FamousBuilding { get; set; }
 
     [Column("Buildings_Json")] // Not used, set above in OnModelCreating
-    public Building[]? Buildings { get; set; }
+    public List<Building>? Buildings { get; set; }
 }
 
 public readonly record struct LegalSystem(bool CommonLaw, bool CivilLaw);
@@ -126,31 +126,6 @@ public record Customer
     public required CustomerContactInfo OrderContact { get; set; }
 
     public CustomerContactInfo? InvoiceContact { get; set; }
-
-    public static Customer New(int id) => new()
-    {
-        Id = id,
-        Name = $"Customer {id}",
-        Tags = [$"Tag 1 {id}", $"Tag 2 {id}"],
-        OrderContact = new CustomerContactInfo()
-        {
-            ContactId = id,
-            Contact = new Contact()
-            {
-                Id = id,
-            }
-        },
-        BillingAddress = new Address()
-        {
-            Street = $"Billing street {id}",
-            City = $"Billing city {id}"
-        },
-        ShippingAddress = new Address()
-        {
-            Street = $"Shipping street {id}",
-            City = $"Shipping city {id}"
-        }
-    };
 }
 
 public record Contact

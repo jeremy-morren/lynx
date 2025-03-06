@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.Collections;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Lynx.Provider.Common;
@@ -59,9 +60,9 @@ public class EntityInfoFactoryTests
                     Verify(owned, owned.ColumnName, null, model);
                     entityProp = owned;
                 }
-                else if (p.PropertyType.IsArray && IsSimpleType(p.PropertyType.GetElementType()!))
+                else if (IsSimpleArray(p.PropertyType))
                 {
-                    //Array of simple types, should be treated as scalar
+                    //Array of simple types, mapped to single column
                     entityProp = info.ScalarProps.Where(x => x.PropertyInfo == p).ShouldHaveSingleItem();
                 }
                 else
@@ -114,14 +115,21 @@ public class EntityInfoFactoryTests
     private static bool IsOwnedType(PropertyInfo property)
     {
         var type = property.PropertyType;
-        //If type is array, get the element type
-        if (type.IsArray)
-            type = type.GetElementType().ShouldNotBeNull();
+        //If type is enumerable, get the element type
+        if (type.IsAssignableTo(typeof(IEnumerable)))
+        {
+            type = type.GetInterfaces()
+                .Single(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                .GetGenericArguments()[0];
+        }
 
         //Check for OwnedAttribute on property or type
         return property.GetCustomAttribute<OwnedAttribute>() != null ||
                type.GetCustomAttribute<OwnedAttribute>() != null;
     }
+
+    private static bool IsSimpleArray(Type type) =>
+        type.IsArray && IsSimpleType(type.GetElementType().ShouldNotBeNull());
 
     private static bool HasColumnName(PropertyInfo property, [MaybeNullWhen(false)] out string columnName)
     {
