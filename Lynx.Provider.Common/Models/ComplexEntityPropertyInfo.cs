@@ -5,7 +5,7 @@ namespace Lynx.Provider.Common.Models;
 /// <summary>
 /// Complex entity property information.
 /// </summary>
-internal class ComplexEntityPropertyInfo : EntityPropertyInfo<IComplexProperty>, IStructureEntity
+internal class ComplexEntityPropertyInfo : EntityPropertyInfo<IComplexProperty>, IStructurePropertyInfo
 {
     /// <inheritdoc />
     public required IReadOnlyList<ScalarEntityPropertyInfo> ScalarProps { get; init; }

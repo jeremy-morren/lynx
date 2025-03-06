@@ -1,6 +1,7 @@
 ﻿using Lynx.Provider.Common.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+// ReSharper disable LoopCanBeConvertedToQuery
 
 namespace Lynx.Provider.Common;
 
@@ -11,7 +12,7 @@ internal static class EntityInfoFactory
         var entityType = model.FindEntityType(type)
             ?? throw new InvalidOperationException($"Entity type {type} not found in model.");
 
-        var info = CreateEntityInternal(entityType, null);
+        var info = CreateEntityInternal(entityType, null, null);
         var root = new RootEntityInfo
         {
             Type = info.Type,
@@ -30,9 +31,9 @@ internal static class EntityInfoFactory
         
     }
 
-    private static EntityInfo CreateEntityInternal(IEntityType entityType, ColumnName? parentColumn)
+    private static EntityInfo CreateEntityInternal(IEntityType entityType, PropertyChain? parentName, PropertyChain? parentColumn)
     {
-        var (scalar, complex) = GetProperties(entityType, parentColumn);
+        var (scalar, complex) = GetProperties(entityType, parentName, parentColumn);
 
         var owned = new List<OwnedEntityInfo>();
         foreach (var navigation in entityType.GetNavigations())
@@ -41,26 +42,7 @@ internal static class EntityInfoFactory
                 continue; // Skip non-owned navigations
             if (navigation.PropertyInfo == null)
                 continue; // Skip shadow properties
-            var ownedType = navigation.ForeignKey.DeclaringEntityType;
-            var table = ownedType.GetTableMappings().Single();
-
-            if (table.IsSplitEntityTypePrincipal != null)
-                throw new NotImplementedException("Owned types with table splitting is not supported");
-
-            var colName = GetColumnName(navigation, parentColumn);
-            var result = CreateEntityInternal(ownedType, colName);
-            owned.Add(new OwnedEntityInfo
-            {
-                Parent = entityType,
-                EntityType = ownedType,
-                Navigation = navigation,
-                PropertyInfo = navigation.PropertyInfo,
-                ColumnName = colName,
-                Type = result.Type,
-                ScalarProps = result.ScalarProps,
-                ComplexProps = result.ComplexProps,
-                Owned = result.Owned
-            });
+            owned.Add(CreateOwned(entityType, navigation, parentName, parentColumn));
         }
 
         return new EntityInfo
@@ -73,7 +55,7 @@ internal static class EntityInfoFactory
     }
 
     private static (List<ScalarEntityPropertyInfo> Scalar, List<ComplexEntityPropertyInfo> Complex) GetProperties(
-        ITypeBase parent, ColumnName? parentColumn)
+        ITypeBase parent, PropertyChain? parentName, PropertyChain? parentColumn)
     {
         var scalarProps =
             from p in parent.GetProperties()
@@ -82,6 +64,7 @@ internal static class EntityInfoFactory
             where info != null // Exclude shadow properties
             select new ScalarEntityPropertyInfo
             {
+                Name = parentName?.Add(p.Name) ?? PropertyChain.NewRoot(p.Name),
                 Property = p,
                 Parent = parent,
                 PropertyInfo = info,
@@ -92,19 +75,55 @@ internal static class EntityInfoFactory
             from p in parent.GetComplexProperties()
             let info = p.PropertyInfo
             where info != null // Exclude shadow properties
-            let name = GetColumnName(p, parentColumn)
-            let complex = GetProperties(p.ComplexType, name)
+            let name = parentName?.Add(p.Name) ?? PropertyChain.NewRoot(p.Name)
+            let columnName = GetColumnName(p, parentColumn)
+            let properties = GetProperties(p.ComplexType, name, columnName)
             select new ComplexEntityPropertyInfo
             {
+                Name = name,
                 Property = p,
                 Parent = parent,
                 PropertyInfo = info,
-                ColumnName = name,
-                ScalarProps = complex.Scalar,
-                ComplexProps = complex.Complex
+                ColumnName = columnName,
+                ScalarProps = properties.Scalar,
+                ComplexProps = properties.Complex
             };
 
         return (scalarProps.ToList(), complexProps.ToList());
+    }
+
+    private static OwnedEntityInfo CreateOwned(
+        IEntityType parent,
+        INavigation navigation,
+        PropertyChain? parentName,
+        PropertyChain? parentColumn)
+    {
+        var ownedType = navigation.ForeignKey.DeclaringEntityType;
+        var table = ownedType.GetTableMappings().Single();
+
+        if (table.IsSplitEntityTypePrincipal != null)
+            throw new NotImplementedException("Owned types with table splitting is not supported");
+
+        var name = parentName?.Add(navigation.Name) ?? PropertyChain.NewRoot(navigation.Name);
+        var columnName = GetColumnName(ownedType, navigation, parentColumn);
+        var result = CreateEntityInternal(ownedType, name, columnName);
+
+        var owned = new OwnedEntityInfo
+        {
+            Name = name,
+            Parent = parent,
+            EntityType = ownedType,
+            Navigation = navigation,
+            PropertyInfo = navigation.PropertyInfo!,
+            ColumnName = columnName,
+            Type = result.Type,
+            ScalarProps = result.ScalarProps,
+            ComplexProps = result.ComplexProps,
+            Owned = result.Owned
+        };
+        if (ownedType.IsMappedToJson())
+            return JsonOwnedEntityInfo.New(owned);
+        return owned;
     }
 
     private static IEnumerable<ScalarEntityPropertyInfo> GetKeys(IEntityType entityType)
@@ -116,6 +135,7 @@ internal static class EntityInfoFactory
             from p in key.Properties
             select new ScalarEntityPropertyInfo
             {
+                Name = PropertyChain.NewRoot(p.Name),
                 Property = p,
                 Parent = entityType,
                 PropertyInfo = p.PropertyInfo 
@@ -137,13 +157,36 @@ internal static class EntityInfoFactory
         foreach (var c in entity.ComplexProps) 
             startIndex = SetColumnIndex(c, startIndex);
 
+        foreach (var o in (entity as EntityInfo)?.Owned ?? [])
+        {
+            if (o is JsonOwnedEntityInfo json)
+                //JSON owned type, only one column in the table
+                json.ColumnIndex = startIndex++;
+            else
+                startIndex = SetColumnIndex(o, startIndex);
+        }
+
         return startIndex;
     }
 
-    private static ColumnName GetColumnName(IPropertyBase property, ColumnName? parentColumn)
+    /// <summary>
+    /// Gets the column name for the given property.
+    /// </summary>
+    private static PropertyChain GetColumnName(IPropertyBase property, PropertyChain? parentColumn)
     {
-        var annotation = property.FindAnnotation("Relational:ColumnName");
+        var annotation = property.FindAnnotation(RelationalAnnotationNames.ColumnName);
         var name = annotation?.Value?.ToString() ?? property.Name;
-        return parentColumn?.Add(name) ?? ColumnName.NewRoot(name);
+        return parentColumn?.Add(name) ?? PropertyChain.NewRoot(name);
+    }
+
+    /// <summary>
+    /// Gets the column name for the given owned navigation.
+    /// </summary>
+    private static PropertyChain GetColumnName(IEntityType owned, INavigation navigation, PropertyChain? parentColumn)
+    {
+        var annotation = owned.FindAnnotation(RelationalAnnotationNames.ContainerColumnName)
+                            ?? navigation.FindAnnotation(RelationalAnnotationNames.ColumnName);
+        var name = annotation?.Value?.ToString() ?? navigation.Name;
+        return parentColumn?.Add(name) ?? PropertyChain.NewRoot(name);
     }
 }

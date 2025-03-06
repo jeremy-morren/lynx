@@ -5,10 +5,23 @@ namespace Lynx.Provider.Common;
 internal static class EntityModelExtensions
 {
     /// <summary>
-    /// Gets all scalar properties of the entity, including nested properties.  Excludes key properties.
+    /// Gets all scalar columns of the entity, including nested properties.  Excludes key properties.
     /// </summary>
-    public static IEnumerable<ScalarEntityPropertyInfo> GetAllScalarProps(this IStructureEntity entity)
+    public static IEnumerable<IColumnPropertyInfo> GetAllScalarColumns(this IStructureEntity entity)
     {
-        return entity.ScalarProps.Concat(entity.ComplexProps.SelectMany(c => c.GetAllScalarProps()));
+        var owned = (entity as EntityInfo)?.Owned ?? [];
+
+        return entity.ScalarProps
+            .Concat(entity.ComplexProps.SelectMany(c => c.GetAllScalarColumns()))
+            .Concat(owned.SelectMany(c=> c.GetOwnedScalarColumns()));
+    }
+
+    private static IEnumerable<IColumnPropertyInfo> GetOwnedScalarColumns(this OwnedEntityInfo owned)
+    {
+        if (owned is JsonOwnedEntityInfo json)
+            return [json]; // JSON columns are scalar
+
+        // Not a JSON column, recurse
+        return GetAllScalarColumns(owned);
     }
 }

@@ -7,8 +7,13 @@ namespace Lynx.Provider.Common.Models;
 /// <summary>
 /// Owned entity information.
 /// </summary>
-internal class OwnedEntityInfo : EntityInfo, IEntityPropertyInfo
+internal class OwnedEntityInfo : EntityInfo, IStructurePropertyInfo
 {
+    /// <summary>
+    /// Full path to the owned entity property
+    /// </summary>
+    public required PropertyChain Name { get; init; }
+
     /// <summary>
     /// Owning entity type
     /// </summary>
@@ -28,9 +33,7 @@ internal class OwnedEntityInfo : EntityInfo, IEntityPropertyInfo
     public required PropertyInfo PropertyInfo { get; init; }
 
     /// <inheritdoc />
-    public required ColumnName ColumnName { get; init; }
-
-    public bool IsJson => EntityType.IsMappedToJson();
+    public required PropertyChain ColumnName { get; init; }
 
     IPropertyBase IEntityPropertyInfo.Property => Navigation;
 }

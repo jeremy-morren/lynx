@@ -1,106 +1,169 @@
 ﻿using System.Data.Common;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
-using System.Reflection;
 using Lynx.Provider.Common.Models;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace Lynx.Provider.Common;
 
 /// <summary>
 /// Builds expressions for adding parameters to a command.
 /// </summary>
-internal static class SetParameterValueDelegateBuilder<TCommand, TEntity> 
+[SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance")]
+internal static class SetParameterValueDelegateBuilder<TCommand, TMapper, TEntity>
     where TCommand : DbCommand 
     where TEntity : class
+    where TMapper : IDbJsonMapper
 {
+    /// <summary>
+    /// Parameter expression for the command.
+    /// </summary>
+    private static readonly ParameterExpression Command = Expression.Parameter(typeof(TCommand), "command");
+
     public static Action<TCommand, TEntity> Build(EntityInfo entity)
     {
         if (entity.Type.ClrType != typeof(TEntity))
             throw new ArgumentException("Entity type mismatch", nameof(entity));
 
-        var command = Expression.Parameter(typeof(TCommand), "command");
         var entityValue = Expression.Parameter(typeof(TEntity), typeof(TEntity).Name.ToLowerInvariant());
 
-        var block = Expression.Block(SetParameters(entity, entityValue, command));
+        var block = Expression.Block(SetParameters(entity, entityValue));
 
-        return Expression.Lambda<Action<TCommand, TEntity>>(block, command, entityValue).Compile();
+        return Expression.Lambda<Action<TCommand, TEntity>>(block, Command, entityValue).Compile();
     }
 
-    private static IEnumerable<Expression> SetParameters(
-        IStructureEntity entity, 
-        Expression? entityValue,
-        ParameterExpression command)
+    private static IEnumerable<Expression> SetParameters(IStructureEntity entity, Expression? entityValue)
     {
-        var setScalars =
-            from scalar in entity.ScalarProps
-            select BuildSetParameter(scalar, entityValue, command);
+        var keys = (entity as RootEntityInfo)?.Keys ?? [];
 
-        var setComplexNull =
+        var setScalars =
+            from scalar in keys.Concat(entity.ScalarProps)
+            select SetScalar(scalar, entityValue);
+
+        var setComplex =
             from complex in entity.ComplexProps
-            from e in SetParameters(complex, null, command)
+            from e in SetStructure(complex, entityValue)
             select e;
 
-        if (entityValue == null)
-            //We are inside a null check, return with complex set to null
-            return setScalars.Concat(setComplexNull);
+        var setOwned =
+            from owned in (entity as EntityInfo)?.Owned ?? []
+            from e in SetOwned(owned, entityValue)
+            select e;
 
-        var setComplexNotNull =
-            from complex in entity.ComplexProps
-            let property = Expression.Property(entityValue, complex.PropertyInfo)
-            let setNotNull = SetParameters(complex, property, command)
-            let setNull = SetParameters(complex, null, command)
-            let notNull = GetNotNull(property)
-            select notNull != null
-                //Nullable check, set parameters if not null otherwise set all null
-                ? (Expression)Expression.IfThenElse(
-                    notNull,
-                    Expression.Block(setNotNull),
-                    Expression.Block(setNull))
-                // Not nullable, we can ignore setNull
-                : Expression.Block(setNotNull);
-        return setScalars.Concat(setComplexNotNull);
-    }
-
-    private static Expression BuildSetParameter(
-        ScalarEntityPropertyInfo property,
-        Expression? entity,
-        ParameterExpression command)
-    {
-        Debug.Assert(property.ColumnIndex >= 0);
-        var parameterValue = Expression.Property(
-            Expression.Call(
-                Expression.Property(command, ReflectionItems.CommandParametersProperty),
-                ReflectionItems.ParameterGetItemMethod,
-                Expression.Constant(property.ColumnIndex)),
-            ReflectionItems.ParameterValueProperty);
-
-        //If entity is null, we are inside a null check
-        Expression value = entity != null
-            ? Expression.Convert(
-                Expression.Property(entity, property.PropertyInfo),
-                typeof(object))
-            : Expression.Constant(null, typeof(object));
-
-        return Expression.Assign(parameterValue, value);
+        return setScalars.Concat(setComplex).Concat(setOwned);
     }
 
     /// <summary>
-    /// Returns an expression that checks if the given expression is not null null, or null if the expression is not nullable.
+    /// Builds expression to set a scalar property parameter value
     /// </summary>
-    private static Expression? GetNotNull(Expression expression)
+    private static Expression SetScalar(
+        ScalarEntityPropertyInfo property,
+        Expression? entity)
     {
-        if (expression.Type.IsValueType)
-        {
-            if (Nullable.GetUnderlyingType(expression.Type) == null)
-                return null; // Value type not nullable, no need to check for null
+        Debug.Assert(property.ColumnIndex >= 0, $"Property {property.Name} column index is not set.");
 
-            // Nullable value type
-            // return expression.HasValue;
-            return Expression.Property(expression, nameof(Nullable<int>.HasValue));
+        if (entity == null)
+        {
+            //We are inside a null check, set to null
+            return SetParameterValue(property.ColumnIndex, null);
         }
-        var nullValue = Expression.Constant(null, expression.Type);
-        return Expression.ReferenceNotEqual(expression, nullValue);
+
+        Expression value = Expression.Property(entity, property.PropertyInfo);
+
+        var converter = property.TypeMapping.Converter;
+        if (converter != null)
+            value = ScalarPropertyHelpers.InvokeConverter(converter, value);
+
+        return SetParameterValue(property.ColumnIndex, value);
     }
 
+    /// <summary>
+    /// Builds expressions to set all parameters for a structure property.
+    /// </summary>
+    private static IEnumerable<Expression> SetStructure(
+        IStructurePropertyInfo property,
+        Expression? entity)
+    {
+        //Expression to set all properties to null
+        var setNull = SetParameters(property, null);
+        if (entity == null)
+            //We are inside a null check, return with complex set to null
+            return setNull;
+
+        var value = Expression.Property(entity, property.PropertyInfo);
+
+        //Expression that sets all properties to their values
+        var setNotNull = SetParameters(property, value);
+
+        var ifNotNull = ScalarPropertyHelpers.GetIfNotNull(value);
+        if (ifNotNull == null)
+            //Complex property is not nullable, ignore null check
+            return setNotNull;
+
+        //Nullable check
+        //If value is null, then set all parameters to null
+        //Otherwise set all parameters to their values
+        var nullCheck = Expression.IfThenElse(
+            ifNotNull,
+            Expression.Block(setNotNull),
+            Expression.Block(setNull));
+        return [nullCheck];
+    }
+
+    /// <summary>
+    /// Builds expressions to set all parameters for an owned property.
+    /// </summary>
+    private static IEnumerable<Expression> SetOwned(
+        OwnedEntityInfo owned,
+        Expression? entity)
+    {
+        if (owned is not JsonOwnedEntityInfo json)
+            //Owned entity is not mapped to JSON, treat as structure
+            return SetStructure(owned, entity);
+
+        //Owned entity is mapped to JSON, handle as a scalar
+        Debug.Assert(json.ColumnIndex >= 0, $"Json owned property {json.Name} column index is not set.");
+
+        if (entity == null)
+            //Inside a null check, set to null
+            return [SetParameterValue(json.ColumnIndex, null)];
+
+        //Get the value of the property and convert it to JSON
+        Expression value = Expression.Property(entity, json.PropertyInfo);
+        value = TMapper.CreateJsonValue(value) ?? value;
+        return [SetParameterValue(json.ColumnIndex, value)];
+    }
+
+    /// <summary>
+    /// Builds expression to set parameter value at the given column index.
+    /// </summary>
+    /// <param name="columnIndex">Parameter index</param>
+    /// <param name="value">Value to set parameter to, or null to set to DBNull</param>
+    private static Expression SetParameterValue(int columnIndex, Expression? value)
+    {
+        Debug.Assert(columnIndex >= 0);
+        var parameterValue = Expression.Property(
+            Expression.Call(
+                Expression.Property(Command, ReflectionItems.CommandParametersProperty),
+                ReflectionItems.ParameterGetItemMethod,
+                Expression.Constant(columnIndex)),
+            ReflectionItems.ParameterValueProperty);
+
+        if (value == null)
+            //Input is null, set to DBNull
+            return Expression.Assign(parameterValue, ReflectionItems.DBNullValue);
+
+        Debug.Assert(value.Type != typeof(void));
+
+        var isNullable = ScalarPropertyHelpers.IsNullable(parameterValue);
+
+        if (value.Type != typeof(object))
+            value = Expression.Convert(value, typeof(object));
+
+        if (isNullable)
+            //Parameter is nullable, coalesce to DBNull if null
+            value = Expression.Coalesce(value, ReflectionItems.DBNullValue);
+
+        return Expression.Assign(parameterValue, value);
+    }
 }

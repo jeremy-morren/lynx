@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using FluentAssertions;
 using Lynx.Provider.Common;
@@ -31,7 +32,7 @@ public class EntityInfoFactoryTests
         Verify(info, null, keys, context.Model);
     }
 
-    private static void Verify(EntityInfo info, ColumnName? baseColumn, string[]? keys, IModel model)
+    private static void Verify(EntityInfo info, PropertyChain? baseColumn, string[]? keys, IModel model)
     {
         info.ScalarProps.Should().AllSatisfy(p => p.PropertyInfo.Should().NotBeNull());
         info.ComplexProps.Should().AllSatisfy(p => p.PropertyInfo.Should().NotBeNull());
@@ -70,6 +71,9 @@ public class EntityInfoFactoryTests
                     entityProp.ColumnName.Should().StartWith(baseColumn);
                 else
                     entityProp.ColumnName.ShouldHaveSingleItem();
+
+                if (HasColumnName(p, out var columnName))
+                    entityProp.ColumnName[^1].ShouldBe(columnName);
             });
     }
 
@@ -87,20 +91,40 @@ public class EntityInfoFactoryTests
             || type == typeof(TimeSpan)
             || type == typeof(DateOnly)
 
-
+            || type.IsEnum
 
             || type.IsAssignableTo(typeof(IStrongId));
     }
 
     private static bool IsComplexType(PropertyInfo property)
     {
+        var type = property.PropertyType;
+
+        if (type.IsValueType && type.IsAssignableTo(typeof(IEquatable<>).MakeGenericType(type)))
+            //Record struct, treat as complex type
+            return true;
+
+        //Check for ComplexTypeAttribute
         return property.GetCustomAttribute<ComplexTypeAttribute>() != null ||
-               property.PropertyType.GetCustomAttribute<ComplexTypeAttribute>() != null;
+               type.GetCustomAttribute<ComplexTypeAttribute>() != null;
     }
 
     private static bool IsOwnedType(PropertyInfo property)
     {
+        var type = property.PropertyType;
+        //If type is array, get the element type
+        if (type.IsArray)
+            type = type.GetElementType().ShouldNotBeNull();
+
+        //Check for OwnedAttribute on property or type
         return property.GetCustomAttribute<OwnedAttribute>() != null ||
-               property.PropertyType.GetCustomAttribute<OwnedAttribute>() != null;
+               type.GetCustomAttribute<OwnedAttribute>() != null;
+    }
+
+    private static bool HasColumnName(PropertyInfo property, [MaybeNullWhen(false)] out string columnName)
+    {
+        var attribute = property.GetCustomAttribute<ColumnAttribute>();
+        columnName = attribute?.Name;
+        return attribute != null;
     }
 }

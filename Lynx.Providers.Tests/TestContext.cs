@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+// ReSharper disable NotAccessedPositionalProperty.Global
 
 namespace Lynx.Providers.Tests;
 
@@ -20,6 +21,11 @@ public class TestContext : DbContext
         {
             b.Property(x => x.Population)
                 .HasColumnName("Population_Long");
+
+            b.OwnsMany(x => x.Buildings)
+                .ToJson("Buildings_Json");
+
+            b.ComplexProperty(x => x.LegalSystem);
         });
 
         modelBuilder.Entity<Contact>();
@@ -56,7 +62,16 @@ public record City
     public long? Population { get; init; }
 
     public required CityLocation Location { get; init; }
+
+    public LegalSystem LegalSystem { get; init; }
+
+    public Building? FamousBuilding { get; init; }
+
+    [Column("Buildings_Json")] // Not used, set above in OnModelCreating
+    public Building[]? Buildings { get; init; }
 }
+
+public readonly record struct LegalSystem(bool CommonLaw, bool CivilLaw);
 
 [ComplexType]
 public record CityLocation
@@ -66,6 +81,30 @@ public record CityLocation
     public double Longitude { get; init; }
 
     public float Elevation { get; init; }
+}
+
+[Owned]
+public record Building
+{
+    public required string Name { get; init; }
+
+    public BuildingPurpose? Purpose { get; init; }
+}
+
+public enum BuildingPurpose
+{
+    Residential,
+    Commercial,
+    Industrial,
+    Religious,
+    Educational,
+    Governmental,
+    Recreational,
+    Healthcare,
+    Transportation,
+    Military,
+    Agricultural,
+    Other
 }
 
 public record Customer

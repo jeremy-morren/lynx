@@ -13,7 +13,7 @@ internal static class SqliteCommandGenerator
     /// </summary>
     public static string GetInsertWithKeyCommand(RootEntityInfo entity)
     {
-        var properties = entity.Keys.Concat(entity.GetAllScalarProps());
+        var properties = entity.Keys.Concat(entity.GetAllScalarColumns());
         return GetInsertCommand(entity, properties).ToString();
     }
 
@@ -24,7 +24,7 @@ internal static class SqliteCommandGenerator
     {
         if (entity.Keys.Count != 1)
             throw new NotImplementedException("Cannot insert identity without exactly one key");
-        var sb = GetInsertCommand(entity, entity.GetAllScalarProps());
+        var sb = GetInsertCommand(entity, entity.GetAllScalarColumns());
         var identity = entity.Keys[0].ColumnName.SqlColumnName;
         sb.Append($" RETURNING \"{identity}\"");
         return sb.ToString();
@@ -49,7 +49,7 @@ internal static class SqliteCommandGenerator
         sb.Append(") VALUES (");
         foreach (var p in list)
         {
-            sb.Append($"@{p.ColumnName.SqlColumnName}, ");
+            sb.Append($"{p.ColumnName.SqlParamName}, ");
         }
         sb.Length -= 2; // Remove trailing comma
         sb.Append(')');
@@ -62,7 +62,7 @@ internal static class SqliteCommandGenerator
 
     public static string GetUpsertCommand(RootEntityInfo entity)
     {
-        var properties = entity.GetAllScalarProps().ToList();
+        var properties = entity.GetAllScalarColumns().ToList();
         var sb = GetInsertCommand(entity, entity.Keys.Concat(properties));
         sb.Append(" ON CONFLICT (");
         foreach (var p in entity.Keys)
@@ -72,7 +72,7 @@ internal static class SqliteCommandGenerator
         sb.Length -= 2; // Remove trailing comma
         sb.Append(") DO UPDATE SET ");
         foreach (var p in properties)
-            sb.Append($"\"{p.ColumnName.SqlColumnName}\" = @{p.ColumnName.SqlColumnName}, ");
+            sb.Append($"\"{p.ColumnName.SqlColumnName}\" = {p.ColumnName.SqlParamName}, ");
         sb.Length -= 2; // Remove trailing comma
         return sb.ToString();
     }

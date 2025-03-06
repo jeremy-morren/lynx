@@ -6,6 +6,11 @@ namespace Lynx.Provider.Common.Models;
 internal interface IEntityPropertyInfo
 {
     /// <summary>
+    /// Property name (full path)
+    /// </summary>
+    PropertyChain Name { get; }
+
+    /// <summary>
     /// Owning entity type
     /// </summary>
     ITypeBase Parent { get; }
@@ -21,7 +26,7 @@ internal interface IEntityPropertyInfo
     PropertyInfo PropertyInfo { get; }
 
     /// <summary>
-    /// Full column name
+    /// SQL Column name (<see cref="Name"/> adjusted for SQL)
     /// </summary>
-    ColumnName ColumnName { get; }
+    PropertyChain ColumnName { get; }
 }

@@ -1,10 +1,12 @@
 ﻿using System.Data.Common;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Lynx.Provider.Common;
 
 internal static class ReflectionItems
 {
+    public const BindingFlags StaticFlags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
     public const BindingFlags InstanceFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
     /// <summary>
@@ -60,4 +62,12 @@ internal static class ReflectionItems
     /// </summary>
     public static readonly PropertyInfo CommandParametersProperty =
         typeof(DbCommand).GetProperty(nameof(DbCommand.Parameters), InstanceFlags)!;
+
+    /// <summary>
+    /// <see cref="DBNull.Value"/> typed as object
+    /// </summary>
+    public static readonly Expression DBNullValue =
+        Expression.Convert(
+            Expression.Field(null, typeof(DBNull).GetField(nameof(DBNull.Value), StaticFlags)!),
+            typeof(object));
 }

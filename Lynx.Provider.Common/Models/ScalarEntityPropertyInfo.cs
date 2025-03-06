@@ -6,7 +6,7 @@ namespace Lynx.Provider.Common.Models;
 /// <summary>
 /// Scalar property information.
 /// </summary>
-internal class ScalarEntityPropertyInfo : EntityPropertyInfo<IProperty>
+internal class ScalarEntityPropertyInfo : EntityPropertyInfo<IProperty>, IColumnPropertyInfo
 {
     /// <summary>
     /// Ordinal position of the column in the table (including key columns).

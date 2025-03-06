@@ -10,6 +10,9 @@ namespace Lynx.Provider.Common.Models;
 [DebuggerDisplay($"{{{nameof(Property)}}}")]
 internal abstract class EntityPropertyInfo<T> : IEntityPropertyInfo where T : IPropertyBase
 {
+    /// <inheritdoc />
+    public required PropertyChain Name { get; init; }
+    
     /// <summary>
     /// Underlying EF Core property
     /// </summary>
@@ -22,7 +25,7 @@ internal abstract class EntityPropertyInfo<T> : IEntityPropertyInfo where T : IP
     public required PropertyInfo PropertyInfo { get; init; }
 
     /// <inheritdoc />
-    public required ColumnName ColumnName { get; init; }
+    public required PropertyChain ColumnName { get; init; }
     
     IPropertyBase IEntityPropertyInfo.Property => Property;
 }
