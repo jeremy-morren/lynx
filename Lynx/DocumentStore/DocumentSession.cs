@@ -41,51 +41,70 @@ internal class DocumentSession : IDocumentSession
     public void SaveChanges()
     {
         using var activity = StartSaveChangesActivity();
+        
+        try
+        {
 
-        if (_unitOfWork.Count == 0)
-            return; //Nothing to save
+            if (_unitOfWork.Count == 0)
+                return; //Nothing to save
 
-        var unitOfWork = _unitOfWork;
+            var unitOfWork = _unitOfWork;
 
-        DbContext.Database.CreateExecutionStrategy()
-            .Execute(() =>
-            {
-                using var conn = DocumentStoreConnection.OpenConnection(DbContext);
-                using var transaction = conn.BeginTransaction();
-                foreach (var o in unitOfWork)
-                    o.SaveChanges(DbContext);
-                transaction.Commit();
-            });
+            DbContext.Database.CreateExecutionStrategy()
+                .Execute(() =>
+                {
+                    using var conn = DocumentStoreConnection.OpenConnection(DbContext);
+                    using var transaction = conn.BeginTransaction();
+                    foreach (var o in unitOfWork)
+                        o.SaveChanges(DbContext, conn);
+                    transaction.Commit();
+                });
 
-        foreach (var listener in _listeners)
-            listener.AfterCommit(unitOfWork, DbContext);
-        _unitOfWork = [];
+            foreach (var listener in _listeners)
+                listener.AfterCommit(unitOfWork, DbContext);
+            _unitOfWork = [];
+        }
+        catch (Exception e)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error);
+            activity?.AddException(e);
+            throw;
+        }
     }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         using var activity = StartSaveChangesActivity();
 
-        if (_unitOfWork.Count == 0)
-            return; //Nothing to save
+        try
+        {
+            if (_unitOfWork.Count == 0)
+                return; //Nothing to save
 
-        var unitOfWork = _unitOfWork;
+            var unitOfWork = _unitOfWork;
 
-        await DbContext.Database.CreateExecutionStrategy()
-            .ExecuteAsync(async () =>
-            {
-                await using var conn = await DocumentStoreConnection.OpenConnectionAsync(DbContext, cancellationToken);
-                await using var transaction = await conn.BeginTransactionAsync(cancellationToken);
-                foreach (var o in unitOfWork)
-                    await o.SaveChangesAsync(DbContext, cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
-            });
+            await DbContext.Database.CreateExecutionStrategy()
+                .ExecuteAsync(async () =>
+                {
+                    await using var conn = await DocumentStoreConnection.OpenConnectionAsync(DbContext, cancellationToken);
+                    await using var transaction = await conn.BeginTransactionAsync(cancellationToken);
+                    foreach (var o in unitOfWork)
+                        await o.SaveChangesAsync(DbContext, conn, cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
+                });
 
-        foreach (var listener in _listeners)
-            listener.AfterCommit(unitOfWork, DbContext);
+            foreach (var listener in _listeners)
+                listener.AfterCommit(unitOfWork, DbContext);
 
-        // Reset the unit of work
-        _unitOfWork = [];
+            // Reset the unit of work
+            _unitOfWork = [];
+        }
+        catch (Exception e)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error);
+            activity?.AddException(e);
+            throw;
+        }
     }
     
     #endregion
@@ -177,13 +196,6 @@ internal class DocumentSession : IDocumentSession
 
         EnsureEntityType<T>();
         _unitOfWork.Add(new DeleteWhereOperation<T>(predicate));
-    }
-
-    public void StoreViaContext<T>(T entity) where T : class
-    {
-        ArgumentNullException.ThrowIfNull(entity);
-        EnsureEntityType<T>();
-        _unitOfWork.Add(new UpsertViaEFOperation<T>(entity));
     }
 
     public void Replace<T>(IEnumerable<T> entities, Expression<Func<T, bool>> predicate) where T : class

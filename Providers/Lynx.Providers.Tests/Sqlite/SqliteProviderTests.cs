@@ -27,4 +27,12 @@ public class SqliteProviderTests : ProviderTestsBase
     {
         return TestConverterEntities(new SqliteLynxProvider(), useAsync, _ => new SqliteTestHarness());
     }
+    
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public Task WriteIdOnly(bool useAsync)
+    {
+        return TestIdOnly(new SqliteLynxProvider(), useAsync, _ => new SqliteTestHarness());
+    }
 }

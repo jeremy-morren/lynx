@@ -1,5 +1,5 @@
-﻿using System.Text;
-using Npgsql;
+﻿using System.Data.Common;
+using System.Text;
 
 namespace Lynx.ExecutionPlan.Npgsql;
 
@@ -18,7 +18,7 @@ internal class NpgsqlExecutionPlan : IExecutionPlan
 
     IReadOnlyList<object> IExecutionPlan.Nodes => Nodes.Cast<object>().ToList();
 
-    public static NpgsqlExecutionPlan Create(NpgsqlCommand command)
+    public static NpgsqlExecutionPlan Create(DbCommand command)
     {
         var query = command.CommandText;
         command.CommandText = $"EXPLAIN {command.CommandText}";

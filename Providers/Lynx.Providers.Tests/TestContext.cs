@@ -24,9 +24,13 @@ public class TestContext : DbContext
     public DbSet<Customer> Customers => Set<Customer>();
 
     public DbSet<ConverterEntity> ConverterEntities => Set<ConverterEntity>();
+    
+    public DbSet<IdOnly> IdOnly => Set<IdOnly>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<IdOnly>();
+        
         modelBuilder.Entity<City>(b =>
         {
             b.Property(x => x.Population)
@@ -193,6 +197,14 @@ public record CustomerContactInfo
     public required int ContactId { get; set; }
 
     public Contact Contact { get; set; } = null!;
+}
+
+/// <summary>
+/// Entity with only an Id.
+/// </summary>
+public record IdOnly
+{
+    public long Id { get; set; }
 }
 
 /// <summary>

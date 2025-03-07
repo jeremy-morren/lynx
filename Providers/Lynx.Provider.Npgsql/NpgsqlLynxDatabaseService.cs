@@ -1,7 +1,7 @@
 ﻿using System.Data.Common;
-using Lynx.Provider.Common;
-using Lynx.Provider.Common.Models;
-using Lynx.Provider.Common.Reflection;
+using Lynx.Providers.Common;
+using Lynx.Providers.Common.Models;
+using Lynx.Providers.Common.Reflection;
 using Npgsql;
 
 namespace Lynx.Provider.Npgsql;
@@ -107,27 +107,23 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseService<T>
         }
     }
 
-    public void Insert(
+    public void Insert(IEnumerable<T> values,
         DbConnection connection,
-        IEnumerable<T> values,
         CancellationToken cancellationToken = default) =>
         ExecuteNonQuery(connection, _insertWithKeyCommand, values, cancellationToken);
 
-    public void Upsert(
+    public void Upsert(IEnumerable<T> values,
         DbConnection connection,
-        IEnumerable<T> values,
         CancellationToken cancellationToken = default) =>
         ExecuteNonQuery(connection, _upsertCommand, values, cancellationToken);
 
-    public async Task InsertAsync(
+    public async Task InsertAsync(IEnumerable<T> values,
         DbConnection connection,
-        IEnumerable<T> values,
         CancellationToken cancellationToken = default) =>
         await ExecuteNonQueryAsync(connection, _insertWithKeyCommand, values, cancellationToken);
 
-    public async Task UpsertAsync(
+    public async Task UpsertAsync(IEnumerable<T> values,
         DbConnection connection,
-        IEnumerable<T> values,
         CancellationToken cancellationToken = default) =>
         await ExecuteNonQueryAsync(connection, _upsertCommand, values, cancellationToken);
 
@@ -162,9 +158,8 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseService<T>
     /// </summary>
     private readonly string _dropTempTableCommand;
 
-    public void BulkInsert(
+    public void BulkInsert(IEnumerable<T> entities,
         DbConnection connection,
-        IEnumerable<T> entities,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
@@ -185,7 +180,7 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseService<T>
         writer.Complete();
     }
 
-    public void BulkUpsert(DbConnection connection, IEnumerable<T> entities, CancellationToken cancellationToken = default)
+    public void BulkUpsert(IEnumerable<T> entities, DbConnection connection, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(entities);
@@ -227,7 +222,8 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseService<T>
         command.ExecuteNonQuery();
     }
 
-    public async Task BulkInsertAsync(DbConnection connection, IEnumerable<T> entities, CancellationToken cancellationToken = default)
+    public async Task BulkInsertAsync(IEnumerable<T> entities, DbConnection connection,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(entities);
@@ -247,7 +243,8 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseService<T>
         await writer.CompleteAsync(cancellationToken);
     }
 
-    public async Task BulkUpsertAsync(DbConnection connection, IEnumerable<T> entities, CancellationToken cancellationToken = default)
+    public async Task BulkUpsertAsync(IEnumerable<T> entities, DbConnection connection,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(entities);

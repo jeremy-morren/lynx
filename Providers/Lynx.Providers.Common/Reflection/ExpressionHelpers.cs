@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 
 // ReSharper disable ConvertIfStatementToReturnStatement
 
-namespace Lynx.Provider.Common.Reflection;
+namespace Lynx.Providers.Common.Reflection;
 
 internal static class ExpressionHelpers
 {

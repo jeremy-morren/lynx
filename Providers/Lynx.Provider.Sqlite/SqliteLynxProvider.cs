@@ -1,5 +1,5 @@
-﻿using Lynx.Provider.Common;
-using Lynx.Provider.Common.Entities;
+﻿using Lynx.Providers.Common;
+using Lynx.Providers.Common.Entities;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Lynx.Provider.Sqlite;

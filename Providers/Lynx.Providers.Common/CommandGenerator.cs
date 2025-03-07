@@ -1,8 +1,8 @@
 ﻿using System.Text;
-using Lynx.Provider.Common.Entities;
-using Lynx.Provider.Common.Models;
+using Lynx.Providers.Common.Entities;
+using Lynx.Providers.Common.Models;
 
-namespace Lynx.Provider.Common;
+namespace Lynx.Providers.Common;
 
 /// <summary>
 /// Generates commands (Postgres dialect, understood by Sqlite)
@@ -80,6 +80,12 @@ internal class CommandGenerator
             sb.Append($"\"{p.ColumnName.SqlColumnName}\", ");
         sb.Length -= 2; // Remove trailing comma
         sb.AppendLine(")");
+        if (!_entity.GetAllScalarColumns().Any())
+        {
+            //No columns to update
+            sb.Append("DO NOTHING");
+            return sb.ToString();
+        }
         sb.Append("DO UPDATE SET ");
         foreach (var p in properties)
             sb.Append($"\"{p.ColumnName.SqlColumnName}\" = {p.ColumnName.SqlParamName}, ");

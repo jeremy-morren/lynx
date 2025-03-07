@@ -1,8 +1,8 @@
 ﻿using System.Collections.Immutable;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Lynx.Provider.Common.Entities;
-using Lynx.Provider.Common.Reflection;
+using Lynx.Providers.Common.Entities;
+using Lynx.Providers.Common.Reflection;
 using Lynx.Provider.Npgsql;
 using Npgsql;
 // ReSharper disable ConditionalAccessQualifierIsNonNullableAccordingToAPIContract

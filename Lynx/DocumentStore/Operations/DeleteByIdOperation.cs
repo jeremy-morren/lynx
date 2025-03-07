@@ -1,4 +1,5 @@
-﻿using Lynx.EfCore.KeyFilter;
+﻿using System.Data.Common;
+using Lynx.EfCore.KeyFilter;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore.Operations;
@@ -12,13 +13,13 @@ public class DeleteByIdOperation<T> : IDocumentSessionOperation where T : class
         _id = id ?? throw new ArgumentNullException(nameof(id));
     }
 
-    public void SaveChanges(DbContext context)
+    public void SaveChanges(DbContext context, DbConnection connection)
     {
         ArgumentNullException.ThrowIfNull(context);
         context.Set<T>().FilterByKey(_id).ExecuteDelete();
     }
 
-    public Task SaveChangesAsync(DbContext context, CancellationToken cancellationToken)
+    public Task SaveChangesAsync(DbContext context, DbConnection connection, CancellationToken cancellationToken)
     {
         return context.Set<T>().FilterByKey(_id).ExecuteDeleteAsync(cancellationToken);
     }

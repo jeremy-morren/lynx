@@ -2,9 +2,9 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
-using Lynx.Provider.Common.Models;
+using Lynx.Providers.Common.Models;
 
-namespace Lynx.Provider.Common.Reflection;
+namespace Lynx.Providers.Common.Reflection;
 
 /// <summary>
 /// Builds expressions for adding parameters to a command.

@@ -1,8 +1,8 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq.Expressions;
-using Lynx.Provider.Common.Models;
-using Lynx.Provider.Common.Reflection;
+using Lynx.Providers.Common.Models;
+using Lynx.Providers.Common.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using NpgsqlTypes;

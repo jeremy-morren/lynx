@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics;
-using Lynx.Provider.Common.Models;
+using Lynx.Providers.Common.Models;
 using Npgsql;
 using NpgsqlTypes;
 

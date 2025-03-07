@@ -2,7 +2,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 
-namespace Lynx.Provider.Common.Models;
+namespace Lynx.Providers.Common.Models;
 
 /// <summary>
 /// A property chain (a list of property names).

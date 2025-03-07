@@ -1,7 +1,8 @@
-﻿using System.Text;
-using Lynx.Provider.Common;
-using Lynx.Provider.Common.Entities;
-using Lynx.Provider.Common.Models;
+﻿using System.Diagnostics;
+using System.Text;
+using Lynx.Providers.Common;
+using Lynx.Providers.Common.Entities;
+using Lynx.Providers.Common.Models;
 
 namespace Lynx.Provider.Npgsql;
 
@@ -55,14 +56,16 @@ internal class NpgsqlCommandGenerator : CommandGenerator
     /// <returns></returns>
     public string GenerateUpsertTempTableCommand()
     {
+        var columns = _entity.Keys.Concat(_entity.GetAllScalarColumns()).ToList();
+        Debug.Assert(columns.Count > 0);
         var sb = new StringBuilder();
         sb.Append($"INSERT INTO {QualifiedTableName} (");
-        foreach (var column in _entity.Keys.Concat(_entity.GetAllScalarColumns()))
+        foreach (var column in columns)
             sb.Append($"\"{column.ColumnName.SqlColumnName}\", ");
         sb.Length -= 2; // Remove trailing comma
         sb.AppendLine(")");
         sb.Append("SELECT ");
-        foreach (var column in _entity.Keys.Concat(_entity.GetAllScalarColumns()))
+        foreach (var column in columns)
             sb.Append($"\"{column.ColumnName.SqlColumnName}\", ");
         sb.Length -= 2; // Remove trailing comma
         sb.AppendLine();
@@ -72,6 +75,12 @@ internal class NpgsqlCommandGenerator : CommandGenerator
             sb.Append($"\"{column.ColumnName.SqlColumnName}\", ");
         sb.Length -= 2; // Remove trailing comma
         sb.AppendLine(")");
+        if (!_entity.GetAllScalarColumns().Any())
+        {
+            //No columns to update
+            sb.Append("DO NOTHING");
+            return sb.ToString();
+        }
         sb.Append("DO UPDATE SET ");
         foreach (var column in _entity.GetAllScalarColumns())
             sb.Append($"\"{column.ColumnName.SqlColumnName}\" = excluded.\"{column.ColumnName.SqlColumnName}\", ");

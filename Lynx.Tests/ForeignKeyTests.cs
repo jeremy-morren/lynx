@@ -1,11 +1,11 @@
 ﻿using System.Data;
-using EFCore.BulkExtensions;
 using Lynx.DocumentStore;
 using Lynx.DocumentStore.Query;
 using Lynx.EfCore;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Npgsql;
+
 // ReSharper disable MethodHasAsyncOverload
 // ReSharper disable UseAwaitUsing
 

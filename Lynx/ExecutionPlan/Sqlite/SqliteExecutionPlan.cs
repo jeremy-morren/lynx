@@ -1,5 +1,5 @@
-﻿using System.Text;
-using Microsoft.Data.Sqlite;
+﻿using System.Data.Common;
+using System.Text;
 
 namespace Lynx.ExecutionPlan.Sqlite;
 
@@ -19,7 +19,7 @@ internal class SqliteExecutionPlan : IExecutionPlan
 
     IReadOnlyList<object> IExecutionPlan.Nodes => Nodes.Cast<object>().ToList();
 
-    public static SqliteExecutionPlan Create(SqliteCommand cmd)
+    public static SqliteExecutionPlan Create(DbCommand cmd)
     {
         var query = cmd.CommandText;
         cmd.CommandText = $"EXPLAIN QUERY PLAN {cmd.CommandText}";

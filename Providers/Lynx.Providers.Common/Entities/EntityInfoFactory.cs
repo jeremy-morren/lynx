@@ -1,11 +1,11 @@
 ﻿using System.Diagnostics;
-using Lynx.Provider.Common.Models;
+using Lynx.Providers.Common.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 // ReSharper disable LoopCanBeConvertedToQuery
 
-namespace Lynx.Provider.Common.Entities;
+namespace Lynx.Providers.Common.Entities;
 
 internal static class EntityInfoFactory
 {
@@ -62,6 +62,7 @@ internal static class EntityInfoFactory
         var scalarProps =
             from p in parent.GetProperties()
             where !p.IsPrimaryKey() // Exclude keys
+            where p.ValueGenerated == ValueGenerated.Never // Exclude computed columns
             let info = p.PropertyInfo
             where info != null // Exclude shadow properties
             select new ScalarEntityPropertyInfo

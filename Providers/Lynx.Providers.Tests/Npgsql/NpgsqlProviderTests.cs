@@ -43,6 +43,18 @@ public class NpgsqlProviderTests : ProviderTestsBase
                 enableNodaTimeOnDataSource));
     }
 
+    [Theory]
+    [MemberData(nameof(GetFlags))]
+    public Task WriteIdOnly(bool useAsync, bool enableNodaTimeOnDataSource)
+    {
+        return TestIdOnly(
+            new NpgsqlLynxProvider(),
+            useAsync,
+            db => new NpgsqlTestHarness(
+                GetDatabase(nameof(TestIdOnly), db, useAsync, enableNodaTimeOnDataSource ),
+                enableNodaTimeOnDataSource));
+    }
+
     public static TheoryData<bool, bool> GetFlags() => new()
     {
         // parameters: useAsync, enableNodaTimeOnDataSource

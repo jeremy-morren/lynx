@@ -1,4 +1,4 @@
-﻿namespace Lynx.Provider.Common.Models;
+﻿namespace Lynx.Providers.Common.Models;
 
 /// <summary>
 /// Root entity (i.e. not owned by any other entity).

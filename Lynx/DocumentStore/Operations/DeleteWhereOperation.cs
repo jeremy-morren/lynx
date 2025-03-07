@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System.Data.Common;
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore.Operations;
@@ -17,13 +18,13 @@ internal class DeleteWhereOperation<T> : IDocumentSessionOperation
         _predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
     }
 
-    public void SaveChanges(DbContext context)
+    public void SaveChanges(DbContext context, DbConnection connection)
     {
         ArgumentNullException.ThrowIfNull(context);
         context.Set<T>().Where(_predicate).ExecuteDelete();
     }
 
-    public Task SaveChangesAsync(DbContext context, CancellationToken cancellationToken)
+    public Task SaveChangesAsync(DbContext context, DbConnection connection, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
         return context.Set<T>().Where(_predicate).ExecuteDeleteAsync(cancellationToken);

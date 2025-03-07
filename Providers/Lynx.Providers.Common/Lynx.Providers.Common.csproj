@@ -12,10 +12,11 @@
     </ItemGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="Lynx.Providers.Tests"/>
-        
+        <InternalsVisibleTo Include="Lynx"/>
         <InternalsVisibleTo Include="Lynx.Provider.Sqlite"/>
         <InternalsVisibleTo Include="Lynx.Provider.Npgsql"/>
+        
+        <InternalsVisibleTo Include="Lynx.Providers.Tests"/>
     </ItemGroup>
 
 </Project>

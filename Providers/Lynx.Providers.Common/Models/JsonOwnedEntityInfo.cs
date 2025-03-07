@@ -1,4 +1,4 @@
-﻿namespace Lynx.Provider.Common.Models;
+﻿namespace Lynx.Providers.Common.Models;
 
 /// <summary>
 /// Owned entity information when the owned entity is stored in a JSON column.

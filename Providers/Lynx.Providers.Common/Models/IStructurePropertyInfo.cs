@@ -1,4 +1,4 @@
-﻿namespace Lynx.Provider.Common.Models;
+﻿namespace Lynx.Providers.Common.Models;
 
 /// <summary>
 /// Property information for a structure property (owned or complex)

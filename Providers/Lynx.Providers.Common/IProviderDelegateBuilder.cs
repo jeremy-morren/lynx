@@ -1,7 +1,7 @@
 ﻿using System.Linq.Expressions;
-using Lynx.Provider.Common.Models;
+using Lynx.Providers.Common.Models;
 
-namespace Lynx.Provider.Common;
+namespace Lynx.Providers.Common;
 
 /// <summary>
 /// Delegate builder for provider specific expressions

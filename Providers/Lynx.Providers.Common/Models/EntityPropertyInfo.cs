@@ -2,7 +2,7 @@
 using System.Reflection;
 using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace Lynx.Provider.Common.Models;
+namespace Lynx.Providers.Common.Models;
 
 /// <summary>
 /// Information about a CLR property of an entity.

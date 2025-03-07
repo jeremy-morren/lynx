@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace Lynx.Provider.Common.Models;
+namespace Lynx.Providers.Common.Models;
 
 internal interface IEntityPropertyInfo
 {

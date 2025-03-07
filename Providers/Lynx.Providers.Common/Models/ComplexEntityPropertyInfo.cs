@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace Lynx.Provider.Common.Models;
+namespace Lynx.Providers.Common.Models;
 
 /// <summary>
 /// Complex entity property information.

@@ -1,6 +1,6 @@
-﻿using Lynx.Provider.Common.Models;
+﻿using Lynx.Providers.Common.Models;
 
-namespace Lynx.Provider.Common.Entities;
+namespace Lynx.Providers.Common.Entities;
 
 internal static class EntityModelExtensions
 {

@@ -1,4 +1,7 @@
-﻿using System.Linq.Expressions;
+﻿using System.Data.Common;
+using System.Linq.Expressions;
+using Lynx.DocumentStore.Providers;
+using Lynx.Providers.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore.Operations;
@@ -18,7 +21,14 @@ internal class ReplaceOperation<T> : IDocumentSessionOperation
         _predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
     }
     
-    public void SaveChanges(DbContext context)
+    private static ILynxDatabaseService<T> GetService(DbContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        var provider = LynxProviderFactory.GetProvider(context);
+        return provider.GetService<T>();
+    }
+    
+    public void SaveChanges(DbContext context, DbConnection connection)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -26,26 +36,18 @@ internal class ReplaceOperation<T> : IDocumentSessionOperation
         context.Set<T>().Where(_predicate).ExecuteDelete();
 
         //Upsert the new entities
-        context.BulkInsertOrUpdate(_entities, BulkOptions.Config);
+        GetService(context).BulkUpsert(_entities, connection);
     }
 
-    public async Task SaveChangesAsync(DbContext context, CancellationToken cancellationToken)
+    public async Task SaveChangesAsync(DbContext context, DbConnection connection, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        try
-        {
-            //Delete entities that match the predicate
-            await context.Set<T>().Where(_predicate).ExecuteDeleteAsync(cancellationToken);
+        //Delete entities that match the predicate
+        await context.Set<T>().Where(_predicate).ExecuteDeleteAsync(cancellationToken);
 
-            //Upsert the new entities
-            await context.BulkInsertOrUpdateAsync(_entities, BulkOptions.Config, cancellationToken: cancellationToken);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
+        //Upsert the new entities
+        await GetService(context).UpsertAsync(_entities, connection, cancellationToken);
     }
 
     public IEnumerable<object> InsertedOrUpdatedDocuments => _entities;

@@ -1,7 +1,7 @@
 ﻿using System.Data.Common;
-using Lynx.Provider.Common;
-using Lynx.Provider.Common.Models;
-using Lynx.Provider.Common.Reflection;
+using Lynx.Providers.Common;
+using Lynx.Providers.Common.Models;
+using Lynx.Providers.Common.Reflection;
 using Microsoft.Data.Sqlite;
 
 namespace Lynx.Provider.Sqlite;
@@ -100,44 +100,42 @@ internal class SqliteLynxDatabaseService<T> : ILynxDatabaseService<T>
         }
     }
 
-    public void Insert(
+    public void Insert(IEnumerable<T> values,
         DbConnection connection,
-        IEnumerable<T> values,
         CancellationToken cancellationToken = default) =>
         ExecuteNonQuery(connection, _insertWithKeyCommand, values, cancellationToken);
 
-    public void Upsert(
+    public void Upsert(IEnumerable<T> values,
         DbConnection connection,
-        IEnumerable<T> values,
         CancellationToken cancellationToken = default) =>
         ExecuteNonQuery(connection, _upsertCommand, values, cancellationToken);
 
-    public async Task InsertAsync(
+    public async Task InsertAsync(IEnumerable<T> values,
         DbConnection connection,
-        IEnumerable<T> values,
         CancellationToken cancellationToken = default) =>
         await ExecuteNonQueryAsync(connection, _insertWithKeyCommand, values, cancellationToken);
 
-    public async Task UpsertAsync(
+    public async Task UpsertAsync(IEnumerable<T> values,
         DbConnection connection,
-        IEnumerable<T> values,
         CancellationToken cancellationToken = default) =>
         await ExecuteNonQueryAsync(connection, _upsertCommand, values, cancellationToken);
 
     #region Bulk
 
     //Sqlite does not support bulk operations, so we just call the non-bulk operations
-    public void BulkInsert(DbConnection connection, IEnumerable<T> entities, CancellationToken cancellationToken = default) =>
-        Insert(connection, entities, cancellationToken);
+    public void BulkInsert(IEnumerable<T> entities, DbConnection connection, CancellationToken cancellationToken = default) =>
+        Insert(entities, connection, cancellationToken);
 
-    public void BulkUpsert(DbConnection connection, IEnumerable<T> entities, CancellationToken cancellationToken = default) =>
-        Upsert(connection, entities, cancellationToken);
+    public void BulkUpsert(IEnumerable<T> entities, DbConnection connection, CancellationToken cancellationToken = default) =>
+        Upsert(entities, connection, cancellationToken);
 
-    public Task BulkInsertAsync(DbConnection connection, IEnumerable<T> entities, CancellationToken cancellationToken = default) =>
-        InsertAsync(connection, entities, cancellationToken);
+    public Task BulkInsertAsync(IEnumerable<T> entities, DbConnection connection,
+        CancellationToken cancellationToken = default) =>
+        InsertAsync(entities, connection, cancellationToken);
 
-    public Task BulkUpsertAsync(DbConnection connection, IEnumerable<T> entities, CancellationToken cancellationToken = default) =>
-        UpsertAsync(connection, entities, cancellationToken);
+    public Task BulkUpsertAsync(IEnumerable<T> entities, DbConnection connection,
+        CancellationToken cancellationToken = default) =>
+        UpsertAsync(entities, connection, cancellationToken);
 
     #endregion
 }

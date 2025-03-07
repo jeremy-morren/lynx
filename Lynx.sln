@@ -27,7 +27,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lynx.Provider.Sqlite", "Pro
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lynx.Providers.Tests", "Providers\Lynx.Providers.Tests\Lynx.Providers.Tests.csproj", "{18A2105A-2705-4967-A1AE-183B972164A1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lynx.Provider.Common", "Providers\Lynx.Provider.Common\Lynx.Provider.Common.csproj", "{C9240339-E52C-4D49-88B2-555E4BCDE601}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lynx.Providers.Common", "Providers\Lynx.Providers.Common\Lynx.Providers.Common.csproj", "{C9240339-E52C-4D49-88B2-555E4BCDE601}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lynx.Provider.Npgsql", "Providers\Lynx.Provider.Npgsql\Lynx.Provider.Npgsql.csproj", "{E4DB84B2-92C7-42E4-852E-12CE003C4D6D}"
 EndProject

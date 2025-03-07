@@ -1,4 +1,4 @@
-﻿using Lynx.Provider.Common;
+﻿using Lynx.Providers.Common;
 using Microsoft.EntityFrameworkCore;
 
 // ReSharper disable ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
@@ -39,13 +39,13 @@ public class ProviderBulkTestsBase
             using var transaction = context.Database.GetDbConnection().BeginTransaction();
             if (useAsync)
             {
-                await contactSvc.BulkInsertAsync(context.Database.GetDbConnection(), contacts);
-                await customerSvc.BulkInsertAsync(context.Database.GetDbConnection(), customers);
+                await contactSvc.BulkInsertAsync(contacts, context.Database.GetDbConnection());
+                await customerSvc.BulkInsertAsync(customers, context.Database.GetDbConnection());
             }
             else
             {
-                contactSvc.BulkInsert(context.Database.GetDbConnection(), contacts);
-                customerSvc.BulkInsert(context.Database.GetDbConnection(), customers);
+                contactSvc.BulkInsert(contacts, context.Database.GetDbConnection());
+                customerSvc.BulkInsert(customers, context.Database.GetDbConnection());
             }
             transaction.Commit();
         }
@@ -64,13 +64,13 @@ public class ProviderBulkTestsBase
             using var transaction = context.Database.GetDbConnection().BeginTransaction();
             if (useAsync)
             {
-                await contactSvc.BulkUpsertAsync(context.Database.GetDbConnection(), contacts);
-                await customerSvc.BulkUpsertAsync(context.Database.GetDbConnection(), customers);
+                await contactSvc.BulkUpsertAsync(contacts, context.Database.GetDbConnection());
+                await customerSvc.BulkUpsertAsync(customers, context.Database.GetDbConnection());
             }
             else
             {
-                contactSvc.BulkUpsert(context.Database.GetDbConnection(), contacts);
-                customerSvc.BulkUpsert(context.Database.GetDbConnection(), customers);
+                contactSvc.BulkUpsert(contacts, context.Database.GetDbConnection());
+                customerSvc.BulkUpsert(customers, context.Database.GetDbConnection());
             }
             transaction.Commit();
         }
@@ -107,9 +107,9 @@ public class ProviderBulkTestsBase
             context.Database.OpenConnection();
             using var transaction = context.Database.GetDbConnection().BeginTransaction();
             if (useAsync)
-                await citySvc.InsertAsync(context.Database.GetDbConnection(), cities);
+                await citySvc.BulkInsertAsync(cities, context.Database.GetDbConnection());
             else
-                citySvc.Insert(context.Database.GetDbConnection(), cities);
+                citySvc.BulkInsert(cities, context.Database.GetDbConnection());
             transaction.Commit();
         }
 
@@ -122,9 +122,9 @@ public class ProviderBulkTestsBase
             context.Database.OpenConnection();
             using var transaction = context.Database.GetDbConnection().BeginTransaction();
             if (useAsync)
-                await citySvc.BulkUpsertAsync(context.Database.GetDbConnection(), cities);
+                await citySvc.BulkUpsertAsync(cities, context.Database.GetDbConnection());
             else
-                citySvc.BulkUpsert(context.Database.GetDbConnection(), cities);
+                citySvc.BulkUpsert(cities, context.Database.GetDbConnection());
             transaction.Commit();
         }
 
@@ -160,9 +160,9 @@ public class ProviderBulkTestsBase
 
             using var transaction = context.Database.BeginTransaction();
             if (useAsync)
-                await entitySvc.InsertAsync(context.Database.GetDbConnection(), entities);
+                await entitySvc.BulkInsertAsync(entities, context.Database.GetDbConnection());
             else
-                entitySvc.Insert(context.Database.GetDbConnection(), entities);
+                entitySvc.BulkInsert(entities, context.Database.GetDbConnection());
             transaction.Commit();
         }
 
@@ -176,9 +176,9 @@ public class ProviderBulkTestsBase
             context.Database.OpenConnection();
             using var transaction = context.Database.GetDbConnection().BeginTransaction();
             if (useAsync)
-                await entitySvc.BulkUpsertAsync(context.Database.GetDbConnection(), entities);
+                await entitySvc.BulkUpsertAsync(entities, context.Database.GetDbConnection());
             else
-                entitySvc.BulkUpsert(context.Database.GetDbConnection(), entities);
+                entitySvc.BulkUpsert(entities, context.Database.GetDbConnection());
             transaction.Commit();
         }
 
@@ -197,72 +197,65 @@ public class ProviderBulkTestsBase
                 .Should().BeEquivalentTo(manualContext.ConverterEntities.AsNoTracking().ToList());
         }
     }
-
-    private static Customer Customer(int id) => new()
+    
+    internal static async Task TestIdOnly(
+        ILynxProvider provider, bool useAsync, Func<string, ITestHarness> createHarness)
     {
-        Id = id,
-        Name = $"Customer {id}",
-        Tags = [$"Tag 1 {id}", $"Tag 2 {id}"],
-        OrderContact = new CustomerContactInfo()
+        var entities = Enumerable.Range(10, 10).Select(IdOnly).ToList();
+        
+        using var lynxHarness = createHarness("lynx");
+
+        ILynxDatabaseService<IdOnly> entitySvc;
+        using (var context = lynxHarness.CreateContext())
         {
-            ContactId = id,
-            Contact = new Contact()
-            {
-                Id = id,
-            }
-        },
-        BillingAddress = new Address()
-        {
-            Street = $"Billing street {id}",
-            City = $"Billing city {id}"
-        },
-        ShippingAddress = new Address()
-        {
-            Street = $"Shipping street {id}",
-            City = $"Shipping city {id}"
+            entitySvc = provider.CreateService<IdOnly>(context.Model);
+
+            context.Database.EnsureCreated();
+
+            using var transaction = context.Database.BeginTransaction();
+            if (useAsync)
+                await entitySvc.BulkInsertAsync(entities, context.Database.GetDbConnection());
+            else
+                entitySvc.BulkInsert(entities, context.Database.GetDbConnection());
+            transaction.Commit();
         }
-    };
 
+        entities = entities
+            .Concat(Enumerable.Range(100, 10).Select(IdOnly))
+            .ToList();
 
-    private static City City(int id) => new()
-    {
-        Id = new CityId(id),
-        Name = $"City {id}",
-        Country = id % 2 == 0 ? $"Country {id}" : null,
-        Location = new CityLocation()
+        using (var context = lynxHarness.CreateContext())
         {
-            Elevation = id * 10,
-            Latitude = id * 1.1m,
-            Longitude = id * 100.1,
-            StreetWidths = Enumerable.Range(0, id).Select(i => (short)i).ToArray()
-        },
-        Population = id % 3 == 0 ? null : id * 1000,
-        LegalSystem = new LegalSystem(id % 2 == 0, id % 3 == 0),
-        Buildings = Enumerable.Range(0, id)
-            .Select(i => new Building() { Name = $"Building {i}" })
-            .ToList(),
-        FamousBuilding = id % 2 == 0
-            ? new Building()
-            {
-                Name = $"Famous building {id}",
-                Owner = new BuildingOwner(),
-                Purpose = (BuildingPurpose)(id * 5)
-            }
-            : null
-    };
+            using var transaction = context.Database.BeginTransaction();
+            if (useAsync)
+                await entitySvc.BulkUpsertAsync(entities, context.Database.GetDbConnection());
+            else
+                entitySvc.BulkUpsert(entities, context.Database.GetDbConnection());
+            transaction.Commit();
+        }
 
-    private static ConverterEntity ConverterEntity(int id) => new()
-    {
-        Id1 = new StringId(id.ToString()),
-        Id2 = new CityId(id * 2),
-        IntValue = id % 2,
-        NullableId = id % 2 == 0 ? new StringId((id * 3).ToString()) : null,
-        ReferenceId = id % 3 == 0 ? new ReferenceStringId((id * 4).ToString()) : null,
-        StringValue = id % 2 == 0 ? $"String {id}" : null,
-        IntValueNull = id % 3 == 0 ? null : id,
-        NullableValueId = id % 2 == 0 ? new CityId(id * 4) : null,
-        ReferenceIntId = id % 3 == 0 ? new ReferenceIntId(id * 5) : null,
-        ReferenceNullableIntId = id % 2 == 0 ? new ReferenceNullableIntId(id * 6) : null,
-        Enum = Enum.GetValues<BuildingPurpose>()[id % Enum.GetValues<BuildingPurpose>().Length],
-    };
+        using var manualHarness = createHarness("manual");
+        using (var context = manualHarness.CreateContext())
+        {
+            context.Database.EnsureCreated();
+            context.IdOnly.AddRange(entities);
+            context.SaveChanges();
+        }
+
+        using (var lynxContext = lynxHarness.CreateContext())
+        using (var manualContext = manualHarness.CreateContext())
+        {
+            lynxContext.IdOnly.AsNoTracking().ToList()
+                .Should().BeEquivalentTo(manualContext.IdOnly.AsNoTracking().ToList())
+                .And.BeEquivalentTo(entities);
+        }
+    }
+
+    private static Customer Customer(int id) => ProviderTestsBase.Customer(id);
+
+    private static City City(int id) => ProviderTestsBase.City(id);
+
+    private static ConverterEntity ConverterEntity(int id) => ProviderTestsBase.ConverterEntity(id);
+    
+    private static IdOnly IdOnly(int id) => ProviderTestsBase.IdOnly(id);
 }

@@ -2,9 +2,9 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json;
-using Lynx.Provider.Common;
-using Lynx.Provider.Common.Models;
-using Lynx.Provider.Common.Reflection;
+using Lynx.Providers.Common;
+using Lynx.Providers.Common.Models;
+using Lynx.Providers.Common.Reflection;
 
 namespace Lynx.Provider.Sqlite;
 

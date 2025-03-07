@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace Lynx.Provider.Common.Models;
+namespace Lynx.Providers.Common.Models;
 
 /// <summary>
 /// EF core entity information.

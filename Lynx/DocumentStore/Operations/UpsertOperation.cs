@@ -1,4 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Data.Common;
+using Lynx.DocumentStore.Providers;
+using Lynx.Providers.Common;
+using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore.Operations;
 
@@ -16,16 +19,23 @@ internal class UpsertOperation<T> : IDocumentSessionOperation
         _entities = entities ?? throw new ArgumentNullException(nameof(entities));
     }
     
-    public void SaveChanges(DbContext context)
+    private static ILynxDatabaseService<T> GetService(DbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        context.BulkInsertOrUpdate(_entities, BulkOptions.Config);
+        var provider = LynxProviderFactory.GetProvider(context);
+        return provider.GetService<T>();
+    }
+    
+    public void SaveChanges(DbContext context, DbConnection connection)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        GetService(context).BulkUpsert(_entities, connection);
     }
 
-    public Task SaveChangesAsync(DbContext context, CancellationToken cancellationToken)
+    public Task SaveChangesAsync(DbContext context, DbConnection connection, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return context.BulkInsertOrUpdateAsync(_entities, BulkOptions.Config, cancellationToken: cancellationToken);
+        return GetService(context).BulkUpsertAsync(_entities, connection, cancellationToken);
     }
 
     public IEnumerable<object> InsertedOrUpdatedDocuments => _entities;

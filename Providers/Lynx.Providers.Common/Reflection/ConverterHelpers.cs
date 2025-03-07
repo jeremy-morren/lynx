@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 // ReSharper disable ConvertIfStatementToReturnStatement
 
-namespace Lynx.Provider.Common.Reflection;
+namespace Lynx.Providers.Common.Reflection;
 
 internal static class ConverterHelpers
 {

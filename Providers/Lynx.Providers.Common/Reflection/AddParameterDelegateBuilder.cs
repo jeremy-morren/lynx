@@ -3,10 +3,10 @@ using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
-using Lynx.Provider.Common.Models;
+using Lynx.Providers.Common.Models;
 using Microsoft.EntityFrameworkCore.Storage;
 
-namespace Lynx.Provider.Common.Reflection;
+namespace Lynx.Providers.Common.Reflection;
 
 /// <summary>
 /// Builds expressions for adding all parameters for an entity to a command.

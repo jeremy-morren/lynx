@@ -1,7 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Data.Common;
-using Lynx.Provider.Common.Entities;
-using Lynx.Provider.Common.Models;
+using Lynx.Providers.Common.Entities;
+using Lynx.Providers.Common.Models;
 using NodaTime;
 
 namespace Lynx.Providers.Tests;

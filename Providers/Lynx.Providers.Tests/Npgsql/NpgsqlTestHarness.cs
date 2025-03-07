@@ -39,7 +39,7 @@ public sealed class NpgsqlTestHarness : ITestHarness
         DeleteDatabase(_database);
     }
 
-    private const string ConnString = "Host=localhost;Username=postgres;Password=postgres;Include Error Detail=true";
+    public const string ConnString = "Host=localhost;Username=postgres;Password=postgres;Include Error Detail=true";
 
     private static void DeleteDatabase(string dbName)
     {

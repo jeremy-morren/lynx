@@ -1,7 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Text.Json;
-using Lynx.Provider.Common.Entities;
-using Lynx.Provider.Common.Reflection;
+using Lynx.Providers.Common.Entities;
+using Lynx.Providers.Common.Reflection;
 using Lynx.Provider.Sqlite;
 using Microsoft.Data.Sqlite;
 

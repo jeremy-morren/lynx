@@ -1,4 +1,4 @@
-﻿using Lynx.Provider.Common;
+﻿using Lynx.Providers.Common;
 using Microsoft.EntityFrameworkCore;
 
 // ReSharper disable ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
@@ -39,13 +39,13 @@ public class ProviderTestsBase
 
             if (useAsync)
             {
-                await contactSvc.InsertAsync(context.Database.GetDbConnection(), contacts);
-                await customerSvc.InsertAsync(context.Database.GetDbConnection(), customers);
+                await contactSvc.InsertAsync(contacts, context.Database.GetDbConnection());
+                await customerSvc.InsertAsync(customers, context.Database.GetDbConnection());
             }
             else
             {
-                contactSvc.Insert(context.Database.GetDbConnection(), contacts);
-                customerSvc.Insert(context.Database.GetDbConnection(), customers);
+                contactSvc.Insert(contacts, context.Database.GetDbConnection());
+                customerSvc.Insert(customers, context.Database.GetDbConnection());
             }
             transaction.Commit();
         }
@@ -62,13 +62,13 @@ public class ProviderTestsBase
 
             if (useAsync)
             {
-                await contactSvc.UpsertAsync(context.Database.GetDbConnection(), contacts);
-                await customerSvc.UpsertAsync(context.Database.GetDbConnection(), customers);
+                await contactSvc.UpsertAsync(contacts, context.Database.GetDbConnection());
+                await customerSvc.UpsertAsync(customers, context.Database.GetDbConnection());
             }
             else
             {
-                contactSvc.Upsert(context.Database.GetDbConnection(), contacts);
-                customerSvc.Upsert(context.Database.GetDbConnection(), customers);
+                contactSvc.Upsert(contacts, context.Database.GetDbConnection());
+                customerSvc.Upsert(customers, context.Database.GetDbConnection());
             }
         }
 
@@ -104,9 +104,9 @@ public class ProviderTestsBase
             using var transaction = context.Database.BeginTransaction();
 
             if (useAsync)
-                await citySvc.InsertAsync(context.Database.GetDbConnection(), cities);
+                await citySvc.InsertAsync(cities, context.Database.GetDbConnection());
             else
-                citySvc.Insert(context.Database.GetDbConnection(), cities);
+                citySvc.Insert(cities, context.Database.GetDbConnection());
             transaction.Commit();
         }
 
@@ -117,9 +117,9 @@ public class ProviderTestsBase
         using (var context = lynxHarness.CreateContext())
         {
             if (useAsync)
-                await citySvc.UpsertAsync(context.Database.GetDbConnection(), cities);
+                await citySvc.UpsertAsync(cities, context.Database.GetDbConnection());
             else
-                citySvc.Upsert(context.Database.GetDbConnection(), cities);
+                citySvc.Upsert(cities, context.Database.GetDbConnection());
         }
 
         using var manualHarness = createHarness("manual");
@@ -154,9 +154,9 @@ public class ProviderTestsBase
 
             using var transaction = context.Database.BeginTransaction();
             if (useAsync)
-                await entitySvc.InsertAsync(context.Database.GetDbConnection(), entities);
+                await entitySvc.InsertAsync(entities, context.Database.GetDbConnection());
             else
-                entitySvc.Insert(context.Database.GetDbConnection(), entities);
+                entitySvc.Insert(entities, context.Database.GetDbConnection());
             transaction.Commit();
         }
 
@@ -168,9 +168,9 @@ public class ProviderTestsBase
         using (var context = lynxHarness.CreateContext())
         {
             if (useAsync)
-                await entitySvc.UpsertAsync(context.Database.GetDbConnection(), entities);
+                await entitySvc.UpsertAsync(entities, context.Database.GetDbConnection());
             else
-                entitySvc.Upsert(context.Database.GetDbConnection(), entities);
+                entitySvc.Upsert(entities, context.Database.GetDbConnection());
         }
 
         using var manualHarness = createHarness("manual");
@@ -189,7 +189,58 @@ public class ProviderTestsBase
         }
     }
 
-    private static Customer Customer(int id) => new()
+    internal static async Task TestIdOnly(
+        ILynxProvider provider, bool useAsync, Func<string, ITestHarness> createHarness)
+    {
+        var entities = Enumerable.Range(10, 10).Select(IdOnly).ToList();
+        
+        using var lynxHarness = createHarness("lynx");
+
+        ILynxDatabaseService<IdOnly> entitySvc;
+        using (var context = lynxHarness.CreateContext())
+        {
+            entitySvc = provider.CreateService<IdOnly>(context.Model);
+
+            context.Database.EnsureCreated();
+
+            using var transaction = context.Database.BeginTransaction();
+            if (useAsync)
+                await entitySvc.InsertAsync(entities, context.Database.GetDbConnection());
+            else
+                entitySvc.Insert(entities, context.Database.GetDbConnection());
+            transaction.Commit();
+        }
+
+        entities = entities
+            .Concat(Enumerable.Range(100, 10).Select(IdOnly))
+            .ToList();
+
+        using (var context = lynxHarness.CreateContext())
+        {
+            if (useAsync)
+                await entitySvc.UpsertAsync(entities, context.Database.GetDbConnection());
+            else
+                entitySvc.Upsert(entities, context.Database.GetDbConnection());
+        }
+
+        using var manualHarness = createHarness("manual");
+        using (var context = manualHarness.CreateContext())
+        {
+            context.Database.EnsureCreated();
+            context.IdOnly.AddRange(entities);
+            context.SaveChanges();
+        }
+
+        using (var lynxContext = lynxHarness.CreateContext())
+        using (var manualContext = manualHarness.CreateContext())
+        {
+            lynxContext.IdOnly.AsNoTracking().ToList()
+                .Should().BeEquivalentTo(manualContext.IdOnly.AsNoTracking().ToList())
+                .And.BeEquivalentTo(entities);
+        }
+    }
+    
+    public static Customer Customer(int id) => new()
     {
         Id = id,
         Name = $"Customer {id}",
@@ -215,7 +266,7 @@ public class ProviderTestsBase
     };
 
 
-    private static City City(int id) => new()
+    public static City City(int id) => new()
     {
         Id = new CityId(id),
         Name = $"City {id}",
@@ -242,7 +293,7 @@ public class ProviderTestsBase
             : null
     };
 
-    private static ConverterEntity ConverterEntity(int id) => new()
+    public static ConverterEntity ConverterEntity(int id) => new()
     {
         Id1 = new StringId(id.ToString()),
         Id2 = new CityId(id * 2),
@@ -255,5 +306,10 @@ public class ProviderTestsBase
         ReferenceIntId = id % 3 == 0 ? new ReferenceIntId(id * 5) : null,
         ReferenceNullableIntId = id % 2 == 0 ? new ReferenceNullableIntId(id * 6) : null,
         Enum = Enum.GetValues<BuildingPurpose>()[id % Enum.GetValues<BuildingPurpose>().Length],
+    };
+    
+    public static IdOnly IdOnly(int id) => new()
+    {
+        Id = id,
     };
 }

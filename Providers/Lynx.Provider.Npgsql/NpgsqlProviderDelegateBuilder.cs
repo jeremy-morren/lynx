@@ -2,9 +2,9 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
-using Lynx.Provider.Common;
-using Lynx.Provider.Common.Models;
-using Lynx.Provider.Common.Reflection;
+using Lynx.Providers.Common;
+using Lynx.Providers.Common.Models;
+using Lynx.Providers.Common.Reflection;
 using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.Mapping;

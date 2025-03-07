@@ -1,7 +1,7 @@
 ﻿using System.Data;
 using System.Data.Common;
 
-namespace Lynx.Provider.Common;
+namespace Lynx.Providers.Common;
 
 /// <summary>
 /// Wrapping class that ensures a connection is open and closes it when disposed.
@@ -28,8 +28,10 @@ internal sealed class OpenConnection : IDisposable, IAsyncDisposable
     /// <summary>
     /// Opens a connection if it is not already open.
     /// </summary>
-    public static OpenConnection? Open(DbConnection connection)
+    public static OpenConnection? Open(DbConnection? connection)
     {
+        if (connection == null) return null;
+        
         if (connection.State == ConnectionState.Open)
             return null; //Connection is already open, nothing to do
 
@@ -37,8 +39,10 @@ internal sealed class OpenConnection : IDisposable, IAsyncDisposable
         return new OpenConnection(connection);
     }
 
-    public static async Task<OpenConnection?> OpenAsync(DbConnection connection, CancellationToken cancellationToken)
+    public static async Task<OpenConnection?> OpenAsync(DbConnection? connection, CancellationToken cancellationToken)
     {
+        if (connection == null) return null;
+        
         if (connection.State == ConnectionState.Open)
             return null; //Connection is already open, nothing to do
 

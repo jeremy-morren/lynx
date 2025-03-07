@@ -37,9 +37,6 @@ public class DocumentSessionTests
             session.Insert(ParentEntity.Create(5));
             session.Insert(ParentEntity.Create(6), ParentEntity.Create(7));
             session.Insert<ParentEntity>(new List<ParentEntity>() { ParentEntity.Create(8) });
-
-            //EF operation
-            session.StoreViaContext(Alone.New(1));
             
             if (useAsync)
                 await session.SaveChangesAsync();
@@ -63,8 +60,6 @@ public class DocumentSessionTests
             session.Delete<ParentEntity>(2);
             
             session.Store(ParentEntity.Create(3, 2)); //Overwrite previous insert
-
-            session.StoreViaContext(Alone.New(1)); //Overwrite previous store
             
             if (useAsync)
                 await session.SaveChangesAsync();

@@ -2,8 +2,8 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Lynx.Provider.Common.Entities;
-using Lynx.Provider.Common.Models;
+using Lynx.Providers.Common.Entities;
+using Lynx.Providers.Common.Models;
 using Lynx.Providers.Tests.Npgsql;
 using Lynx.Providers.Tests.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +17,7 @@ public class EntityInfoFactoryTests
     [Theory]
     [InlineData(typeof(Customer), nameof(Customer.Id))]
     [InlineData(typeof(City), nameof(City.Id))]
+    [InlineData(typeof(ConverterEntity), nameof(ConverterEntity.Id1), nameof(ConverterEntity.Id2))]
     public void TestEntityInfoFactory(Type entityType, params string[] keys)
     {
         using var sqliteHarness = new SqliteTestHarness();

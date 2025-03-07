@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace Lynx.Provider.Common;
+namespace Lynx.Providers.Common;
 
 /// <summary>
 /// A provider for Lynx to handle database operations.
