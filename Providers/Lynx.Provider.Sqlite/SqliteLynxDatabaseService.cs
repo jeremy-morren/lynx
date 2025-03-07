@@ -14,8 +14,9 @@ internal class SqliteLynxDatabaseService<T> : ILynxDatabaseService<T>
         if (entity.Type.ClrType != typeof(T))
             throw new ArgumentException("Entity type mismatch", nameof(entity));
 
-        _insertWithKeyCommand = CommandGenerator.GetInsertWithKeyCommand(entity);
-        _upsertCommand = CommandGenerator.GetUpsertCommand(entity);
+        var generator = new CommandGenerator(entity);
+        _insertWithKeyCommand = generator.GetInsertWithKeyCommand();
+        _upsertCommand = generator.GetUpsertCommand();
 
         _addParameters = AddParameterDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder>.Build(entity);
         _setParameterValues = SetParameterValueDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder, T>.Build(entity);
@@ -122,4 +123,21 @@ internal class SqliteLynxDatabaseService<T> : ILynxDatabaseService<T>
         IEnumerable<T> values,
         CancellationToken cancellationToken = default) =>
         await ExecuteNonQueryAsync(connection, _upsertCommand, values, cancellationToken);
+
+    #region Bulk
+
+    //Sqlite does not support bulk operations, so we just call the non-bulk operations
+    public void BulkInsert(DbConnection connection, IEnumerable<T> entities, CancellationToken cancellationToken = default) =>
+        Insert(connection, entities, cancellationToken);
+
+    public void BulkUpsert(DbConnection connection, IEnumerable<T> entities, CancellationToken cancellationToken = default) =>
+        Upsert(connection, entities, cancellationToken);
+
+    public Task BulkInsertAsync(DbConnection connection, IEnumerable<T> entities, CancellationToken cancellationToken = default) =>
+        InsertAsync(connection, entities, cancellationToken);
+
+    public Task BulkUpsertAsync(DbConnection connection, IEnumerable<T> entities, CancellationToken cancellationToken = default) =>
+        UpsertAsync(connection, entities, cancellationToken);
+
+    #endregion
 }

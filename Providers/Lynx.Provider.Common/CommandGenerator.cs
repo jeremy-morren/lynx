@@ -7,28 +7,32 @@ namespace Lynx.Provider.Common;
 /// <summary>
 /// Generates commands (Postgres dialect, understood by Sqlite)
 /// </summary>
-internal static class CommandGenerator
+internal class CommandGenerator
 {
+    private readonly RootEntityInfo _entity;
+
+    public CommandGenerator(RootEntityInfo entity) => _entity = entity;
+
     #region Insert
 
     /// <summary>
     /// Insert command including primary key.
     /// </summary>
-    public static string GetInsertWithKeyCommand(RootEntityInfo entity)
+    public string GetInsertWithKeyCommand()
     {
-        var properties = entity.Keys.Concat(entity.GetAllScalarColumns());
-        return GetInsertCommand(entity, properties).ToString();
+        var properties = _entity.Keys.Concat(_entity.GetAllScalarColumns());
+        return GetInsertCommand(properties).ToString();
     }
 
     /// <summary>
     /// Insert command without primary key.
     /// </summary>
-    public static string GetInsertIdentityCommand(RootEntityInfo entity)
+    public string GetInsertIdentityCommand()
     {
-        if (entity.Keys.Count != 1)
+        if (_entity.Keys.Count != 1)
             throw new NotImplementedException("Cannot insert identity without exactly one key");
-        var sb = GetInsertCommand(entity, entity.GetAllScalarColumns());
-        var identity = entity.Keys[0].ColumnName.SqlColumnName;
+        var sb = GetInsertCommand(_entity.GetAllScalarColumns());
+        var identity = _entity.Keys[0].ColumnName.SqlColumnName;
         sb.Append($" RETURNING \"{identity}\"");
         return sb.ToString();
     }
@@ -36,7 +40,7 @@ internal static class CommandGenerator
     /// <summary>
     /// Insert command including primary key.
     /// </summary>
-    private static StringBuilder GetInsertCommand(RootEntityInfo entity, IEnumerable<IEntityPropertyInfo> properties)
+    private StringBuilder GetInsertCommand(IEnumerable<IEntityPropertyInfo> properties)
     {
         var list = properties.ToList();
         if (list.Count == 0)
@@ -44,9 +48,9 @@ internal static class CommandGenerator
 
         var sb = new StringBuilder();
         sb.Append("INSERT INTO ");
-        if (entity.Schema != null)
-            sb.Append($"\"{entity.Schema}\".");
-        sb.Append($"\"{entity.TableName}\" (");
+        if (_entity.Schema != null)
+            sb.Append($"\"{_entity.Schema}\".");
+        sb.Append($"\"{_entity.TableName}\" (");
         foreach (var p in list)
         {
             sb.Append($"\"{p.ColumnName.SqlColumnName}\", ");
@@ -66,17 +70,17 @@ internal static class CommandGenerator
 
     #region Upsert
 
-    public static string GetUpsertCommand(RootEntityInfo entity)
+    public string GetUpsertCommand()
     {
-        var properties = entity.GetAllScalarColumns().ToList();
-        var sb = GetInsertCommand(entity, entity.Keys.Concat(properties));
-        sb.Append(" ON CONFLICT (");
-        foreach (var p in entity.Keys)
-        {
+        var properties = _entity.GetAllScalarColumns().ToList();
+        var sb = GetInsertCommand(_entity.Keys.Concat(properties));
+        sb.AppendLine();
+        sb.Append("ON CONFLICT (");
+        foreach (var p in _entity.Keys)
             sb.Append($"\"{p.ColumnName.SqlColumnName}\", ");
-        }
         sb.Length -= 2; // Remove trailing comma
-        sb.Append(") DO UPDATE SET ");
+        sb.AppendLine(")");
+        sb.Append("DO UPDATE SET ");
         foreach (var p in properties)
             sb.Append($"\"{p.ColumnName.SqlColumnName}\" = {p.ColumnName.SqlParamName}, ");
         sb.Length -= 2; // Remove trailing comma

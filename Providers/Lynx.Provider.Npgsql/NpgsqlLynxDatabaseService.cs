@@ -17,9 +17,20 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseService<T>
         _addParameters = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder>.Build(entity);
         _setParameterValues = SetParameterValueDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder, T>.Build(entity);
 
-        _insertWithKeyCommand = CommandGenerator.GetInsertWithKeyCommand(entity);
-        _upsertCommand = CommandGenerator.GetUpsertCommand(entity);
+        _columns = NpgsqlEntityColumnBuilder<T>.GetColumnInfo(entity);
+
+        var generator = new NpgsqlCommandGenerator(entity);
+        _insertWithKeyCommand = generator.GetInsertWithKeyCommand();
+        _upsertCommand = generator.GetUpsertCommand();
+
+        _insertBinaryCommand = generator.GenerateBinaryCopyInsertCommand();
+        _createTempTableCommand = generator.GetCreateTempTableCommand();
+        _insertTempTableBinaryCommand = generator.GenerateBinaryCopyTempTableInsertCommand();
+        _upsertTempTableCommand = generator.GenerateUpsertTempTableCommand();
+        _dropTempTableCommand = generator.GetDropTempTableCommand();
     }
+
+    #region Single
 
     /// <summary>
     /// Action to add parameters to a command
@@ -30,8 +41,6 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseService<T>
     /// Action to set parameter values for an entity
     /// </summary>
     private readonly Action<NpgsqlCommand, T> _setParameterValues;
-
-    #region Single
 
     /// <summary>
     /// SQL to insert an entity with a key
@@ -56,10 +65,7 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseService<T>
         ArgumentNullException.ThrowIfNull(commandText);
 
         using var _ = OpenConnection.Open(connection);
-
-        if (connection is not NpgsqlConnection npgsqlConnection)
-            throw new ArgumentException("Connection must be a NpgsqlConnection", nameof(connection));
-
+        var npgsqlConnection = ConvertOrThrow(connection);
         using var command = npgsqlConnection.CreateCommand();
         command.CommandText = commandText;
         _addParameters(command);
@@ -88,10 +94,7 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseService<T>
         ArgumentNullException.ThrowIfNull(commandText);
 
         await using var _ = await OpenConnection.OpenAsync(connection, cancellationToken);
-
-        if (connection is not NpgsqlConnection npgsqlConnection)
-            throw new ArgumentException("Connection must be a NpgsqlConnection", nameof(connection));
-
+        var npgsqlConnection = ConvertOrThrow(connection);
         await using var command = npgsqlConnection.CreateCommand();
         command.CommandText = commandText;
         _addParameters(command);
@@ -132,39 +135,114 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseService<T>
 
     #region Bulk
 
-    public void InsertBulk(
+    private readonly List<NpgsqlEntityColumn<T>> _columns;
+
+    /// <summary>
+    /// Command to insert rows to table in binary format
+    /// </summary>
+    private readonly string _insertBinaryCommand;
+
+    /// <summary>
+    /// Command to create a temporary table
+    /// </summary>
+    private readonly string _createTempTableCommand;
+
+    /// <summary>
+    /// Command to insert rows to temporary table in binary format
+    /// </summary>
+    private readonly string _insertTempTableBinaryCommand;
+
+    /// <summary>
+    /// Command to upsert rows from temporary table to main table
+    /// </summary>
+    private readonly string _upsertTempTableCommand;
+
+    /// <summary>
+    /// Command to drop temporary table
+    /// </summary>
+    private readonly string _dropTempTableCommand;
+
+    public void BulkInsert(
         DbConnection connection,
-        IEnumerable<T> values,
+        IEnumerable<T> entities,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
-        ArgumentNullException.ThrowIfNull(values);
+        ArgumentNullException.ThrowIfNull(entities);
 
         using var _ = OpenConnection.Open(connection);
-
-        if (connection is not NpgsqlConnection npgsqlConnection)
-            throw new ArgumentException("Connection must be a NpgsqlConnection", nameof(connection));
-
-        //We use a command to store row values
-        using var command = npgsqlConnection.CreateCommand();
-        _addParameters(command);
-
-        using var writer = npgsqlConnection.BeginBinaryImport(_insertWithKeyCommand);
-
-        foreach (var v in values)
+        var npgsqlConnection = ConvertOrThrow(connection);
+        using var writer = npgsqlConnection.BeginBinaryImport(_insertBinaryCommand);
+        foreach (var v in entities)
         {
-            if (v == null)
-                throw new ArgumentException("Entity cannot be null", nameof(values));
-
             cancellationToken.ThrowIfCancellationRequested();
-
-            _setParameterValues(command, v);
+            if (v == null)
+                throw new ArgumentException("Entity cannot be null", nameof(entities));
             writer.StartRow();
-
-            foreach (NpgsqlParameter p in command.Parameters)
-                writer.Write(p.Value, p.NpgsqlDbType);
+            foreach (var column in _columns)
+                column.Write(v, writer);
         }
+        writer.Complete();
+    }
+
+    public void BulkUpsert(DbConnection connection, IEnumerable<T> entities, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(entities);
+
+        using var _ = OpenConnection.Open(connection);
+        var npgsqlConnection = ConvertOrThrow(connection);
+
+        using var command = npgsqlConnection.CreateCommand();
+
+        //Create temp table
+        command.CommandText = _createTempTableCommand;
+        command.ExecuteNonQuery();
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        //Insert into temp table
+        using (var writer = npgsqlConnection.BeginBinaryImport(_insertTempTableBinaryCommand))
+        {
+            foreach (var v in entities)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (v == null)
+                    throw new ArgumentException("Entity cannot be null", nameof(entities));
+                writer.StartRow();
+                foreach (var column in _columns)
+                    column.Write(v, writer);
+            }
+            writer.Complete();
+        }
+
+        //Upsert from temp table
+        command.CommandText = _upsertTempTableCommand;
+        cancellationToken.ThrowIfCancellationRequested();
+        command.ExecuteNonQuery();
+
+        //Drop temp table
+        command.CommandText = _dropTempTableCommand;
+        cancellationToken.ThrowIfCancellationRequested();
+        command.ExecuteNonQuery();
+    }
+
+    public Task BulkInsertAsync(DbConnection connection, IEnumerable<T> entities, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task BulkUpsertAsync(DbConnection connection, IEnumerable<T> entities, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
     }
 
     #endregion
+
+    private static NpgsqlConnection ConvertOrThrow(DbConnection connection)
+    {
+        if (connection is not NpgsqlConnection npgsqlConnection)
+            throw new ArgumentException("Connection must be a NpgsqlConnection", nameof(connection));
+        return npgsqlConnection;
+    }
 }

@@ -1,4 +1,6 @@
 ﻿using System.Collections.Immutable;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using Lynx.Provider.Common.Entities;
 using Lynx.Provider.Npgsql;
 
@@ -6,6 +8,49 @@ namespace Lynx.Providers.Tests.Npgsql;
 
 public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
 {
+    [Theory]
+    [MemberData(nameof(GetEntityTypes))]
+    public void CommandBuilderTests(Type entityType)
+    {
+        using var harness = new NpgsqlTestHarness([nameof(CommandBuilderTests), entityType]);
+        using var context = harness.CreateContext();
+
+        const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Static;
+        var method = typeof(NpgsqlEntityColumnBuilderTests)
+            .GetMethod(nameof(CommandBuilderTestsGeneric), flags)
+            .ShouldNotBeNull();
+        method.MakeGenericMethod(entityType).Invoke(null, [context]);
+    }
+
+    private static void CommandBuilderTestsGeneric<T>(TestContext context)
+    {
+        var entity = EntityInfoFactory.Create(typeof(T), context.Model);
+        var expected = entity.Keys.Concat(entity.GetAllScalarColumns()).ToList();
+
+        var columns = NpgsqlEntityColumnBuilder<T>.GetColumnInfo(entity);
+        columns.Select(c => c.Property.Name)
+            .Should().BeEquivalentTo(expected.Select(c => c.Name));
+
+        var generator = new NpgsqlCommandGenerator(entity);
+        var commands = new[]
+        {
+            generator.GenerateBinaryCopyInsertCommand(),
+            generator.GenerateBinaryCopyTempTableInsertCommand()
+        };
+        Assert.All(commands, command =>
+        {
+            Regex.Matches(command, @"(?<=[,\(]\W*?"")\w+(?=""[,\)])")
+                .Select(m => m.Value)
+                .Should()
+                .BeEquivalentTo(columns.Select(c => c.Property.ColumnName.SqlColumnName),
+                    "Columns in the command should match the entity columns");
+        });
+
+        generator.GetCreateTempTableCommand().ShouldContain(generator.TempTableName);
+        generator.GenerateUpsertTempTableCommand().Should().Contain(generator.TempTableName)
+            .And.Contain(generator.QualifiedTableName);
+    }
+
     [Fact]
     public void BuildCitySetParametersDelegate()
     {

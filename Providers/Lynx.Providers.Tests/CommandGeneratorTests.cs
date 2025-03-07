@@ -15,14 +15,14 @@ public class CommandGeneratorTests
         using var context = harness.CreateContext();
 
         var entity = EntityInfoFactory.Create(entityType, context.Model);
-        CommandGenerator.GetInsertWithKeyCommand(entity).ShouldEndWith(")");
+        var generator = new CommandGenerator(entity);
+        generator.GetInsertWithKeyCommand().ShouldEndWith(")");
 
         if (entity.Keys.Count == 1)
-            CommandGenerator.GetInsertIdentityCommand(entity).ShouldNotEndWith(")");
+            generator.GetInsertIdentityCommand().ShouldNotEndWith(")");
         else
-            Assert.Throws<InvalidOperationException>(() => CommandGenerator.GetInsertIdentityCommand(entity));
+            Assert.Throws<InvalidOperationException>(() => generator.GetInsertIdentityCommand());
 
-        CommandGenerator.GetUpsertCommand(entity)
-            .Should().NotEndWith(")").And.Contain("ON CONFLICT");
+        generator.GetUpsertCommand().Should().NotEndWith(")").And.Contain("ON CONFLICT");
     }
 }
