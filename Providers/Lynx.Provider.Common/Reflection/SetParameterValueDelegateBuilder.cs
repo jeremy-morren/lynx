@@ -71,7 +71,7 @@ internal static class SetParameterValueDelegateBuilder<TCommand, TMapper, TEntit
 
         var converter = property.TypeMapping.Converter;
         if (converter != null)
-            value = ScalarPropertyHelpers.InvokeConverter(converter, value);
+            value = ConverterHelpers.InvokeConverter(converter, value);
 
         return SetParameterValue(property.ColumnIndex, value);
     }
@@ -94,7 +94,7 @@ internal static class SetParameterValueDelegateBuilder<TCommand, TMapper, TEntit
         //Expression that sets all properties to their values
         var setNotNull = SetParameters(property, value);
 
-        var ifNotNull = ScalarPropertyHelpers.GetIfNotNull(value);
+        var ifNotNull = ExpressionHelpers.GetIfNotNull(value);
         if (ifNotNull == null)
             //Complex property is not nullable, ignore null check
             return setNotNull;
@@ -154,7 +154,7 @@ internal static class SetParameterValueDelegateBuilder<TCommand, TMapper, TEntit
 
         Debug.Assert(value.Type != typeof(void));
 
-        var isNullable = ScalarPropertyHelpers.IsNullable(parameterValue);
+        var isNullable = ExpressionHelpers.IsNullable(parameterValue);
 
         if (value.Type != typeof(object))
             value = Expression.Convert(value, typeof(object));

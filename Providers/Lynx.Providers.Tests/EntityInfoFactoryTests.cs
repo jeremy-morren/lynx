@@ -2,7 +2,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Lynx.Provider.Common;
 using Lynx.Provider.Common.Entities;
 using Lynx.Provider.Common.Models;
 using Lynx.Providers.Tests.Npgsql;
@@ -21,7 +20,7 @@ public class EntityInfoFactoryTests
     public void TestEntityInfoFactory(Type entityType, params string[] keys)
     {
         using var sqliteHarness = new SqliteTestHarness();
-        using var npgsqlHarness = new NpgsqlTestHarness(nameof(TestEntityInfoFactory), entityType.Name);
+        using var npgsqlHarness = new NpgsqlTestHarness([nameof(TestEntityInfoFactory), entityType.Name]);
 
         var contexts = new[]
         {

@@ -1,18 +1,43 @@
 ﻿using System.Collections.Immutable;
 using System.Data.Common;
-using System.Text.Json;
 using Lynx.Provider.Common.Entities;
 using Lynx.Provider.Common.Models;
-using Lynx.Provider.Common.Reflection;
-using Lynx.Provider.Sqlite;
-using Lynx.Providers.Tests.Sqlite;
-using Microsoft.Data.Sqlite;
 using NodaTime;
 
 namespace Lynx.Providers.Tests;
 
 public class ParameterDelegateBuilderTestsBase
 {
+
+    /// <summary>
+    /// Gets the entity types to test
+    /// </summary>
+    public static TheoryData<Type> GetEntityTypes() => new()
+    {
+        typeof(City),
+        typeof(Customer),
+        typeof(ConverterEntity)
+    };
+
+    internal static void VerifyEntityInfo(RootEntityInfo entity, DbCommand command)
+    {
+        var allProperties = entity.Keys.Concat(entity.GetAllScalarColumns()).ToList();
+
+        allProperties.Should()
+            .NotContain(e => e.ColumnIndex < 0)
+            .And.BeInAscendingOrder(e => e.ColumnIndex)
+            .And.OnlyHaveUniqueItems(e => e.ColumnIndex);
+
+        command.Parameters.Cast<DbParameter>()
+            .Select(p => p.ParameterName)
+            .Should().BeEquivalentTo(allProperties
+                .OrderBy(e => e.ColumnIndex)
+                .Select(e => e.ColumnName.SqlParamName));
+    }
+
+    /// <summary>
+    /// Verifies that a parameter is correctly set on a command
+    /// </summary>
     internal static void VerifyParameter(ImmutableArray<string> property, object? value, RootEntityInfo entity, DbCommand command)
     {
         var name = string.Join(".", property);
@@ -176,7 +201,8 @@ public class ParameterDelegateBuilderTestsBase
             Id1 = default,
             Id2 = new CityId(-1),
             NullableValueId = new CityId(-2),
-            StringValue = "-3"
+            StringValue = "-3",
+            Enum = BuildingPurpose.Commercial
         },
         new ConverterEntity()
         {
@@ -189,7 +215,8 @@ public class ParameterDelegateBuilderTestsBase
         {
             ReferenceNullableIntId = new ReferenceNullableIntId(null),
             ReferenceId = new ReferenceStringId(null),
-            IntValueNull = 7
+            IntValueNull = 7,
+            Enum = BuildingPurpose.Governmental
         }
     ];
 }

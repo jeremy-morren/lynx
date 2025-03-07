@@ -1,29 +1,43 @@
 ﻿using System.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Npgsql;
 
 namespace Lynx.Providers.Tests.Npgsql;
 
-public sealed class NpgsqlTestHarness : IDisposable
+public sealed class NpgsqlTestHarness : ITestHarness
 {
     private readonly string _database;
 
-    public NpgsqlTestHarness(params string[] database)
+    private readonly NpgsqlDataSource _dataSource;
+
+    public NpgsqlTestHarness(object[] database, bool enableNodaTimeOnDataSource = false)
     {
         _database = string.Join('_', database).ToLowerInvariant();
         DeleteDatabase(_database);
+
+        var builder = new NpgsqlDataSourceBuilder($"{ConnString};Database={_database}");
+        builder.EnableDynamicJson();
+        if (enableNodaTimeOnDataSource)
+            builder.UseNodaTime();
+        _dataSource = builder.Build();
     }
 
     public TestContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<TestContext>()
-            .UseNpgsql($"{ConnString};Database={_database}", o => o.UseNodaTime())
+            .UseNpgsql(_dataSource, o => o.UseNodaTime())
+            .ConfigureWarnings(x => x.Ignore(CoreEventId.ManyServiceProvidersCreatedWarning))
             .Options;
         
         return new TestContext(options);
     }
     
-    public void Dispose() => DeleteDatabase(_database);
+    public void Dispose()
+    {
+        _dataSource.Dispose();
+        DeleteDatabase(_database);
+    }
 
     private const string ConnString = "Host=localhost;Username=postgres;Password=postgres;Include Error Detail=true";
 

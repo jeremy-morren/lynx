@@ -10,5 +10,5 @@ internal interface ILynxProvider
     /// <summary>
     /// Create a database service for the given entity type.
     /// </summary>
-    static abstract ILynxDatabaseService<TEntity> CreateService<TEntity>(IModel model) where TEntity : class;
+    ILynxDatabaseService<TEntity> CreateService<TEntity>(IModel model) where TEntity : class;
 }

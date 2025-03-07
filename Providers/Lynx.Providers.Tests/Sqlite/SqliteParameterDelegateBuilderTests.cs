@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using System.Data.Common;
 using System.Text.Json;
 using Lynx.Provider.Common.Entities;
 using Lynx.Provider.Common.Reflection;
@@ -13,33 +12,18 @@ namespace Lynx.Providers.Tests.Sqlite;
 public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTestsBase
 {
     [Theory]
-    [InlineData(typeof(City))]
-    [InlineData(typeof(Customer))]
-    [InlineData(typeof(ConverterEntity))]
+    [MemberData(nameof(GetEntityTypes))]
     public void BuildAddDelegate(Type entityType)
     {
         using var harness = new SqliteTestHarness();
         using var context = harness.CreateContext();
 
         var entity = EntityInfoFactory.Create(entityType, context.Model);
-
         var action = AddParameterDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder>.Build(entity);
-
         var command = new SqliteCommand();
         action(command);
 
-        var allProperties = entity.Keys.Concat(entity.GetAllScalarColumns()).ToList();
-
-        allProperties.Should()
-            .NotContain(e => e.ColumnIndex < 0)
-            .And.BeInAscendingOrder(e => e.ColumnIndex)
-            .And.OnlyHaveUniqueItems();
-
-        command.Parameters.Cast<DbParameter>()
-            .Select(p => p.ParameterName)
-            .Should().BeEquivalentTo(allProperties
-                .OrderBy(e => e.ColumnIndex)
-                .Select(e => e.ColumnName.SqlParamName));
+        VerifyEntityInfo(entity, command);
     }
 
     [Fact]
@@ -156,6 +140,7 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
             Verify([nameof(ConverterEntity.IntValue)], value.IntValue);
             Verify([nameof(ConverterEntity.StringValue)], value.StringValue);
             Verify([nameof(ConverterEntity.IntValueNull)], value.IntValueNull);
+            Verify([nameof(ConverterEntity.Enum)], value.Enum?.ToString());
             
             command.Parameters.Count.ShouldBe(entity.Keys.Count + entity.GetAllScalarColumns().Count());
 

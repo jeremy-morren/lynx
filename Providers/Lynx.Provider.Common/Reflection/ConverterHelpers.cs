@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Lynx.Provider.Common.Reflection;
 
-internal static class ScalarPropertyHelpers
+internal static class ConverterHelpers
 {
     /// <summary>
     /// Invokes the typed conversion method of a value converter
@@ -28,7 +28,7 @@ internal static class ScalarPropertyHelpers
 
         // Converter does not handle nulls, so we need to check for null
 
-        var ifNotNull = GetIfNotNull(expression);
+        var ifNotNull = ExpressionHelpers.GetIfNotNull(expression);
         if (ifNotNull == null)
             // Expression is not nullable, no need to check for null
             return Expression.Invoke(convertToProvider, expression);
@@ -56,8 +56,19 @@ internal static class ScalarPropertyHelpers
         {
             // Input is Nullable<>
             Debug.Assert(Nullable.GetUnderlyingType(expression.Type) != null);
-            
-            var invoke = Expression.Invoke(convertToProvider, GetNullableValue(expression));
+
+            // NB: Converter does not handle nulls, but may still accept nullable input
+
+            var value = ExpressionHelpers.GetNullableValue(expression);
+            var functionParameter = ExpressionHelpers.GetFunctionParameter(convertToProvider);
+            if (Nullable.GetUnderlyingType(functionParameter) != null)
+            {
+                // Converter accepts nullable input, need to convert input back to nullable
+                Debug.Assert(expression.Type == functionParameter, "Converter input type mismatch");
+                value = Expression.Convert(value, functionParameter);
+            }
+
+            var invoke = Expression.Invoke(convertToProvider, value);
 
             if (!invoke.Type.IsValueType || Nullable.GetUnderlyingType(invoke.Type) != null)
             {
@@ -74,49 +85,5 @@ internal static class ScalarPropertyHelpers
                 Expression.Constant(null, nullable));
         }
         
-    }
-
-    /// <summary>
-    /// Returns true if the given expression is nullable
-    /// </summary>
-    public static bool IsNullable(Expression expression)
-    {
-        if (expression.Type.IsValueType)
-            return Nullable.GetUnderlyingType(expression.Type) != null;
-
-        return true;
-    }
-
-    /// <summary>
-    /// Returns an expression that checks if the given expression is not null null, or null if the expression is not nullable.
-    /// </summary>
-    public static Expression? GetIfNotNull(Expression expression)
-    {
-        if (expression.Type.IsValueType)
-        {
-            if (Nullable.GetUnderlyingType(expression.Type) == null)
-                return null; // Value type not nullable, no need to check for null
-
-            // Nullable value type
-            // return expression.HasValue;
-            return Expression.Property(expression, nameof(Nullable<int>.HasValue));
-        }
-        var nullValue = Expression.Constant(null, expression.Type);
-        return Expression.ReferenceNotEqual(expression, nullValue);
-    }
-
-    /// <summary>
-    /// Gets the underlying value of a nullable expression
-    /// </summary>
-    private static Expression GetNullableValue(Expression expression)
-    {
-        var type = expression.Type;
-        if (!type.IsValueType)
-            return expression; // Reference type, underlying value is already the value
-
-        Debug.Assert(Nullable.GetUnderlyingType(type) != null, "Value type is not nullable");
-
-        var valueProperty = type.GetProperty(nameof(Nullable<int>.Value), ReflectionItems.InstanceFlags)!;
-        return Expression.Property(expression, valueProperty);
     }
 }

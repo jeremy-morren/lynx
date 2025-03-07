@@ -1,4 +1,5 @@
-﻿using Lynx.Provider.Common.Models;
+﻿using System.Diagnostics;
+using Lynx.Provider.Common.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
@@ -109,13 +110,14 @@ internal static class EntityInfoFactory
         var columnName = GetColumnName(ownedType, navigation, parentColumn);
         var result = CreateEntityInternal(ownedType, name, columnName);
 
+        Debug.Assert(navigation.PropertyInfo != null);
         var owned = new OwnedEntityInfo
         {
             Name = name,
             Parent = parent,
             EntityType = ownedType,
             Navigation = navigation,
-            PropertyInfo = navigation.PropertyInfo!,
+            PropertyInfo = navigation.PropertyInfo,
             ColumnName = columnName,
             Type = result.Type,
             ScalarProps = result.ScalarProps,

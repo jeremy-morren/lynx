@@ -1,11 +1,10 @@
 ﻿using System.Collections.Immutable;
-using System.Data.Common;
-using System.Text.Json;
+using System.Data;
 using Lynx.Provider.Common.Entities;
 using Lynx.Provider.Common.Reflection;
 using Lynx.Provider.Npgsql;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Npgsql;
+using NpgsqlTypes;
 
 // ReSharper disable ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
 
@@ -14,39 +13,24 @@ namespace Lynx.Providers.Tests.Npgsql;
 public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTestsBase
 {
     [Theory]
-    [InlineData(typeof(City))]
-    [InlineData(typeof(Customer))]
-    [InlineData(typeof(ConverterEntity))]
+    [MemberData(nameof(GetEntityTypes))]
     public void BuildAddDelegate(Type entityType)
     {
-        using var harness = new NpgsqlTestHarness(nameof(BuildAddDelegate), entityType.Name);
+        using var harness = new NpgsqlTestHarness([nameof(BuildAddDelegate), entityType.Name]);
         using var context = harness.CreateContext();
 
         var entity = EntityInfoFactory.Create(entityType, context.Model);
-
         var action = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder>.Build(entity);
-
         var command = new NpgsqlCommand();
         action(command);
 
-        var allProperties = entity.Keys.Concat(entity.GetAllScalarColumns()).ToList();
-
-        allProperties.Should()
-            .NotContain(e => e.ColumnIndex < 0)
-            .And.BeInAscendingOrder(e => e.ColumnIndex)
-            .And.OnlyHaveUniqueItems();
-
-        command.Parameters.Cast<DbParameter>()
-            .Select(p => p.ParameterName)
-            .Should().BeEquivalentTo(allProperties
-                .OrderBy(e => e.ColumnIndex)
-                .Select(e => e.ColumnName.SqlParamName));
+        VerifyEntityInfo(entity, command);
     }
 
     [Fact]
     public void BuildCitySetParametersDelegate()
     {
-        using var harness = new NpgsqlTestHarness(nameof(BuildCitySetParametersDelegate));
+        using var harness = new NpgsqlTestHarness([nameof(BuildCitySetParametersDelegate)]);
         using var context = harness.CreateContext();
 
         var entity = EntityInfoFactory.Create(typeof(City), context.Model);
@@ -90,7 +74,7 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
     [Fact]
     public void BuildCustomerSetParametersDelegate()
     {
-        using var harness = new NpgsqlTestHarness(nameof(BuildCustomerSetParametersDelegate));
+        using var harness = new NpgsqlTestHarness([nameof(BuildCustomerSetParametersDelegate)]);
         using var context = harness.CreateContext();
 
         var entity = EntityInfoFactory.Create(typeof(Customer), context.Model);
@@ -126,12 +110,11 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
                 VerifyParameter(property, value, entity, command);
         });
     }
-    
-    
+
     [Fact]
     public void BuildConverterEntitySetParametersDelegate()
     {
-        using var harness = new NpgsqlTestHarness(nameof(BuildConverterEntitySetParametersDelegate));
+        using var harness = new NpgsqlTestHarness([nameof(BuildConverterEntitySetParametersDelegate)]);
         using var context = harness.CreateContext();
 
         var entity = EntityInfoFactory.Create(typeof(ConverterEntity), context.Model);
@@ -157,6 +140,7 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
             Verify([nameof(ConverterEntity.IntValue)], value.IntValue);
             Verify([nameof(ConverterEntity.StringValue)], value.StringValue);
             Verify([nameof(ConverterEntity.IntValueNull)], value.IntValueNull);
+            Verify([nameof(ConverterEntity.Enum)], value.Enum?.ToString());
             
             command.Parameters.Count.ShouldBe(entity.Keys.Count + entity.GetAllScalarColumns().Count());
 
@@ -165,5 +149,36 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
             void Verify(ImmutableArray<string> property, object? v) =>
                 VerifyParameter(property, v, entity, command);
         });
+    }
+
+    /// <summary>
+    /// Test type mappings. See https://www.npgsql.org/doc/types/basic.html#write-mappings
+    /// </summary>
+    /// <returns></returns>
+    [Theory]
+    [InlineData(DbType.Boolean, NpgsqlDbType.Boolean)]
+    [InlineData(DbType.Int16, NpgsqlDbType.Smallint)]
+    [InlineData(DbType.Int32, NpgsqlDbType.Integer)]
+    [InlineData(DbType.Int64, NpgsqlDbType.Bigint)]
+    [InlineData(DbType.Single, NpgsqlDbType.Real)]
+    [InlineData(DbType.Double, NpgsqlDbType.Double)]
+    [InlineData(DbType.Decimal, NpgsqlDbType.Numeric)]
+    [InlineData(DbType.VarNumeric, NpgsqlDbType.Numeric)]
+    [InlineData(DbType.Currency, NpgsqlDbType.Money)]
+
+    [InlineData(DbType.String, NpgsqlDbType.Text)]
+    [InlineData(DbType.StringFixedLength, NpgsqlDbType.Text)]
+    [InlineData(DbType.AnsiString, NpgsqlDbType.Text)]
+    [InlineData(DbType.AnsiStringFixedLength, NpgsqlDbType.Text)]
+
+    [InlineData(DbType.Binary, NpgsqlDbType.Bytea)]
+    [InlineData(DbType.DateTime, NpgsqlDbType.TimestampTz)]
+    [InlineData(DbType.DateTimeOffset, NpgsqlDbType.TimestampTz)]
+    [InlineData(DbType.DateTime2, NpgsqlDbType.Timestamp)]
+    [InlineData(DbType.Date, NpgsqlDbType.Date)]
+    [InlineData(DbType.Time, NpgsqlDbType.Time)]
+    public void TestTypeMappings(DbType dbType, NpgsqlDbType npgsqlDbType)
+    {
+        NpgsqlProviderDelegateBuilder.GetDbType(dbType).ShouldBe(npgsqlDbType);
     }
 }

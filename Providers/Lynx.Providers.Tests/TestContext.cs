@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NodaTime;
@@ -24,6 +23,8 @@ public class TestContext : DbContext
 
     public DbSet<Customer> Customers => Set<Customer>();
 
+    public DbSet<ConverterEntity> ConverterEntities => Set<ConverterEntity>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<City>(b =>
@@ -43,7 +44,11 @@ public class TestContext : DbContext
 
         modelBuilder.Entity<ConverterEntity>(b =>
         {
+            // composite key
             b.HasKey(c => new { c.Id1, c.Id2 });
+
+            b.Property(x => x.Enum)
+                .HasConversion(p => p!.ToString(), p => Enum.Parse<BuildingPurpose>(p!));
 
             b.Property(x => x.IntValue)
                 .HasConversion<ConverterHandleNulls<int>>();
@@ -212,26 +217,30 @@ public class ConverterEntity
 {
     // Not null value type -> reference type
     public StringId Id1 { get; set; }
-    
+
     // value type -> value type
     public CityId Id2 { get; set; }
-    
+
     // Null value type -> reference type
     public StringId? NullableId { get; set; }
-    
+
     // value type -> nullable value type
     public CityId? NullableValueId { get; set; }
-    
+
     // reference type -> reference type
     public ReferenceStringId? ReferenceId { get; set; }
-    
+
     // reference type -> value type
     public ReferenceIntId? ReferenceIntId { get; set; }
-    
+
     // reference type -> nullable value type
     public ReferenceNullableIntId? ReferenceNullableIntId { get; set; }
-    
-    // For testing converter that handles nulls
+
+    // value type -> reference type
+    // inline converter defined in OnModelCreating
+    public BuildingPurpose? Enum { get; set; }
+
+    // For testing converters that handles nulls
     
     public int IntValue { get; set; }
     

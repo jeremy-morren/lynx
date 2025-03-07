@@ -5,7 +5,6 @@ using System.Text.Json;
 using Lynx.Provider.Common;
 using Lynx.Provider.Common.Models;
 using Lynx.Provider.Common.Reflection;
-using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Lynx.Provider.Sqlite;
 
@@ -32,7 +31,7 @@ internal abstract class SqliteProviderDelegateBuilder : IProviderDelegateBuilder
 
         var serialize = Expression.Call(null, serializeMethod, value, options);
         // Check value for null
-        var ifNotNull = ScalarPropertyHelpers.GetIfNotNull(value);
+        var ifNotNull = ExpressionHelpers.GetIfNotNull(value);
         if (ifNotNull == null)
             return serialize; // Value is not nullable, no need to check for null
 

@@ -1,9 +1,10 @@
 ﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Lynx.Providers.Tests.Sqlite;
 
-public sealed class SqliteTestHarness : IDisposable
+public sealed class SqliteTestHarness : ITestHarness
 {
     public SqliteConnection Connection { get; }
 
@@ -17,6 +18,7 @@ public sealed class SqliteTestHarness : IDisposable
     {
         var options = new DbContextOptionsBuilder()
             .UseSqlite(Connection)
+            .ConfigureWarnings(x => x.Ignore(CoreEventId.ManyServiceProvidersCreatedWarning))
             .Options;
 
         return new TestContext(options);
