@@ -219,4 +219,35 @@ internal class DocumentSession : IDocumentSession
     }
 
     #endregion
+    
+    #region Bulk
+    
+    
+    //TODO: Test bulk
+    
+    public void BulkInsert<T>(IEnumerable<T> entities) where T : class
+    {
+        ArgumentNullException.ThrowIfNull(entities);
+
+        EnsureEntityType<T>();
+
+        var list = entities as IReadOnlyList<T> ?? entities.ToList();
+
+        if (list.Count > 0)
+            _unitOfWork.Add(new BulkInsertOperation<T>(list));
+    }
+    
+    public void BulkStore<T>(IEnumerable<T> entities) where T : class
+    {
+        ArgumentNullException.ThrowIfNull(entities);
+
+        EnsureEntityType<T>();
+
+        var list = entities as IReadOnlyList<T> ?? entities.ToList();
+
+        if (list.Count > 0)
+            _unitOfWork.Add(new BulkUpsertOperation<T>(list));
+    }
+    
+    #endregion
 }

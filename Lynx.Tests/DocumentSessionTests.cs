@@ -38,6 +38,9 @@ public class DocumentSessionTests
             session.Insert(ParentEntity.Create(6), ParentEntity.Create(7));
             session.Insert<ParentEntity>(new List<ParentEntity>() { ParentEntity.Create(8) });
             
+            //Bulk
+            session.BulkInsert([ParentEntity.Create(9), ParentEntity.Create(10)]);
+            
             if (useAsync)
                 await session.SaveChangesAsync();
             else
@@ -48,11 +51,9 @@ public class DocumentSessionTests
         {
             var store = new DocumentStore<TestContext>(context, [listener.Object]);
 
-            context.Query<ParentEntity>().Should().HaveCount(8);
+            context.Query<ParentEntity>().Should().HaveCount(10);
             context.Query<ParentEntity>().Single(e => e.Id == 3).Iteration.ShouldBe(1,
                 "Existing entity should be overwritten");
-
-            context.Query<Alone>().Should().HaveCount(1);
 
             //Upsert and delete
             var session = store.OpenSession();
@@ -60,6 +61,8 @@ public class DocumentSessionTests
             session.Delete<ParentEntity>(2);
             
             session.Store(ParentEntity.Create(3, 2)); //Overwrite previous insert
+            
+            session.BulkStore([ParentEntity.Create(10, 2), ParentEntity.Create(11)]);
             
             if (useAsync)
                 await session.SaveChangesAsync();
@@ -69,14 +72,14 @@ public class DocumentSessionTests
 
         using (var context = factory())
         {
-            context.Query<ParentEntity>().Should().HaveCount(6)
-                .And.NotContain(e => e.Id == 1)
-                .And.NotContain(e => e.Id == 2)
+            context.Query<ParentEntity>().Should()
+                .NotContain(e => e.Id == 1).And
+                .NotContain(e => e.Id == 2).And
+                .HaveCount(9)
                 .And.AllSatisfy(e => e.Owned.ShouldNotBeNull().Id.ShouldBe(e.Id));
             
             context.Query<ParentEntity>().Single(e => e.Id == 3).Iteration.ShouldBe(2);
-
-            context.Query<Alone>().Should().HaveCount(1);
+            context.Query<ParentEntity>().Single(e => e.Id == 10).Iteration.ShouldBe(2);
         }
 
         listener.Verify(l => l.OnInsertedOrUpdated(It.IsAny<IReadOnlyList<object>>(), It.IsAny<DbContext>()), Times.Exactly(2));

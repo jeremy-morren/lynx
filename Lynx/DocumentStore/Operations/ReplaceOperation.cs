@@ -9,7 +9,7 @@ namespace Lynx.DocumentStore.Operations;
 /// <summary>
 /// Replaces entities in the database that match the predicate with the provided entities (via bulk upsert).
 /// </summary>
-internal class ReplaceOperation<T> : IDocumentSessionOperation
+internal class ReplaceOperation<T> : OperationBase<T>, IDocumentSessionOperation
     where T : class
 {
     private readonly IReadOnlyList<T> _entities;
@@ -21,13 +21,6 @@ internal class ReplaceOperation<T> : IDocumentSessionOperation
         _predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
     }
     
-    private static ILynxDatabaseService<T> GetService(DbContext context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        var provider = LynxProviderFactory.GetProvider(context);
-        return provider.GetService<T>();
-    }
-    
     public void SaveChanges(DbContext context, DbConnection connection)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -36,7 +29,7 @@ internal class ReplaceOperation<T> : IDocumentSessionOperation
         context.Set<T>().Where(_predicate).ExecuteDelete();
 
         //Upsert the new entities
-        GetService(context).BulkUpsert(_entities, connection);
+        GetService(context).Upsert(_entities, connection);
     }
 
     public async Task SaveChangesAsync(DbContext context, DbConnection connection, CancellationToken cancellationToken)

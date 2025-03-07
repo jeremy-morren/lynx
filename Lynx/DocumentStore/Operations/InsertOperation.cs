@@ -9,7 +9,7 @@ namespace Lynx.DocumentStore.Operations;
 /// Represents an operation to upsert entities in bulk to the database.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-internal class InsertOperation<T> : IDocumentSessionOperation
+internal class InsertOperation<T> : OperationBase<T>, IDocumentSessionOperation
     where T : class
 {
     private readonly IReadOnlyList<T> _entities;
@@ -17,13 +17,6 @@ internal class InsertOperation<T> : IDocumentSessionOperation
     public InsertOperation(IReadOnlyList<T> entities)
     {
         _entities = entities ?? throw new ArgumentNullException(nameof(entities));
-    }
-    
-    private static ILynxDatabaseService<T> GetService(DbContext context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        var provider = LynxProviderFactory.GetProvider(context);
-        return provider.GetService<T>();
     }
     
     public void SaveChanges(DbContext context, DbConnection connection)

@@ -1,5 +1,6 @@
 ﻿using System.Linq.Expressions;
 using JetBrains.Annotations;
+using Lynx.EfCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore;
@@ -95,7 +96,7 @@ public interface IDocumentSession
     void DeleteWhere<T>(Expression<Func<T, bool>> predicate) where T : class;
 
     /// <summary>
-    /// Replaces entities in the database that match the predicate with the provided entities (via bulk upsert).
+    /// Replaces entities in the database that match the predicate with the provided entities.
     /// </summary>
     /// <param name="entities">Entities to upsert</param>
     /// <param name="predicate">Predicate to match entities to be replaced</param>
@@ -103,14 +104,32 @@ public interface IDocumentSession
     /// <remarks>
     /// <para>
     /// This method is useful for replacing entities in the database that match a certain condition with a new set of entities.
-    /// It is the equivalent of deleting entities that match the predicate and then inserting the provided entities.
+    /// It is the equivalent of deleting entities that match the predicate and then upserting the provided entities.
     /// </para>
     /// <para>
-    /// The main difference is that this method will exclude the entities that are not being replaced from the delete operation (via ID),
-    /// which avoids foreign key constraint issues.
+    /// This method requires <see cref="ForeignKeyHelpers.ExecuteSetConstraintsDeferrableAsync"/>
+    /// setup to avoid foreign key constraint violations.
     /// </para>
     /// </remarks>
     void Replace<T>(IEnumerable<T> entities, Expression<Func<T, bool>> predicate) where T : class;
+    
+    #endregion
+    
+    #region Bulk
+    
+    /// <summary>
+    /// Inserts entities in bulk to the database.
+    /// </summary>
+    /// <param name="entities">Entities to insert</param>
+    /// <typeparam name="T"></typeparam>
+    void BulkInsert<T>(IEnumerable<T> entities) where T : class;
+    
+    /// <summary>
+    /// Upserts entities in bulk to the database.
+    /// </summary>
+    /// <param name="entities">Entities to upsert.</param>
+    /// <typeparam name="T"></typeparam>
+    void BulkStore<T>(IEnumerable<T> entities) where T : class;
     
     #endregion
 }
