@@ -104,8 +104,8 @@ public class ProviderBulkTestsBase
 
             context.Database.EnsureCreated();
 
-            using var transaction = context.Database.BeginTransaction();
-
+            context.Database.OpenConnection();
+            using var transaction = context.Database.GetDbConnection().BeginTransaction();
             if (useAsync)
                 await citySvc.InsertAsync(context.Database.GetDbConnection(), cities);
             else
@@ -119,10 +119,13 @@ public class ProviderBulkTestsBase
 
         using (var context = lynxHarness.CreateContext())
         {
+            context.Database.OpenConnection();
+            using var transaction = context.Database.GetDbConnection().BeginTransaction();
             if (useAsync)
-                await citySvc.UpsertAsync(context.Database.GetDbConnection(), cities);
+                await citySvc.BulkUpsertAsync(context.Database.GetDbConnection(), cities);
             else
-                citySvc.Upsert(context.Database.GetDbConnection(), cities);
+                citySvc.BulkUpsert(context.Database.GetDbConnection(), cities);
+            transaction.Commit();
         }
 
         using var manualHarness = createHarness("manual");
@@ -170,10 +173,13 @@ public class ProviderBulkTestsBase
 
         using (var context = lynxHarness.CreateContext())
         {
+            context.Database.OpenConnection();
+            using var transaction = context.Database.GetDbConnection().BeginTransaction();
             if (useAsync)
-                await entitySvc.UpsertAsync(context.Database.GetDbConnection(), entities);
+                await entitySvc.BulkUpsertAsync(context.Database.GetDbConnection(), entities);
             else
-                entitySvc.Upsert(context.Database.GetDbConnection(), entities);
+                entitySvc.BulkUpsert(context.Database.GetDbConnection(), entities);
+            transaction.Commit();
         }
 
         using var manualHarness = createHarness("manual");

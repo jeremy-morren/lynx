@@ -2,7 +2,10 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Lynx.Provider.Common.Entities;
+using Lynx.Provider.Common.Reflection;
 using Lynx.Provider.Npgsql;
+using Npgsql;
+// ReSharper disable ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
 
 namespace Lynx.Providers.Tests.Npgsql;
 
@@ -58,9 +61,7 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
         using var context = harness.CreateContext();
 
         var entity = EntityInfoFactory.Create(typeof(City), context.Model);
-
         var columns = NpgsqlEntityColumnBuilder<City>.GetColumnInfo(entity);
-
         columns.Should().HaveCount(entity.GetAllScalarColumns().Count() + entity.Keys.Count);
 
         Assert.All(GetTestCities(), city =>
@@ -87,6 +88,76 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
             {
                 var column = columns.Where(c => c.Property.Name == property).ShouldHaveSingleItem();
                 column.GetValue(city).ShouldBe(value, $"Invalid value for column {column.Property.Name}");
+            }
+        });
+    }
+    
+    [Fact]
+    public void BuildCustomerSetParametersDelegate()
+    {
+        using var harness = new NpgsqlTestHarness([nameof(BuildCustomerSetParametersDelegate)]);
+        using var context = harness.CreateContext();
+
+        var entity = EntityInfoFactory.Create(typeof(Customer), context.Model);
+
+        var columns = NpgsqlEntityColumnBuilder<Customer>.GetColumnInfo(entity);
+        columns.Should().HaveCount(entity.GetAllScalarColumns().Count() + entity.Keys.Count);
+
+        Assert.All(GetTestCustomers(), customer =>
+        {
+            Verify([nameof(Customer.Id)], customer.Id);
+            Verify([nameof(Customer.Name)], customer.Name);
+            Verify([nameof(Customer.Tags)], customer.Tags);
+            Verify([nameof(Customer.BillingAddress), nameof(Address.City)], customer.BillingAddress?.City);
+            Verify([nameof(Customer.BillingAddress), nameof(Address.Street)], customer.BillingAddress?.Street);
+            Verify([nameof(Customer.ShippingAddress), nameof(Address.City)], customer.ShippingAddress?.City);
+            Verify([nameof(Customer.ShippingAddress), nameof(Address.Street)], customer.ShippingAddress?.Street);
+            Verify([nameof(Customer.OrderContact), nameof(CustomerContactInfo.ContactId)], customer.OrderContact?.ContactId);
+            Verify([nameof(Customer.OrderContact), nameof(CustomerContactInfo.LastContact)], customer.OrderContact?.LastContact);
+            Verify([nameof(Customer.InvoiceContact), nameof(CustomerContactInfo.ContactId)], customer.InvoiceContact?.ContactId);
+            Verify([nameof(Customer.InvoiceContact), nameof(CustomerContactInfo.LastContact)], customer.InvoiceContact?.LastContact);
+
+            return;
+
+            void Verify(ImmutableArray<string> property, object? value)
+            {
+                var column = columns.Where(c => c.Property.Name == property).ShouldHaveSingleItem();
+                column.GetValue(customer).ShouldBe(value, $"Invalid value for column {column.Property.Name}");
+            }
+        });
+    }
+
+    [Fact]
+    public void BuildConverterEntitySetParametersDelegate()
+    {
+        using var harness = new NpgsqlTestHarness([nameof(BuildConverterEntitySetParametersDelegate)]);
+        using var context = harness.CreateContext();
+
+        var entity = EntityInfoFactory.Create(typeof(ConverterEntity), context.Model);
+
+        var columns = NpgsqlEntityColumnBuilder<ConverterEntity>.GetColumnInfo(entity);
+        columns.Should().HaveCount(entity.GetAllScalarColumns().Count() + entity.Keys.Count);
+
+        Assert.All(GetTestConverterEntities(), value =>
+        {
+            Verify([nameof(ConverterEntity.Id1)], value.Id1.Value);
+            Verify([nameof(ConverterEntity.Id2)], value.Id2.Value);
+            Verify([nameof(ConverterEntity.NullableId)], value.NullableId?.Value);
+            Verify([nameof(ConverterEntity.NullableValueId)], value.NullableValueId?.Value);
+            Verify([nameof(ConverterEntity.ReferenceId)], value.ReferenceId?.Value);
+            Verify([nameof(ConverterEntity.ReferenceNullableIntId)], value.ReferenceNullableIntId?.Value);
+            Verify([nameof(ConverterEntity.ReferenceIntId)], value.ReferenceIntId?.Value);
+            Verify([nameof(ConverterEntity.IntValue)], value.IntValue);
+            Verify([nameof(ConverterEntity.StringValue)], value.StringValue);
+            Verify([nameof(ConverterEntity.IntValueNull)], value.IntValueNull);
+            Verify([nameof(ConverterEntity.Enum)], value.Enum?.ToString());
+            
+            return;
+
+            void Verify(ImmutableArray<string> property, object? v)
+            {
+                var column = columns.Where(c => c.Property.Name == property).ShouldHaveSingleItem();
+                column.GetValue(value).ShouldBe(v, $"Invalid value for column {column.Property.Name}");
             }
         });
     }

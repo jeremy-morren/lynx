@@ -15,7 +15,7 @@ public class NpgsqlProviderTests : ProviderTestsBase
             new NpgsqlLynxProvider(),
             useAsync,
             db => new NpgsqlTestHarness(
-                [nameof(WriteCustomers), db, useAsync, enableNodaTimeOnDataSource ],
+                GetDatabase(nameof(WriteCustomers), db, useAsync, enableNodaTimeOnDataSource ),
                 enableNodaTimeOnDataSource));
     }
 
@@ -27,7 +27,7 @@ public class NpgsqlProviderTests : ProviderTestsBase
             new NpgsqlLynxProvider(),
             useAsync,
             db => new NpgsqlTestHarness(
-                [nameof(WriteCities), db, useAsync, enableNodaTimeOnDataSource ],
+                GetDatabase(nameof(WriteCities), db, useAsync, enableNodaTimeOnDataSource ),
                 enableNodaTimeOnDataSource));
     }
 
@@ -39,7 +39,7 @@ public class NpgsqlProviderTests : ProviderTestsBase
             new NpgsqlLynxProvider(),
             useAsync,
             db => new NpgsqlTestHarness(
-                [nameof(WriteConverterEntities), db, useAsync, enableNodaTimeOnDataSource ],
+                GetDatabase(nameof(WriteConverterEntities), db, useAsync, enableNodaTimeOnDataSource ),
                 enableNodaTimeOnDataSource));
     }
 
@@ -51,4 +51,8 @@ public class NpgsqlProviderTests : ProviderTestsBase
         { true, false },
         { true, true }
     };
+    
+    
+    private static object[] GetDatabase(string name, string db, bool useAsync, bool enableNodaTimeOnDataSource) =>
+        [nameof(NpgsqlProviderTests), name, db, useAsync, enableNodaTimeOnDataSource];
 }
