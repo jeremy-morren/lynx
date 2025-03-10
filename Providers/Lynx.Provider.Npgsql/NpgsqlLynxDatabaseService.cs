@@ -17,7 +17,7 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseService<T>
         _addParameters = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder>.Build(entity);
         _setParameterValues = SetParameterValueDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder, T>.Build(entity);
 
-        _columns = NpgsqlEntityColumnBuilder<T>.GetColumnInfo(entity);
+        _columns = NpgsqlEntityColumnBuilder<T, NpgsqlBinaryImporter>.GetColumnInfo(entity);
 
         var generator = new NpgsqlCommandGenerator(entity);
         _insertWithKeyCommand = generator.GetInsertWithKeyCommand();
@@ -131,7 +131,7 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseService<T>
 
     #region Bulk
 
-    private readonly List<NpgsqlEntityColumn<T>> _columns;
+    private readonly NpgsqlEntityColumn<T, NpgsqlBinaryImporter>[] _columns;
 
     /// <summary>
     /// Command to insert rows to table in binary format

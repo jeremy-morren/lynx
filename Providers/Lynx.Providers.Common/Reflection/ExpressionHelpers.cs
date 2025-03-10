@@ -37,7 +37,7 @@ internal static class ExpressionHelpers
     }
 
     /// <summary>
-    /// Gets the underlying value of a nullable expression
+    /// Gets the underlying value of a nullable expression, if the expression is nullable.
     /// </summary>
     public static Expression GetNullableValue(Expression expression)
     {
@@ -45,7 +45,8 @@ internal static class ExpressionHelpers
         if (!type.IsValueType)
             return expression; // Reference type, underlying value is already the value
 
-        Debug.Assert(Nullable.GetUnderlyingType(type) != null, "Value type is not nullable");
+        if (Nullable.GetUnderlyingType(type) == null)
+            return expression; // Value type is not nullable
 
         var valueProperty = type.GetProperty(nameof(Nullable<int>.Value), ReflectionItems.InstanceFlags)!;
         return Expression.Property(expression, valueProperty);

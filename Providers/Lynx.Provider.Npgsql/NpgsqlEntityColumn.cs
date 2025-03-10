@@ -11,17 +11,21 @@ namespace Lynx.Provider.Npgsql;
 /// <remarks>
 /// This class is used to write a column value to a <see cref="NpgsqlBinaryImporter"/>.
 /// </remarks>
-[DebuggerDisplay($"{{{nameof(Property)}, {nameof(DBType)}={{{nameof(DBType)}}}")]
-internal class NpgsqlEntityColumn<T>
+[DebuggerDisplay($"{{{nameof(Property)}}}, {nameof(DBType)}={{{nameof(DBType)}}}")]
+internal class NpgsqlEntityColumn<TEntity, TWriter>
 {
-    private readonly Func<T, object?> _getValue;
+    private readonly Action<TEntity, TWriter> _writeAction;
+    private readonly Func<TEntity, TWriter, CancellationToken, Task> _writeAsyncAction;
 
     public NpgsqlEntityColumn(
         IColumnPropertyInfo property,
         NpgsqlDbType? dbType,
-        Func<T, object?> getValue)
+        Action<TEntity, TWriter> writeAction,
+        Func<TEntity, TWriter, CancellationToken, Task> writeAsyncAction)
     {
-        _getValue = getValue;
+        _writeAction = writeAction;
+        _writeAsyncAction = writeAsyncAction;
+
         Property = property;
         DBType = dbType;
     }
@@ -37,29 +41,12 @@ internal class NpgsqlEntityColumn<T>
     public NpgsqlDbType? DBType { get; }
 
     /// <summary>
-    /// Gets the value of the column for the entity.
+    /// Writes the value of the column for the entity to the writer.
     /// </summary>
-    public object? GetValue(T entity) => _getValue(entity);
+    public void Write(TEntity entity, TWriter writer) => _writeAction(entity, writer);
 
-    public void Write(T entity, NpgsqlBinaryImporter writer)
-    {
-        var value = _getValue(entity);
-        if (value == null)
-            writer.WriteNull();
-        else if (DBType.HasValue)
-            writer.Write(value, DBType.Value);
-        else
-            writer.Write(value);
-    }
-
-    public async Task WriteAsync(T entity, NpgsqlBinaryImporter writer, CancellationToken ct)
-    {
-        var value = _getValue(entity);
-        if (value == null)
-            await writer.WriteNullAsync(ct);
-        else if (DBType.HasValue)
-            await writer.WriteAsync(value, DBType.Value, ct);
-        else
-            await writer.WriteAsync(value, ct);
-    }
+    /// <summary>
+    /// Writes the value of the column for the entity to the writer.
+    /// </summary>
+    public Task WriteAsync(TEntity entity, TWriter writer, CancellationToken ct) => _writeAsyncAction(entity, writer, ct);
 }

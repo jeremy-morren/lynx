@@ -1,14 +1,20 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Lynx.Providers.Common.Entities;
-using Lynx.Providers.Common.Reflection;
 using Lynx.Provider.Npgsql;
+using Moq;
 using Npgsql;
+using NpgsqlTypes;
+
+// ReSharper disable UseRawString
+// ReSharper disable MethodSupportsCancellation
 // ReSharper disable ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
 
 namespace Lynx.Providers.Tests.Npgsql;
 
+[SuppressMessage("Performance", "SYSLIB1045:Convert to \'GeneratedRegexAttribute\'.")]
 public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
 {
     [Theory]
@@ -30,7 +36,7 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
         var entity = EntityInfoFactory.Create(typeof(T), context.Model);
         var expected = entity.Keys.Concat(entity.GetAllScalarColumns()).ToList();
 
-        var columns = NpgsqlEntityColumnBuilder<T>.GetColumnInfo(entity);
+        var columns = NpgsqlEntityColumnBuilder<T, NpgsqlBinaryImporter>.GetColumnInfo(entity);
         columns.Select(c => c.Property.Name)
             .Should().BeEquivalentTo(expected.Select(c => c.Name));
 
@@ -41,13 +47,11 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
             generator.GenerateBinaryCopyTempTableInsertCommand()
         };
         Assert.All(commands, command =>
-        {
             Regex.Matches(command, @"(?<=[,\(]\W*?"")\w+(?=""[,\)])")
                 .Select(m => m.Value)
                 .Should()
                 .BeEquivalentTo(columns.Select(c => c.Property.ColumnName.SqlColumnName),
-                    "Columns in the command should match the entity columns");
-        });
+                    "Columns in the command should match the entity columns"));
 
         generator.GetCreateTempTableCommand().ShouldContain(generator.TempTableName);
         generator.GenerateUpsertTempTableCommand().Should().Contain(generator.TempTableName)
@@ -61,7 +65,7 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
         using var context = harness.CreateContext();
 
         var entity = EntityInfoFactory.Create(typeof(City), context.Model);
-        var columns = NpgsqlEntityColumnBuilder<City>.GetColumnInfo(entity);
+        var columns = NpgsqlEntityColumnBuilder<City, ITestWriter>.GetColumnInfo(entity);
         columns.Should().HaveCount(entity.GetAllScalarColumns().Count() + entity.Keys.Count);
 
         Assert.All(GetTestCities(), city =>
@@ -84,11 +88,8 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
 
             return;
 
-            void Verify(ImmutableArray<string> property, object? value)
-            {
-                var column = columns.Where(c => c.Property.Name == property).ShouldHaveSingleItem();
-                column.GetValue(city).ShouldBe(value, $"Invalid value for column {column.Property.Name}");
-            }
+            void Verify<TValue>(ImmutableArray<string> property, TValue? value) =>
+                VerifyColumn(property, value, city, columns);
         });
     }
     
@@ -100,7 +101,7 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
 
         var entity = EntityInfoFactory.Create(typeof(Customer), context.Model);
 
-        var columns = NpgsqlEntityColumnBuilder<Customer>.GetColumnInfo(entity);
+        var columns = NpgsqlEntityColumnBuilder<Customer, ITestWriter>.GetColumnInfo(entity);
         columns.Should().HaveCount(entity.GetAllScalarColumns().Count() + entity.Keys.Count);
 
         Assert.All(GetTestCustomers(), customer =>
@@ -119,11 +120,8 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
 
             return;
 
-            void Verify(ImmutableArray<string> property, object? value)
-            {
-                var column = columns.Where(c => c.Property.Name == property).ShouldHaveSingleItem();
-                column.GetValue(customer).ShouldBe(value, $"Invalid value for column {column.Property.Name}");
-            }
+            void Verify<TValue>(ImmutableArray<string> property, TValue? value) =>
+                VerifyColumn(property, value, customer, columns);
         });
     }
 
@@ -135,7 +133,7 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
 
         var entity = EntityInfoFactory.Create(typeof(ConverterEntity), context.Model);
 
-        var columns = NpgsqlEntityColumnBuilder<ConverterEntity>.GetColumnInfo(entity);
+        var columns = NpgsqlEntityColumnBuilder<ConverterEntity, ITestWriter>.GetColumnInfo(entity);
         columns.Should().HaveCount(entity.GetAllScalarColumns().Count() + entity.Keys.Count);
 
         Assert.All(GetTestConverterEntities(), value =>
@@ -154,11 +152,65 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
             
             return;
 
-            void Verify(ImmutableArray<string> property, object? v)
-            {
-                var column = columns.Where(c => c.Property.Name == property).ShouldHaveSingleItem();
-                column.GetValue(value).ShouldBe(v, $"Invalid value for column {column.Property.Name}");
-            }
+            void Verify<TValue>(ImmutableArray<string> property, TValue? v) =>
+                VerifyColumn(property, v, value, columns);
         });
+    }
+
+    private static void VerifyColumn<TEntity, TValue>(
+        ImmutableArray<string> property,
+        TValue? value,
+        TEntity entity,
+        NpgsqlEntityColumn<TEntity, ITestWriter>[] columns)
+    {
+        var column = columns.Where(c => c.Property.Name == property).ShouldHaveSingleItem();
+        var dbType = column.DBType.ShouldNotBeNull(); // TODO: Test with unknown DBType
+
+        var cancellationToken = new CancellationTokenSource().Token;
+
+        if (value != null)
+        {
+            var mock = new Mock<ITestWriter>(MockBehavior.Strict);
+            mock.Setup(w => w.Write(value, dbType))
+                .Verifiable($"Write should be called for column {column.Property.Name}");
+            mock.Setup(w => w.WriteAsync(value, dbType, cancellationToken))
+                .Returns(Task.CompletedTask)
+                .Verifiable($"WriteAsync should be called for column {column.Property.Name}");
+
+            column.Write(entity, mock.Object);
+            column.WriteAsync(entity, mock.Object, cancellationToken).Wait();
+
+            mock.Verify();
+        }
+        else
+        {
+            var mock = new Mock<ITestWriter>(MockBehavior.Strict);
+            mock.Setup(w => w.WriteNull())
+                .Verifiable($"WriteNull should be called for column {column.Property.Name}");
+            mock.Setup(w => w.WriteNullAsync(cancellationToken))
+                .Returns(Task.CompletedTask)
+                .Verifiable($"WriteNullAsync should be called for column {column.Property.Name}");
+            column.Write(entity, mock.Object);
+            column.WriteAsync(entity, mock.Object, cancellationToken).ShouldBe(Task.CompletedTask);
+            mock.Verify();
+        }
+    }
+
+    /// <summary>
+    /// Test interface to mirror <see cref="NpgsqlBinaryImporter"/>
+    /// </summary>
+    public interface ITestWriter
+    {
+        void Write<T>(T value);
+
+        void Write<T>(T value, NpgsqlDbType type);
+
+        void WriteNull();
+
+        Task WriteAsync<T>(T value, CancellationToken ct);
+
+        Task WriteAsync<T>(T value, NpgsqlDbType type, CancellationToken ct);
+
+        Task WriteNullAsync(CancellationToken ct);
     }
 }

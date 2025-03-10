@@ -7,16 +7,16 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.13" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.13" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.13" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.13" />
     </ItemGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="Lynx"/>
-        <InternalsVisibleTo Include="Lynx.Provider.Sqlite"/>
-        <InternalsVisibleTo Include="Lynx.Provider.Npgsql"/>
+        <InternalsVisibleTo Include="Lynx, PublicKey=$(StrongNamePublicKey)"/>
+        <InternalsVisibleTo Include="Lynx.Provider.Sqlite, PublicKey=$(StrongNamePublicKey)"/>
+        <InternalsVisibleTo Include="Lynx.Provider.Npgsql, PublicKey=$(StrongNamePublicKey)"/>
         
-        <InternalsVisibleTo Include="Lynx.Providers.Tests"/>
+        <InternalsVisibleTo Include="Lynx.Providers.Tests, PublicKey=$(StrongNamePublicKey)"/>
     </ItemGroup>
 
 </Project>

@@ -1,35 +1,41 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq.Expressions;
+using System.Reflection;
 using Lynx.Providers.Common.Models;
 using Lynx.Providers.Common.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Npgsql;
 using NpgsqlTypes;
+// ReSharper disable InvertIf
 
 namespace Lynx.Provider.Npgsql;
 
 /// <summary>
 /// Builds a delegate to create a row of values for a bulk insert.
 /// </summary>
-internal static class NpgsqlEntityColumnBuilder<T>
+/// <typeparam name="TEntity">Entity Type</typeparam>
+/// <typeparam name="TWriter">Npgsql binary writer type</typeparam>
+internal static class NpgsqlEntityColumnBuilder<TEntity, TWriter>
 {
-    public static List<NpgsqlEntityColumn<T>> GetColumnInfo(RootEntityInfo entity)
+    public static NpgsqlEntityColumn<TEntity, TWriter>[] GetColumnInfo(RootEntityInfo entity)
     {
-        Debug.Assert(entity.Type.ClrType == typeof(T));
+        Debug.Assert(entity.Type.ClrType == typeof(TEntity));
 
-        return GetKeys(entity).Concat(GetColumns(entity, [])).ToList();
+        return GetKeys(entity).Concat(GetColumns(entity, [])).ToArray();
     }
 
-    private static IEnumerable<NpgsqlEntityColumn<T>> GetColumns(
+    private static IEnumerable<NpgsqlEntityColumn<TEntity, TWriter>> GetColumns(
         IStructureEntity entity,
         ImmutableList<IEntityPropertyInfo> parent)
     {
         var scalarProps =
             from property in entity.ScalarProps
-            let getValue = BuildGetValue(parent.Add(property))
             let dbType = NpgsqlProviderDelegateBuilder.GetNpgsqlDbType(property.TypeMapping)
-            select new NpgsqlEntityColumn<T>(property, dbType, getValue);
+            let write = BuildWrite(parent.Add(property), dbType)
+            let writeAsync = BuildWriteAsync(parent.Add(property), dbType)
+            select new NpgsqlEntityColumn<TEntity, TWriter>(property, dbType, write, writeAsync);
 
         var complexProps =
             from property in entity.ComplexProps
@@ -44,36 +50,85 @@ internal static class NpgsqlEntityColumnBuilder<T>
         return scalarProps.Concat(complexProps).Concat(owned);
     }
 
-    private static IEnumerable<NpgsqlEntityColumn<T>> GetOwned(OwnedEntityInfo owned, ImmutableList<IEntityPropertyInfo> path)
+    private static IEnumerable<NpgsqlEntityColumn<TEntity, TWriter>> GetOwned(OwnedEntityInfo owned, ImmutableList<IEntityPropertyInfo> path)
     {
         if (owned is not JsonOwnedEntityInfo json)
             return GetColumns(owned, path);
 
         // Json column, get raw value (Npgsql will handle serialization)
-        var getValue = BuildGetValue(path);
-        return [new NpgsqlEntityColumn<T>(json, NpgsqlDbType.Jsonb, getValue)];
+        const NpgsqlDbType dbType = NpgsqlDbType.Jsonb;
+        var write = BuildWrite(path, dbType);
+        var writeAsync = BuildWriteAsync(path, dbType);
+        return [new NpgsqlEntityColumn<TEntity, TWriter>(json, dbType, write, writeAsync)];
     }
 
-    private static IEnumerable<NpgsqlEntityColumn<T>> GetKeys(RootEntityInfo entity) =>
+    private static IEnumerable<NpgsqlEntityColumn<TEntity, TWriter>> GetKeys(RootEntityInfo entity) =>
         from key in entity.Keys
-        let getValue = BuildGetValue([key])
         let dbType = NpgsqlProviderDelegateBuilder.GetNpgsqlDbType(key.TypeMapping)
-        select new NpgsqlEntityColumn<T>(key, dbType, getValue);
+        let write = BuildWrite([key], dbType)
+        let writeAsync = BuildWriteAsync([key], dbType)
+        select new NpgsqlEntityColumn<TEntity, TWriter>(key, dbType, write, writeAsync);
 
-    private static Func<T, object?> BuildGetValue(ImmutableList<IEntityPropertyInfo> properties)
+    private static Action<TEntity, TWriter> BuildWrite(ImmutableList<IEntityPropertyInfo> properties, NpgsqlDbType? dbType)
     {
-        // Build lambda chain
-        var parameter = Expression.Parameter(typeof(T), typeof(T).Name.ToLowerInvariant());
+        var entity = Expression.Parameter(typeof(TEntity), typeof(TEntity).Name.ToLowerInvariant());
+        var writer = Expression.Parameter(typeof(TWriter), "writer");
 
-        var chain = GetProperty(parameter, properties);
-        if (chain.Type != typeof(object))
-            // Convert result to object
-            chain = Expression.Convert(chain, typeof(object));
+        var (getValue, ifNotNull) = GetProperty(entity, properties);
 
-        return Expression.Lambda<Func<T, object?>>(chain, parameter).Compile();
+        Expression expression;
+        if (dbType != null)
+        {
+            var method = WriteWithTypeMethod.MakeGenericMethod(getValue.Type);
+            var dbTypeValue = Expression.Constant(dbType.Value, typeof(NpgsqlDbType));
+            expression = Expression.Call(writer, method, getValue, dbTypeValue);
+        }
+        else
+        {
+            var method = WriteWithoutTypeMethod.MakeGenericMethod(getValue.Type);
+            expression = Expression.Call(writer, method, getValue);
+        }
+
+        if (ifNotNull != null)
+        {
+            //Call WriteNull if null
+            var writeNull = Expression.Call(writer, WriteNullMethod);
+            expression = Expression.IfThenElse(ifNotNull, expression, writeNull);
+        }
+        return Expression.Lambda<Action<TEntity, TWriter>>(expression, entity, writer).Compile();
     }
 
-    private static Expression GetProperty(Expression input, ImmutableList<IEntityPropertyInfo> properties)
+    private static Func<TEntity, TWriter, CancellationToken, Task> BuildWriteAsync(ImmutableList<IEntityPropertyInfo> properties, NpgsqlDbType? dbType)
+    {
+        var entity = Expression.Parameter(typeof(TEntity), typeof(TEntity).Name.ToLowerInvariant());
+        var writer = Expression.Parameter(typeof(TWriter), "writer");
+        var cancellationToken = Expression.Parameter(typeof(CancellationToken), "cancellationToken");
+
+        var (getValue, ifNotNull) = GetProperty(entity, properties);
+
+        Expression expression;
+        if (dbType != null)
+        {
+            var method = WriteAsyncWithTypeMethod.MakeGenericMethod(getValue.Type);
+            var dbTypeValue = Expression.Constant(dbType.Value, typeof(NpgsqlDbType));
+            expression = Expression.Call(writer, method, getValue, dbTypeValue, cancellationToken);
+        }
+        else
+        {
+            var method = WriteAsyncWithoutTypeMethod.MakeGenericMethod(getValue.Type);
+            expression = Expression.Call(writer, method, getValue, cancellationToken);
+        }
+
+        if (ifNotNull != null)
+        {
+            //Call WriteNull if null
+            var writeNull = Expression.Call(writer, WriteNullAsyncMethod, cancellationToken);
+            expression = Expression.Condition(ifNotNull, expression, writeNull);
+        }
+        return Expression.Lambda<Func<TEntity, TWriter, CancellationToken, Task>>(expression, entity, writer, cancellationToken).Compile();
+    }
+
+    private static (Expression GetValue, Expression? IfNotNull) GetProperty(Expression input, ImmutableList<IEntityPropertyInfo> properties)
     {
         Debug.Assert(properties.Count > 0);
 
@@ -83,31 +138,72 @@ internal static class NpgsqlEntityColumnBuilder<T>
         if (column.Property is IProperty p && p.GetRelationalTypeMapping() is { Converter: {} converter })
             property = ConverterHelpers.InvokeConverter(converter, property);
 
+        var ifNotNull = ExpressionHelpers.GetIfNotNull(property);
+
+        // Get underlying value if Nullable<>
+        property = ExpressionHelpers.GetNullableValue(property);
+
         if (properties.Count == 1)
             // Last property in chain
-            return property;
+            return (property, ifNotNull);
 
-        var next = GetProperty(property, properties.RemoveAt(0));
+        var (getNextValue, nextIfNotNull) = GetProperty(property, properties.RemoveAt(0));
+        ifNotNull = CombineNullChecks(ifNotNull, nextIfNotNull);
 
-        // Check if property is null, before invoking next property
-        var ifNotNull = ExpressionHelpers.GetIfNotNull(property);
-        if (ifNotNull == null)
-            return next; // Property is not nullable, no null check needed
-
-        if (!next.Type.IsValueType || Nullable.GetUnderlyingType(next.Type) != null)
-        {
-            //Return value of next is a reference type or Nullable<>, so we don't need to convert the result
-            return Expression.Condition(ifNotNull,
-                next,
-                Expression.Constant(null, next.Type));
-        }
-
-        Debug.Assert(Nullable.GetUnderlyingType(next.Type) == null);
-
-        //Next is not Nullable<>, so we have to convert result to Nullable<>
-        var nullable = typeof(Nullable<>).MakeGenericType(next.Type);
-        return Expression.Condition(ifNotNull,
-            Expression.Convert(next, nullable),
-            Expression.Constant(null, nullable));
+        return (getNextValue, ifNotNull);
     }
+
+    /// <summary>
+    /// Combines two null checks into a single expression.
+    /// </summary>
+    private static Expression? CombineNullChecks(Expression? a, Expression? b)
+    {
+        Debug.Assert(a == null || a.Type == typeof(bool));
+        Debug.Assert(b == null || b.Type == typeof(bool));
+        if (a == null)
+            return b;
+        if (b == null)
+            return a;
+        return Expression.AndAlso(a, b);
+    }
+
+    #region Reflection
+
+    private static readonly MethodInfo WriteWithTypeMethod = GetMethod<TWriter>(
+        nameof(NpgsqlBinaryImporter.Write),
+        true,
+        l => l.Length == 2 && l[1].ParameterType == typeof(NpgsqlDbType));
+
+    private static readonly MethodInfo WriteWithoutTypeMethod = GetMethod<TWriter>(
+        nameof(NpgsqlBinaryImporter.Write),
+        true,
+        l => l.Length == 1);
+
+    private static readonly MethodInfo WriteNullMethod = GetMethod<TWriter>(
+        nameof(NpgsqlBinaryImporter.WriteNull),
+        false,
+        l => l.Length == 0);
+
+    private static readonly MethodInfo WriteAsyncWithTypeMethod = GetMethod<TWriter>(
+        nameof(NpgsqlBinaryImporter.WriteAsync),
+        true,
+        l => l.Length == 3 && l[1].ParameterType == typeof(NpgsqlDbType));
+
+    private static readonly MethodInfo WriteAsyncWithoutTypeMethod =
+        GetMethod<TWriter>(nameof(NpgsqlBinaryImporter.WriteAsync),
+            true,
+            l => l.Length == 2 && l[1].ParameterType == typeof(CancellationToken));
+
+    private static readonly MethodInfo WriteNullAsyncMethod = GetMethod<TWriter>(
+        nameof(NpgsqlBinaryImporter.WriteNullAsync),
+        false,
+        l => l.Length == 1 && l[0].ParameterType == typeof(CancellationToken));
+
+    private static MethodInfo GetMethod<T>(string name, bool isGeneric, Func<ParameterInfo[], bool> checkParameters) =>
+        typeof(T).GetMethods(ReflectionItems.InstanceFlags)
+            .Single(m => m.Name == name
+                         && m.IsGenericMethod == isGeneric
+                         && checkParameters(m.GetParameters()));
+
+    #endregion
 }

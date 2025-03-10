@@ -62,7 +62,6 @@ public class TestContext : DbContext
             b.Property(x => x.StringValue)
                 .HasConversion<ConverterHandleNulls<string>>();
         });
-
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
