@@ -151,7 +151,7 @@ public class ForeignKeyTests
             context.Database.EnsureCreated();
 
             var store = new DocumentStore<TestContext>(context, [listener.Object]);
-            var session = store.OpenSession();
+            var session = store.CreateSession();
 
             //Insert entities 1-10
             session.Insert(Enumerable.Range(0, 10).Select(i => ParentEntity.Create(i)));
@@ -168,7 +168,7 @@ public class ForeignKeyTests
             context.Query<ParentEntity>().FilterByIds(Enumerable.Range(2, 3)).Should().HaveCount(3);
 
             var store = new DocumentStore<TestContext>(context, [listener.Object]);
-            var session = store.OpenSession();
+            var session = store.CreateSession();
 
             //Replace entities 0-2 and 8-9 with entities 2-4
             var entities = Enumerable.Range(2, 3).Select(i => ParentEntity.Create(i)).ToList();

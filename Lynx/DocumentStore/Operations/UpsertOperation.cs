@@ -10,9 +10,9 @@ namespace Lynx.DocumentStore.Operations;
 internal class UpsertOperation<T> : OperationBase<T>, IDocumentSessionOperation
     where T : class
 {
-    private readonly IReadOnlyList<T> _entities;
+    private readonly IReadOnlyCollection<T> _entities;
 
-    public UpsertOperation(IReadOnlyList<T> entities)
+    public UpsertOperation(IReadOnlyCollection<T> entities)
     {
         _entities = entities ?? throw new ArgumentNullException(nameof(entities));
     }

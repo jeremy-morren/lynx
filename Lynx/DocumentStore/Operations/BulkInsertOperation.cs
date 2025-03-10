@@ -9,9 +9,9 @@ namespace Lynx.DocumentStore.Operations;
 /// <typeparam name="T"></typeparam>
 internal class BulkInsertOperation<T> : OperationBase<T>, IDocumentSessionOperation where T : class
 {
-    private readonly IReadOnlyList<T> _entities;
+    private readonly IReadOnlyCollection<T> _entities;
 
-    public BulkInsertOperation(IReadOnlyList<T> entities)
+    public BulkInsertOperation(IReadOnlyCollection<T> entities)
     {
         _entities = entities;
     }

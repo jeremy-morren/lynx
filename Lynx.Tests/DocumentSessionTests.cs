@@ -23,7 +23,7 @@ public class DocumentSessionTests
         using (var context = factory())
         {
             var store = new DocumentStore<TestContext>(context, [listener.Object]);
-            var session = store.OpenSession();
+            var session = store.CreateSession();
 
             //Upsert
             session.Store(ParentEntity.Create(1));
@@ -56,7 +56,7 @@ public class DocumentSessionTests
                 "Existing entity should be overwritten");
 
             //Upsert and delete
-            var session = store.OpenSession();
+            var session = store.CreateSession();
             session.DeleteWhere<ParentEntity>(x => x.Id == 1);
             session.Delete<ParentEntity>(2);
             
@@ -97,7 +97,7 @@ public class DocumentSessionTests
         using (var context = factory())
         {
             var store = new DocumentStore<TestContext>(context, [listener.Object]);
-            var session = store.OpenSession();
+            var session = store.CreateSession();
 
             //Insert entities 1-10
             session.Insert(Enumerable.Range(0, 10).Select(i => ParentEntity.Create(i)));
@@ -114,7 +114,7 @@ public class DocumentSessionTests
             context.Query<ParentEntity>().FilterByIds(Enumerable.Range(2, 3)).Should().HaveCount(3);
 
             var store = new DocumentStore<TestContext>(context, [listener.Object]);
-            var session = store.OpenSession();
+            var session = store.CreateSession();
 
             //Replace entities 0-2 and 8-9 with entities 2-4
             var entities = Enumerable.Range(2, 3).Select(i => ParentEntity.Create(i)).ToList();
@@ -145,7 +145,7 @@ public class DocumentSessionTests
 
         using var context = factory();
         var store = new DocumentStore<TestContext>(context);
-        var session = store.OpenSession();
+        var session = store.CreateSession();
 
         var ex = Assert.Throws<InvalidOperationException>(() => session.Store(new List<ParentEntity>()));
         ex.Message.ShouldContain("Use Store(IEnumerable<T> entities) instead.");
@@ -164,7 +164,7 @@ public class DocumentSessionTests
         using (var context = factory())
         {
             var store = new DocumentStore<TestContext>(context, [listener.Object]);
-            var session = store.OpenSession();
+            var session = store.CreateSession();
             session.Store(ParentEntity.Create(1));
         }
         using (var context = factory())

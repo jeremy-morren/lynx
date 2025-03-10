@@ -15,7 +15,7 @@ public interface IDocumentStore
     DbContext Context { get; }
 
     /// <summary>
-    /// Opens a new document session to write to the store
+    /// Creates a new <see cref="IDocumentSession"/> to write to the store
     /// </summary>
-    IDocumentSession OpenSession();
+    IDocumentSession CreateSession();
 }

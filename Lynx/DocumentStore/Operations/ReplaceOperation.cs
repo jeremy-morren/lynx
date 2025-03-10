@@ -10,10 +10,10 @@ namespace Lynx.DocumentStore.Operations;
 internal class ReplaceOperation<T> : OperationBase<T>, IDocumentSessionOperation
     where T : class
 {
-    private readonly IReadOnlyList<T> _entities;
+    private readonly IReadOnlyCollection<T> _entities;
     private readonly Expression<Func<T, bool>> _predicate;
 
-    public ReplaceOperation(IReadOnlyList<T> entities, Expression<Func<T, bool>> predicate)
+    public ReplaceOperation(IReadOnlyCollection<T> entities, Expression<Func<T, bool>> predicate)
     {
         _entities = entities ?? throw new ArgumentNullException(nameof(entities));
         _predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));

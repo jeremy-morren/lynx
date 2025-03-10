@@ -144,7 +144,7 @@ internal class DocumentSession : IDocumentSession
         ArgumentNullException.ThrowIfNull(entities);
         EnsureEntityType<T>();
 
-        var list = entities as IReadOnlyList<T> ?? entities.ToList();
+        var list = entities as IReadOnlyCollection<T> ?? entities.ToList();
 
         if (list.Count > 0)
             _unitOfWork.Add(new UpsertOperation<T>(list));
@@ -175,7 +175,7 @@ internal class DocumentSession : IDocumentSession
         ArgumentNullException.ThrowIfNull(entities);
         EnsureEntityType<T>();
 
-        var list = entities as IReadOnlyList<T> ?? entities.ToList();
+        var list = entities as IReadOnlyCollection<T> ?? entities.ToList();
 
         if (list.Count > 0)
             _unitOfWork.Add(new InsertOperation<T>(list));
@@ -205,7 +205,7 @@ internal class DocumentSession : IDocumentSession
 
         EnsureEntityType<T>();
 
-        var list = entities as IReadOnlyList<T> ?? entities.ToList();
+        var list = entities as IReadOnlyCollection<T> ?? entities.ToList();
 
         if (list.Count == 0)
         {
@@ -231,7 +231,7 @@ internal class DocumentSession : IDocumentSession
 
         EnsureEntityType<T>();
 
-        var list = entities as IReadOnlyList<T> ?? entities.ToList();
+        var list = entities as IReadOnlyCollection<T> ?? entities.ToList();
 
         if (list.Count > 0)
             _unitOfWork.Add(new BulkInsertOperation<T>(list));
@@ -243,7 +243,7 @@ internal class DocumentSession : IDocumentSession
 
         EnsureEntityType<T>();
 
-        var list = entities as IReadOnlyList<T> ?? entities.ToList();
+        var list = entities as IReadOnlyCollection<T> ?? entities.ToList();
 
         if (list.Count > 0)
             _unitOfWork.Add(new BulkUpsertOperation<T>(list));

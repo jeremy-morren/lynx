@@ -15,6 +15,6 @@ internal class DocumentStore<TContext> : IDocumentStore where TContext : DbConte
 
     public DbContext Context { get; }
 
-    public IDocumentSession OpenSession() =>
+    public IDocumentSession CreateSession() =>
         new DocumentSession(Context, _listeners);
 }
