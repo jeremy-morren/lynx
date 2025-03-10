@@ -1,7 +1,5 @@
 ﻿using System.Data.Common;
 using System.Linq.Expressions;
-using Lynx.DocumentStore.Providers;
-using Lynx.Providers.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore.Operations;

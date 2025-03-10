@@ -1,6 +1,4 @@
 ﻿using System.Data.Common;
-using Lynx.DocumentStore.Providers;
-using Lynx.Providers.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore.Operations;

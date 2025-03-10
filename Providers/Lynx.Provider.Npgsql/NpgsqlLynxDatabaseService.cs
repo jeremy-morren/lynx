@@ -67,8 +67,10 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseService<T>
         using var _ = OpenConnection.Open(connection);
         var npgsqlConnection = ConvertOrThrow(connection);
         using var command = npgsqlConnection.CreateCommand();
+
         command.CommandText = commandText;
         _addParameters(command);
+        command.Prepare();
 
         foreach (var v in values)
         {
@@ -96,8 +98,10 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseService<T>
         await using var _ = await OpenConnection.OpenAsync(connection, cancellationToken);
         var npgsqlConnection = ConvertOrThrow(connection);
         await using var command = npgsqlConnection.CreateCommand();
+
         command.CommandText = commandText;
         _addParameters(command);
+        await command.PrepareAsync(cancellationToken); //Prepare command with parameters
 
         foreach (var v in values)
         {

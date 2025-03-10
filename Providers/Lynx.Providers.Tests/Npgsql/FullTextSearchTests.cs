@@ -1,19 +1,14 @@
 ﻿using Lynx.Providers.Common.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.Extensions.Logging;
 using NpgsqlTypes;
-using Serilog;
-using Serilog.Events;
-using Serilog.Extensions.Logging;
-using Xunit.Abstractions;
 
 // ReSharper disable EntityFramework.ModelValidation.UnlimitedStringLength
 // ReSharper disable PropertyCanBeMadeInitOnly.Global
 
 namespace Lynx.Providers.Tests.Npgsql;
 
-public class FullTextSearchTests(ITestOutputHelper output)
+public class FullTextSearchTests
 {
     [Fact]
     public void DoInsert()
