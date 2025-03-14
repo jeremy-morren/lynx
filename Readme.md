@@ -5,7 +5,7 @@ Lynx is a very simple document session abstraction over Entity Framework Core, u
 ### Usage
 
 ```csharp
-var session = store.OpenSession();
+var session = store.CreateSession();
 session.Store(new Person { Name = "John Doe" });
 session.DeleteWhere<Person>(p => p.Name == "Jane Doe");
 session.SaveChanges();

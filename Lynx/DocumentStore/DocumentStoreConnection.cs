@@ -1,7 +1,6 @@
 ﻿using System.Data;
 using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Lynx.DocumentStore;
 
@@ -21,6 +20,8 @@ internal sealed class DocumentStoreConnection : IDisposable, IAsyncDisposable
         _connection = connection;
         _closeConnection = closeConnection;
     }
+    
+    public static implicit operator DbConnection(DocumentStoreConnection connection) => connection._connection;
 
     //NB: We don't need to close the connection if we didn't open it
 

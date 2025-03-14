@@ -1,8 +1,13 @@
-﻿using System.Text;
-using Npgsql;
+﻿using System.Data.Common;
+using System.Diagnostics;
+using System.Text;
 
 namespace Lynx.ExecutionPlan.Npgsql;
 
+/// <summary>
+/// Execution plan for a Npgsql command
+/// </summary>
+[DebuggerDisplay($"{{{nameof(DebugView)}}}")]
 internal class NpgsqlExecutionPlan : IExecutionPlan
 {
     public List<string> Nodes { get; }
@@ -18,15 +23,16 @@ internal class NpgsqlExecutionPlan : IExecutionPlan
 
     IReadOnlyList<object> IExecutionPlan.Nodes => Nodes.Cast<object>().ToList();
 
-    public static NpgsqlExecutionPlan Create(NpgsqlCommand command)
+    public static NpgsqlExecutionPlan Create(DbCommand command)
     {
-        var query = command.CommandText;
+        var sql = command.CommandText;
         command.CommandText = $"EXPLAIN {command.CommandText}";
-        using var reader = command.ExecuteReader();
         var result = new List<string>();
-        while (reader.Read())
-            result.Add(reader.GetString(0));
-        return new NpgsqlExecutionPlan(query, result);
+        using (var reader = command.ExecuteReader())
+            while (reader.Read())
+                result.Add(reader.GetString(0));
+        command.CommandText = sql; // Reset
+        return new NpgsqlExecutionPlan(sql, result);
     }
 
     private static string Format(List<string> nodes)

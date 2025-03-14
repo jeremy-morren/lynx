@@ -1,9 +1,8 @@
-﻿using System.Data;
+﻿using System.Data.Common;
 using Lynx.ExecutionPlan.Npgsql;
 using Lynx.ExecutionPlan.Sqlite;
-using Microsoft.Data.Sqlite;
+using Lynx.Providers.Common;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Lynx.ExecutionPlan;
 
@@ -19,12 +18,26 @@ public static class QueryableExecutionPlanExtensions
     public static IExecutionPlan GetExecutionPlan<T>(this IQueryable<T> queryable) where T : class
     {
         using var command = queryable.CreateDbCommand();
-        if (command.Connection != null && command.Connection.State != ConnectionState.Open)
-            command.Connection.Open();
-        return command switch
+        using var _ = OpenConnection.Open(command.Connection);
+        return command.GetType().Name switch
         {
-            SqliteCommand sqlite => SqliteExecutionPlan.Create(sqlite),
-            NpgsqlCommand npgsql => NpgsqlExecutionPlan.Create(npgsql),
+            "SqliteCommand" => SqliteExecutionPlan.Create(command),
+            "NpgsqlCommand" => NpgsqlExecutionPlan.Create(command),
+            _ => throw new NotImplementedException($"Unsupported database {command.GetType()}")
+        };
+    }
+
+    /// <summary>
+    /// Gets the execution plan for the command from the database
+    /// </summary>
+    /// <exception cref="NotImplementedException"></exception>
+    public static IExecutionPlan GetExecutionPlan(this DbCommand command)
+    {
+        using var _ = OpenConnection.Open(command.Connection);
+        return command.GetType().Name switch
+        {
+            "SqliteCommand" => SqliteExecutionPlan.Create(command),
+            "NpgsqlCommand" => NpgsqlExecutionPlan.Create(command),
             _ => throw new NotImplementedException($"Unsupported database {command.GetType()}")
         };
     }

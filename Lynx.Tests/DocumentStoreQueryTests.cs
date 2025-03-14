@@ -4,6 +4,7 @@ using Lynx.EfCore;
 using Lynx.EfCore.Helpers;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 
 // ReSharper disable MethodHasAsyncOverload
@@ -29,7 +30,7 @@ public class DocumentStoreQueryTests
             context.Query<ParentEntity>().ShouldNotBeEmpty();
             context.Query<ParentEntity>().ShouldAllBe(e => e.Child == null);
 
-            var store = new DocumentStore<TestContext>(context);
+            var store = new DocumentStore<TestContext>(context, Options.Create(new DocumentStoreOptions()));
 
             store.Query<ParentEntity>().AsNoTracking().GetDbContext().ShouldBe(context);
 
@@ -109,7 +110,7 @@ public class DocumentStoreQueryTests
 
         using (var context = new TestContext(options))
         {
-            var store = new DocumentStore<TestContext>(context);
+            var store = new DocumentStore<TestContext>(context, Options.Create(new DocumentStoreOptions()));
 
             store.Load<Entity1>(id).ShouldNotBeNull().Entity2.ShouldNotBeNull();
             (await store.LoadAsync<Entity1>(id)).ShouldNotBeNull().Entity2.ShouldNotBeNull();
@@ -158,7 +159,7 @@ public class DocumentStoreQueryTests
         {
             context.Set<Entity2>().ShouldNotBeEmpty();
 
-            var store = new DocumentStore<TestContext>(context);
+            var store = new DocumentStore<TestContext>(context, Options.Create(new DocumentStoreOptions()));
 
             store.Query<Entity1>().ShouldBeEmpty("Query should not return soft deleted entities");
             store.QueryRaw<Entity1>().ShouldNotBeEmpty("Query raw should return soft deleted entities");
@@ -199,7 +200,7 @@ public class DocumentStoreQueryTests
 
         using (var context = new TestContext(options))
         {
-            var store = new DocumentStore<TestContext>(context);
+            var store = new DocumentStore<TestContext>(context, Options.Create(new DocumentStoreOptions()));
 
             store.Load<EntityStrongId>(new StrongId(1)).ShouldNotBeNull();
             store.Load<EntityStrongId>(new StrongId(-1)).ShouldBeNull();

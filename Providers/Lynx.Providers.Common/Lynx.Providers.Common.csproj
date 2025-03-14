@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.13" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.13" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Lynx, PublicKey=$(StrongNamePublicKey)"/>
+        <InternalsVisibleTo Include="Lynx.Provider.Sqlite, PublicKey=$(StrongNamePublicKey)"/>
+        <InternalsVisibleTo Include="Lynx.Provider.Npgsql, PublicKey=$(StrongNamePublicKey)"/>
+        
+        <InternalsVisibleTo Include="Lynx.Providers.Tests, PublicKey=$(StrongNamePublicKey)"/>
+    </ItemGroup>
+
+</Project>

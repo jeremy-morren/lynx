@@ -1,4 +1,4 @@
-﻿using EFCore.BulkExtensions;
+﻿using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore.Operations;
@@ -7,26 +7,37 @@ namespace Lynx.DocumentStore.Operations;
 /// Represents an operation to upsert entities in bulk to the database.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-internal class InsertOperation<T> : IDocumentSessionOperation
+internal class InsertOperation<T> : OperationBase<T>, IDocumentSessionOperation
     where T : class
 {
-    private readonly IReadOnlyList<T> _entities;
+    private readonly IReadOnlyCollection<T> _entities;
+    private readonly DocumentStoreOptions _options;
 
-    public InsertOperation(IReadOnlyList<T> entities)
+    public InsertOperation(IReadOnlyCollection<T> entities, DocumentStoreOptions options)
     {
         _entities = entities ?? throw new ArgumentNullException(nameof(entities));
-    }
-    
-    public void SaveChanges(DbContext context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        context.BulkInsert(_entities, BulkOptions.Config);
+        _options = options;
     }
 
-    public Task SaveChangesAsync(DbContext context, CancellationToken cancellationToken)
+    public void SaveChanges(DbContext context, DbConnection connection)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return context.BulkInsertAsync(_entities, BulkOptions.Config, cancellationToken: cancellationToken);
+
+        var service = GetService(context);
+        if (ShouldUseBulkInsert(_options, _entities.Count, service, out var bulk))
+            bulk.BulkInsert(_entities, connection);
+        else
+            service.Insert(_entities, connection);
+    }
+
+    public Task SaveChangesAsync(DbContext context, DbConnection connection, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var service = GetService(context);
+        return ShouldUseBulkInsert(_options, _entities.Count, service, out var bulk)
+            ? bulk.BulkInsertAsync(_entities, connection, cancellationToken)
+            : service.InsertAsync(_entities, connection, cancellationToken);
     }
 
     public IEnumerable<object> InsertedOrUpdatedDocuments => _entities;

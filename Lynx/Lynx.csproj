@@ -7,27 +7,19 @@
 
         <NoWarn>$(NoWarn);EF1001;</NoWarn>
     </PropertyGroup>
-    
     <ItemGroup>
-        <InternalsVisibleTo Include="Lynx.Tests" />
+        <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.13" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.13" />
+        <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="9.0.2" />
     </ItemGroup>
     
     <ItemGroup>
-      <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
-    </ItemGroup>
-    
-    <ItemGroup>
-      <ProjectReference Include="..\EFCore.BulkExtensions\EFCore.BulkExtensions\EFCore.BulkExtensions.csproj" />
+        <ProjectReference Include="..\Providers\Lynx.Providers.Common\Lynx.Providers.Common.csproj" />
     </ItemGroup>
 
-    <!-- Build EF Core bulk extensions before restore -->
-    <Target Name="BuildEFCoreBulkExtensions" 
-            BeforeTargets="Restore"
-            DependsOnTargets="CreatePackagesDir">
-        <PropertyGroup>
-            <_BulkExtensions>$(MSBuildThisFileDirectory)..\EFCore.BulkExtensions\EFCore.BulkExtensions.sln</_BulkExtensions>
-        </PropertyGroup>
+    <ItemGroup>
+        <InternalsVisibleTo Include="Lynx.Tests, PublicKey=$(StrongNamePublicKey)" />
+    </ItemGroup>
 
-        <Exec Command="dotnet build &quot;$(_BulkExtensions)&quot; -c &quot;$(Configuration)&quot;" />
-    </Target>
 </Project>

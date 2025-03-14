@@ -1,5 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
+﻿using System.Data.Common;
+using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.DocumentStore;
 
@@ -11,12 +11,12 @@ internal interface IDocumentSessionOperation
     /// <summary>
     /// Saves the changes to the database.
     /// </summary>
-    void SaveChanges(DbContext context);
+    void SaveChanges(DbContext context, DbConnection connection);
     
     /// <summary>
     /// Saves the changes to the database asynchronously.
     /// </summary>
-    Task SaveChangesAsync(DbContext context, CancellationToken cancellationToken);
+    Task SaveChangesAsync(DbContext context, DbConnection connection, CancellationToken cancellationToken);
 
     /// <summary>
     /// Documents that will be inserted or updated

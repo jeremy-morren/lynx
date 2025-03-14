@@ -1,3 +1,0 @@
-[submodule "EFCore.BulkExtensions"]
-	path = EFCore.BulkExtensions
-	url = https://github.com/jeremy-morren/EFCore.BulkExtensions

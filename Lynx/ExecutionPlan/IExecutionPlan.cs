@@ -1,5 +1,8 @@
 ﻿namespace Lynx.ExecutionPlan;
 
+/// <summary>
+/// A database execution plan
+/// </summary>
 public interface IExecutionPlan
 {
     /// <summary>

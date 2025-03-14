@@ -1,8 +1,13 @@
-﻿using System.Text;
-using Microsoft.Data.Sqlite;
+﻿using System.Data.Common;
+using System.Diagnostics;
+using System.Text;
 
 namespace Lynx.ExecutionPlan.Sqlite;
 
+/// <summary>
+/// Execution plan for a Sqlite command
+/// </summary>
+[DebuggerDisplay($"{{{nameof(DebugView)}}}")]
 internal class SqliteExecutionPlan : IExecutionPlan
 {
     public string CommandText { get; }
@@ -19,16 +24,19 @@ internal class SqliteExecutionPlan : IExecutionPlan
 
     IReadOnlyList<object> IExecutionPlan.Nodes => Nodes.Cast<object>().ToList();
 
-    public static SqliteExecutionPlan Create(SqliteCommand cmd)
+    public static SqliteExecutionPlan Create(DbCommand cmd)
     {
+        var sql = cmd.CommandText;
+
         var query = cmd.CommandText;
         cmd.CommandText = $"EXPLAIN QUERY PLAN {cmd.CommandText}";
 
-        using var reader = cmd.ExecuteReader();
-
         var nodes = new List<SqliteExecutionPlanNode>();
-        while (reader.Read())
-            nodes.Add(new SqliteExecutionPlanNode(reader));
+        using (var reader = cmd.ExecuteReader())
+            while (reader.Read())
+                nodes.Add(new SqliteExecutionPlanNode(reader));
+
+        cmd.CommandText = sql; // Reset
 
         foreach (var node in nodes)
         {

@@ -1,11 +1,12 @@
 ﻿using System.Data;
-using EFCore.BulkExtensions;
 using Lynx.DocumentStore;
 using Lynx.DocumentStore.Query;
 using Lynx.EfCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Moq;
 using Npgsql;
+
 // ReSharper disable MethodHasAsyncOverload
 // ReSharper disable UseAwaitUsing
 
@@ -78,36 +79,44 @@ public class ForeignKeyTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task DeleteOutOfOrder(bool useAsync)
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task DeleteOutOfOrder(bool useAsync, bool useBulk)
     {
-        var database = $"{nameof(DeleteOutOfOrder)}_{useAsync}";
+        var options = new DocumentStoreOptions
+        {
+            UseBulkOperationsForUpsert = useBulk,
+            BulkOperationThreshold = 1
+        };
+
+        var database = $"{nameof(DeleteOutOfOrder)}_{useAsync}_{useBulk}";
         CleanPostgresDb(database);
 
         using var conn = new NpgsqlConnection($"{ConnString};Database={database}");
         if (conn.State != ConnectionState.Open)
             conn.Open();
 
-        var options = new DbContextOptionsBuilder()
+        var dbContextOptions = new DbContextOptionsBuilder()
             .UseNpgsql(conn)
             .Options;
 
-        using (var context = new TestContext(options))
+        using (var context = new TestContext(dbContextOptions))
         {
             context.Database.EnsureCreated();
             ForeignKeyHelpers.ExecuteSetConstraintsDeferrable(context);
         }
 
-        using (var context = new TestContext(options))
+        using (var context = new TestContext(dbContextOptions))
         {
             context.Set<Entity1>().AddRange(Enumerable.Range(1, 10).Select(i => Entity1.New(i)));
             context.SaveChanges();
         }
 
-        using (var context = new TestContext(options))
+        using (var context = new TestContext(dbContextOptions))
         {
-            var session = new DocumentSession(context, []);
+            var session = new DocumentSession(context, options, []);
 
             session.Replace<Foreign>(
                 Enumerable.Range(1, 10).Select(i => new Foreign() { Id = i }),
@@ -119,7 +128,7 @@ public class ForeignKeyTests
                 session.SaveChanges();
         }
 
-        using (var context = new TestContext(options))
+        using (var context = new TestContext(dbContextOptions))
         {
             context.Set<Foreign>().Should().HaveCount(10);
             context.Set<Entity1>().Should().HaveCount(10);
@@ -130,11 +139,19 @@ public class ForeignKeyTests
 
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Replace(bool useAsync)
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Replace(bool useAsync, bool useBulk)
     {
-        var database = $"{nameof(Replace)}_{useAsync}";
+        var options = new DocumentStoreOptions
+        {
+            UseBulkOperationsForUpsert = useBulk,
+            BulkOperationThreshold = 1
+        };
+
+        var database = $"{nameof(Replace)}_{useAsync}_{useBulk}";
         CleanPostgresDb(database);
 
         using var conn = new NpgsqlConnection($"{ConnString};Database={database}");
@@ -142,16 +159,16 @@ public class ForeignKeyTests
             conn.Open();
 
         var listener = new Mock<IDocumentSessionListener>();
-        var options = new DbContextOptionsBuilder()
+        var dbContextOptions = new DbContextOptionsBuilder()
             .UseNpgsql(conn)
             .Options;
 
-        using (var context = new TestContext(options))
+        using (var context = new TestContext(dbContextOptions))
         {
             context.Database.EnsureCreated();
 
-            var store = new DocumentStore<TestContext>(context, [listener.Object]);
-            var session = store.OpenSession();
+            var store = new DocumentStore<TestContext>(context, Options.Create(options), [listener.Object]);
+            var session = store.CreateSession();
 
             //Insert entities 1-10
             session.Insert(Enumerable.Range(0, 10).Select(i => ParentEntity.Create(i)));
@@ -162,13 +179,13 @@ public class ForeignKeyTests
                 session.SaveChanges();
         }
 
-        using (var context = new TestContext(options))
+        using (var context = new TestContext(dbContextOptions))
         {
             context.Query<ParentEntity>().Should().HaveCount(10);
             context.Query<ParentEntity>().FilterByIds(Enumerable.Range(2, 3)).Should().HaveCount(3);
 
-            var store = new DocumentStore<TestContext>(context, [listener.Object]);
-            var session = store.OpenSession();
+            var store = new DocumentStore<TestContext>(context, Options.Create(options), [listener.Object]);
+            var session = store.CreateSession();
 
             //Replace entities 0-2 and 8-9 with entities 2-4
             var entities = Enumerable.Range(2, 3).Select(i => ParentEntity.Create(i)).ToList();
@@ -180,7 +197,7 @@ public class ForeignKeyTests
                 session.SaveChanges();
         }
 
-        using (var context = new TestContext(options))
+        using (var context = new TestContext(dbContextOptions))
         {
             //Should have entity ids 2-7
             context.Query<ParentEntity>().Should().HaveCount(6);
