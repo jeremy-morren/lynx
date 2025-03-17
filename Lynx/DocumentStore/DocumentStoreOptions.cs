@@ -13,11 +13,11 @@ public class DocumentStoreOptions
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Currently only supported by PostgreSQL.
-    /// </para>
-    /// <para>
     /// For insert operations, bulk operations are always used if the provider supports them.
     /// Bulk operations for upserts require additional permissions hence this option.
+    /// </para>
+    /// <para>
+    /// Currently bulk operations are only supported by PostgreSQL.
     /// </para>
     /// <para>
     /// PostgreSQL bulk operations requires <c>CREATE TEMP TABLE</c> permission.
