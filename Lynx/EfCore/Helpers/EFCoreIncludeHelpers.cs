@@ -37,6 +37,19 @@ internal static class EfCoreIncludeHelpers
     }
 
     /// <summary>
+    /// Gets include members from the root of the query.
+    /// </summary>
+    public static IEnumerable<PropertyInfo> GetFullIncludeMembers<TEntity, TProperty>(
+        this IIncludableQueryable<TEntity, TProperty?> query)
+        where TEntity : class
+        where TProperty : class
+    {
+        return GetIncludeLambdas(query.Expression)
+            .Reverse() // Reverse to get order from root to leaf
+            .Select(l => (PropertyInfo)l.GetMember()!);
+    }
+
+    /// <summary>
     /// Gets include path from the root of the query.
     /// </summary>
     public static string GetFullIncludePath<TEntity, TProperty>(
@@ -44,11 +57,8 @@ internal static class EfCoreIncludeHelpers
         where TEntity : class
         where TProperty : class
     {
-        var properties = GetIncludeLambdas(query.Expression)
-            .Reverse() // Reverse to get order from root to leaf
-            .Select(l => l.GetMember()?.Name);
-
-        return string.Join(".", properties);
+        var members = GetFullIncludeMembers(query);
+        return string.Join(".", members.Select(m => m.Name));
     }
 
     private static IEnumerable<LambdaExpression> GetIncludeLambdas(Expression expression)

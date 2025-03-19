@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics;
+using System.Reflection;
 using Lynx.EfCore.Helpers;
 using Microsoft.EntityFrameworkCore.Metadata;
 
@@ -11,7 +12,18 @@ internal static class IncludeRelatedEntities
     /// </summary>
     public static IEnumerable<string> GetIncludeProperties(IModel model, Type entityType) =>
         GetIncludePropertiesInternal(model.GetEntityType(entityType), null);
-    
+
+    /// <summary>
+    /// Gets all properties that should be included for the entity type, excluding cyclic references to <paramref name="parent"/>
+    /// </summary>
+    public static IEnumerable<string> GetIncludeProperties(IModel model, PropertyInfo parent, Type entityType)
+    {
+        Debug.Assert(parent.DeclaringType != null);
+        var parentEntity = model.GetEntityType(parent.DeclaringType);
+        var navigation = parentEntity.GetNavigations().FirstOrDefault(n => n.PropertyInfo == parent);
+        return GetIncludePropertiesInternal(model.GetEntityType(entityType), navigation?.ForeignKey);
+    }
+
     private static IEnumerable<string> GetIncludePropertiesInternal(IEntityType entityType, IForeignKey? parentKey) =>
         GetNavigations(entityType, parentKey)
             .SelectMany(nav =>

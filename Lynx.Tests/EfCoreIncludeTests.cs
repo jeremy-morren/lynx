@@ -1,4 +1,6 @@
-﻿using Lynx.EfCore.Helpers;
+﻿using Lynx.EfCore;
+using Lynx.EfCore.Helpers;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 // ReSharper disable InconsistentNaming
 // ReSharper disable CollectionNeverUpdated.Local
@@ -60,6 +62,24 @@ public class EfCoreIncludeTests
             .ShouldBe($"{nameof(E1.E2s)}.{nameof(E2.E3s)}.{nameof(E3.E4s)}");
     }
 
+    [Fact]
+    public void ThenIncludeAllReferencedShouldExcludeParent()
+    {
+        var options = new DbContextOptionsBuilder()
+            .UseInMemoryDatabase(nameof(ThenIncludeAllReferencedShouldExcludeParent))
+            .Options;
+
+        using var context = new Context(options);
+
+        context.Set<E1>()
+            .AsNoTracking()
+
+            .Include(e => e.E2s.OrderBy(x => x.Id).Take(5))
+            .ThenIncludeAllReferenced()
+
+            .ShouldBeEmpty(); //Should not result in a cyclic reference error
+    }
+
     private class Context(DbContextOptions options) : DbContext(options)
     {
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -79,6 +99,8 @@ public class EfCoreIncludeTests
         public required ICollection<E3> E3s { get; set; }
 
         public Entity2? Entity2 { get; set; }
+
+        public E1? Parent { get; set; }
     }
 
     private class E3 : EntityBase
