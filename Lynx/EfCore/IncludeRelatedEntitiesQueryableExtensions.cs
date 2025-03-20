@@ -20,7 +20,7 @@ public static class IncludeRelatedEntitiesQueryableExtensions
     /// <exception cref="NotImplementedException"></exception>
     public static IQueryable<T> IncludeAllReferenced<T>(this IQueryable<T> query) where T : class
     {
-        var properties = GetIncludeProperties(query.GetDbContext(), null, typeof(T));
+        var properties = GetIncludeProperties(query.GetDbContext(), typeof(T));
         return properties.Aggregate(query, (current, includeProperty) => current.Include(includeProperty));
     }
 
@@ -37,7 +37,7 @@ public static class IncludeRelatedEntitiesQueryableExtensions
         where TEntity : class
         where TProperty : class
     {
-        var properties = GetIncludeProperties(query.GetDbContext(), null, typeof(TProperty));
+        var properties = GetIncludeProperties(query.GetDbContext(), typeof(TProperty));
 
         //Get root property path, to prefix all properties
         var rootPath = selector.GetMembers();
@@ -59,10 +59,14 @@ public static class IncludeRelatedEntitiesQueryableExtensions
     {
         //Get the members of the last include
         var members = query.GetFullIncludeMembers().ToList();
-
         Debug.Assert(members.Count > 0);
 
-        var properties = GetIncludeProperties(query.GetDbContext(), members[^1], typeof(TProperty));
+        var properties = GetIncludeProperties(
+            query.GetDbContext(),
+            typeof(TProperty),
+            members.Count > 1 ? members[^2].PropertyType : typeof(TEntity),
+            members[^1]);
+
         var rootPath = string.Join(".", members.Select(m => m.Name));
         return properties.Aggregate<string, IQueryable<TEntity>>(query,
             (current, property) => current.Include($"{rootPath}.{property}"));
@@ -70,13 +74,15 @@ public static class IncludeRelatedEntitiesQueryableExtensions
 
     private static readonly ConcurrentDictionary<(IModel, PropertyInfo?, Type), string[]> Cache = new();
 
-    private static string[] GetIncludeProperties(DbContext context, PropertyInfo? parent, Type entityType)
+    private static string[] GetIncludeProperties(DbContext context, Type entityType)
     {
-        var key = (context.Model, parent, entityType);
+        return Cache.GetOrAdd((context.Model, null, entityType), _ =>
+            IncludeRelatedEntities.GetIncludeProperties(context.Model, entityType).ToArray());
+    }
 
-        return Cache.GetOrAdd(key, _ =>
-            parent != null
-                ? IncludeRelatedEntities.GetIncludeProperties(context.Model, parent, entityType).ToArray()
-                : IncludeRelatedEntities.GetIncludeProperties(context.Model, entityType).ToArray());
+    private static string[] GetIncludeProperties(DbContext context, Type entityType, Type parentEntityType, PropertyInfo parent)
+    {
+        return Cache.GetOrAdd((context.Model, parent, entityType), _ =>
+            IncludeRelatedEntities.GetIncludeProperties(context.Model, entityType, parentEntityType, parent).ToArray());
     }
 }

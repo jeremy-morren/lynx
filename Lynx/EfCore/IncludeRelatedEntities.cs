@@ -8,19 +8,30 @@ namespace Lynx.EfCore;
 internal static class IncludeRelatedEntities
 {
     /// <summary>
-    /// Gets all properties that should be included for the entity type.
+    /// Gets all properties that should be included for the entity type
     /// </summary>
+    /// <param name="model">Model</param>
+    /// <param name="entityType">Entity type to get include properties for</param>
     public static IEnumerable<string> GetIncludeProperties(IModel model, Type entityType) =>
         GetIncludePropertiesInternal(model.GetEntityType(entityType), null);
 
     /// <summary>
-    /// Gets all properties that should be included for the entity type, excluding cyclic references to <paramref name="parent"/>
+    /// Gets all properties that should be included for the entity type, excluding cyclic references to <paramref name="parentProperty"/>
     /// </summary>
-    public static IEnumerable<string> GetIncludeProperties(IModel model, PropertyInfo parent, Type entityType)
+    /// <param name="model">Model</param>
+    /// <param name="entityType">Entity type to get include properties for</param>
+    /// <param name="parentEntityType">Type of parent entity to exclude cyclic references to</param>
+    /// <param name="parentProperty">Property on <paramref name="parentEntityType"/> to exclude cyclic references to</param>
+    /// <remarks>
+    /// parentEntityType may be different to parentProperty.DeclaringType if the property is defined on a base class.
+    /// </remarks>
+    public static IEnumerable<string> GetIncludeProperties(IModel model, Type entityType, Type parentEntityType, PropertyInfo parentProperty)
     {
-        Debug.Assert(parent.DeclaringType != null);
-        var parentEntity = model.GetEntityType(parent.DeclaringType);
-        var navigation = parentEntity.GetNavigations().FirstOrDefault(n => n.PropertyInfo == parent);
+        Debug.Assert(parentProperty.DeclaringType != null && parentProperty.DeclaringType.IsAssignableFrom(parentEntityType),
+            "parentEntityType must be assignable from parentProperty.DeclaringType");
+
+        var parentEntity = model.GetEntityType(parentEntityType);
+        var navigation = parentEntity.GetNavigations().FirstOrDefault(n => n.PropertyInfo == parentProperty);
         return GetIncludePropertiesInternal(model.GetEntityType(entityType), navigation?.ForeignKey);
     }
 
