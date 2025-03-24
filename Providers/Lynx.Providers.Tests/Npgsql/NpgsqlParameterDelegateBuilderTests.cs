@@ -19,7 +19,7 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
         using var harness = new NpgsqlTestHarness([nameof(BuildAddDelegate), entityType.Name]);
         using var context = harness.CreateContext();
 
-        var entity = EntityInfoFactory.Create(entityType, context.Model);
+        var entity = RootEntityInfoFactoryTests.CreateRootEntity(entityType, context.Model);
         var action = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder>.Build(entity);
         var command = new NpgsqlCommand();
         action(command);
@@ -33,7 +33,7 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
         using var harness = new NpgsqlTestHarness([nameof(BuildCitySetParametersDelegate)]);
         using var context = harness.CreateContext();
 
-        var entity = EntityInfoFactory.Create(typeof(City), context.Model);
+        var entity = RootEntityInfoFactory.Create<City>(context.Model);
 
         var addParameters = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder>.Build(entity);
 
@@ -77,7 +77,7 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
         using var harness = new NpgsqlTestHarness([nameof(BuildCustomerSetParametersDelegate)]);
         using var context = harness.CreateContext();
 
-        var entity = EntityInfoFactory.Create(typeof(Customer), context.Model);
+        var entity = RootEntityInfoFactory.Create<Customer>(context.Model);
 
         var addParameters = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder>.Build(entity);
 
@@ -117,7 +117,7 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
         using var harness = new NpgsqlTestHarness([nameof(BuildConverterEntitySetParametersDelegate)]);
         using var context = harness.CreateContext();
 
-        var entity = EntityInfoFactory.Create(typeof(ConverterEntity), context.Model);
+        var entity = RootEntityInfoFactory.Create<ConverterEntity>(context.Model);
 
         var addParameters = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder>.Build(entity);
 

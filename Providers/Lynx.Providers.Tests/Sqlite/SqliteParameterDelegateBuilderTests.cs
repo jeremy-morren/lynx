@@ -18,7 +18,7 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
         using var harness = new SqliteTestHarness();
         using var context = harness.CreateContext();
 
-        var entity = EntityInfoFactory.Create(entityType, context.Model);
+        var entity = RootEntityInfoFactoryTests.CreateRootEntity(entityType, context.Model);
         var action = AddParameterDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder>.Build(entity);
         var command = new SqliteCommand();
         action(command);
@@ -32,7 +32,7 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
         using var harness = new SqliteTestHarness();
         using var context = harness.CreateContext();
 
-        var entity = EntityInfoFactory.Create(typeof(City), context.Model);
+        var entity = RootEntityInfoFactory.Create<City>(context.Model);
 
         var addParameters = AddParameterDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder>.Build(entity);
 
@@ -77,7 +77,7 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
         using var harness = new SqliteTestHarness();
         using var context = harness.CreateContext();
 
-        var entity = EntityInfoFactory.Create(typeof(Customer), context.Model);
+        var entity = RootEntityInfoFactory.Create<Customer>(context.Model);
 
         var addParameters = AddParameterDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder>.Build(entity);
 
@@ -117,7 +117,7 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
         using var harness = new SqliteTestHarness();
         using var context = harness.CreateContext();
 
-        var entity = EntityInfoFactory.Create(typeof(ConverterEntity), context.Model);
+        var entity = RootEntityInfoFactory.Create<ConverterEntity>(context.Model);
 
         var addParameters = AddParameterDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder>.Build(entity);
 

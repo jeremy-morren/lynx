@@ -3,7 +3,7 @@
 /// <summary>
 /// Root entity (i.e. not owned by any other entity).
 /// </summary>
-internal class RootEntityInfo : EntityInfo
+internal abstract class RootEntityInfo : EntityInfo
 {
     /// <summary>
     /// Key properties
@@ -19,4 +19,13 @@ internal class RootEntityInfo : EntityInfo
     /// Database schema name (if any)
     /// </summary>
     public required string? Schema { get; init; }
+}
+
+/// <summary>
+/// Root entity (i.e. not owned by any other entity).
+/// </summary>
+internal class RootEntityInfo<T> : RootEntityInfo
+    where T : class
+{
+
 }

@@ -1,5 +1,6 @@
 ﻿using Lynx.Providers.Common.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Metadata;
 using NpgsqlTypes;
 
@@ -16,18 +17,19 @@ public class FullTextSearchTests
         const string connString = $"{NpgsqlTestHarness.ConnString};Database={nameof(FullTextSearchTests)}";
         var options = new DbContextOptionsBuilder<FullTextSearchContext>()
             .UseNpgsql(connString)
+            .ConfigureWarnings(x => x.Ignore(CoreEventId.ManyServiceProvidersCreatedWarning))
             .Options;
         
         using var context = new FullTextSearchContext(options);
         
-        var entity = EntityInfoFactory.Create(typeof(Product), context.Model);
+        var entity = RootEntityInfoFactory.Create<Product>(context.Model);
         entity.GetAllScalarColumns()
             .ShouldNotContain(c => ((IProperty)c.Property).ValueGenerated != ValueGenerated.Never);
     }
     
     public class FullTextSearchContext : DbContext
     {
-        public FullTextSearchContext(DbContextOptions<FullTextSearchContext> options) : base(options)
+        public FullTextSearchContext(DbContextOptions options) : base(options)
         {
         }
 

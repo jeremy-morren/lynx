@@ -9,61 +9,65 @@ public class NpgsqlProviderBulkTests : ProviderBulkTestsBase
 {
     [Theory]
     [MemberData(nameof(GetFlags))]
-    public Task WriteCustomers(bool useAsync, bool enableNodaTimeOnDataSource)
+    public Task WriteCustomers(ProviderTestType type, bool enableNodaTimeOnDataSource)
     {
         return TestCustomers(
             new NpgsqlLynxProvider(),
-            useAsync,
+            type,
             db => new NpgsqlTestHarness(
-                GetDatabase(nameof(WriteCustomers), db, useAsync, enableNodaTimeOnDataSource),
+                GetDatabase(nameof(WriteCustomers), db, type, enableNodaTimeOnDataSource),
                 enableNodaTimeOnDataSource));
     }
     
     [Theory]
     [MemberData(nameof(GetFlags))]
-    public Task WriteCities(bool useAsync, bool enableNodaTimeOnDataSource)
+    public Task WriteCities(ProviderTestType type, bool enableNodaTimeOnDataSource)
     {
         return TestCities(
             new NpgsqlLynxProvider(),
-            useAsync,
+            type,
             db => new NpgsqlTestHarness(
-                GetDatabase(nameof(WriteCities), db, useAsync, enableNodaTimeOnDataSource ),
+                GetDatabase(nameof(WriteCities), db, type, enableNodaTimeOnDataSource ),
                 enableNodaTimeOnDataSource));
     }
     
     [Theory]
     [MemberData(nameof(GetFlags))]
-    public Task WriteConverterEntities(bool useAsync, bool enableNodaTimeOnDataSource)
+    public Task WriteConverterEntities(ProviderTestType type, bool enableNodaTimeOnDataSource)
     {
         return TestConverterEntities(
             new NpgsqlLynxProvider(),
-            useAsync,
+            type,
             db => new NpgsqlTestHarness(
-                GetDatabase(nameof(WriteConverterEntities), db, useAsync, enableNodaTimeOnDataSource ),
+                GetDatabase(nameof(WriteConverterEntities), db, type, enableNodaTimeOnDataSource ),
                 enableNodaTimeOnDataSource));
     }
     
     [Theory]
     [MemberData(nameof(GetFlags))]
-    public Task WriteIdOnly(bool useAsync, bool enableNodaTimeOnDataSource)
+    public Task WriteIdOnly(ProviderTestType type, bool enableNodaTimeOnDataSource)
     {
         return TestIdOnly(
             new NpgsqlLynxProvider(),
-            useAsync,
+            type,
             db => new NpgsqlTestHarness(
-                GetDatabase(nameof(TestIdOnly), db, useAsync, enableNodaTimeOnDataSource ),
+                GetDatabase(nameof(TestIdOnly), db, type, enableNodaTimeOnDataSource ),
                 enableNodaTimeOnDataSource));
     }
 
-    public static TheoryData<bool, bool> GetFlags() => new()
+    public static TheoryData<ProviderTestType, bool> GetFlags()
     {
-        // parameters: useAsync, enableNodaTimeOnDataSource
-        { false, false },
-        { false, true },
-        { true, false },
-        { true, true }
-    };
+        // parameters: type, enableNodaTimeOnDataSource
+        var data = new TheoryData<ProviderTestType, bool>();
+        foreach (var type in Enum.GetValues<ProviderTestType>())
+        {
+            data.Add(type, false);
+            data.Add(type, true);
+        }
+
+        return data;
+    }
     
-    private static object[] GetDatabase(string name, string db, bool useAsync, bool enableNodaTimeOnDataSource) =>
-        [nameof(NpgsqlProviderBulkTests), name, db, useAsync, enableNodaTimeOnDataSource];
+    private static object[] GetDatabase(string name, string db, ProviderTestType type, bool enableNodaTimeOnDataSource) =>
+        [nameof(NpgsqlProviderBulkTests), name, db, type, enableNodaTimeOnDataSource];
 }

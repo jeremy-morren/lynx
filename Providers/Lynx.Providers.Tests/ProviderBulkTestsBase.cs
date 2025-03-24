@@ -1,5 +1,6 @@
 ﻿using Lynx.Providers.Common;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 // ReSharper disable ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
 // ReSharper disable MethodHasAsyncOverload
@@ -10,7 +11,7 @@ namespace Lynx.Providers.Tests;
 public class ProviderBulkTestsBase
 {
     internal static async Task TestCustomers(
-        ILynxProvider provider, bool useAsync, Func<string, ITestHarness> createHarness)
+        ILynxProvider provider, ProviderTestType type, Func<string, ITestHarness> createHarness)
     {
         using var lynxHarness = createHarness("lynx");
 
@@ -21,15 +22,15 @@ public class ProviderBulkTestsBase
             Customer(3)
         ];
 
-        ILynxDatabaseServiceBulk<Customer> customerSvc;
-        ILynxDatabaseServiceBulk<Contact> contactSvc;
+        ILynxEntityServiceBulk<Customer> customerSvc;
+        ILynxEntityServiceBulk<Contact> contactSvc;
 
         using (var context = lynxHarness.CreateContext())
         {
             customerSvc = provider.CreateService<Customer>(context.Model)
-                .ShouldBeAssignableTo<ILynxDatabaseServiceBulk<Customer>>();
+                .ShouldBeAssignableTo<ILynxEntityServiceBulk<Customer>>();
             contactSvc = provider.CreateService<Contact>(context.Model)
-                .ShouldBeAssignableTo<ILynxDatabaseServiceBulk<Contact>>();
+                .ShouldBeAssignableTo<ILynxEntityServiceBulk<Contact>>();
 
             IEnumerable<Contact> contacts = customers.Select(c => c.InvoiceContact?.Contact)
                 .Concat(customers.Select(c => c.OrderContact?.Contact))
@@ -38,17 +39,27 @@ public class ProviderBulkTestsBase
             context.Database.EnsureCreated();
 
             context.Database.OpenConnection();
-            using var transaction = context.Database.GetDbConnection().BeginTransaction();
-            if (useAsync)
+
+            var connection = context.Database.GetDbConnection();
+            using var transaction = connection.BeginTransaction();
+            switch (type)
             {
-                await contactSvc.BulkInsertAsync(contacts, context.Database.GetDbConnection());
-                await customerSvc.BulkInsertAsync(customers, context.Database.GetDbConnection());
+                case ProviderTestType.Sync:
+                    contactSvc.BulkInsert(contacts, connection);
+                    customerSvc.BulkInsert(customers, connection);
+                    break;
+                case ProviderTestType.Async:
+                    await contactSvc.BulkInsertAsync(contacts, connection);
+                    await customerSvc.BulkInsertAsync(customers, connection);
+                    break;
+                case ProviderTestType.AsyncEnumerable:
+                    await contactSvc.BulkInsertAsync(contacts.ToAsyncEnumerable(), connection);
+                    await customerSvc.BulkInsertAsync(customers.ToAsyncEnumerable(), connection);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
-            else
-            {
-                contactSvc.BulkInsert(contacts, context.Database.GetDbConnection());
-                customerSvc.BulkInsert(customers, context.Database.GetDbConnection());
-            }
+
             transaction.Commit();
         }
 
@@ -63,16 +74,25 @@ public class ProviderBulkTestsBase
                 .Where(c => c != null)!;
 
             context.Database.OpenConnection();
-            using var transaction = context.Database.GetDbConnection().BeginTransaction();
-            if (useAsync)
+
+            using var transaction = context.Database.BeginTransaction();
+            var connection = transaction.GetDbTransaction().Connection.ShouldNotBeNull();
+            switch (type)
             {
-                await contactSvc.BulkUpsertAsync(contacts, context.Database.GetDbConnection());
-                await customerSvc.BulkUpsertAsync(customers, context.Database.GetDbConnection());
-            }
-            else
-            {
-                contactSvc.BulkUpsert(contacts, context.Database.GetDbConnection());
-                customerSvc.BulkUpsert(customers, context.Database.GetDbConnection());
+                case ProviderTestType.Sync:
+                    contactSvc.BulkUpsert(contacts, connection);
+                    customerSvc.BulkUpsert(customers, connection);
+                    break;
+                case ProviderTestType.Async:
+                    await contactSvc.BulkUpsertAsync(contacts, connection);
+                    await customerSvc.BulkUpsertAsync(customers, connection);
+                    break;
+                case ProviderTestType.AsyncEnumerable:
+                    await contactSvc.BulkUpsertAsync(contacts.ToAsyncEnumerable(), connection);
+                    await customerSvc.BulkUpsertAsync(customers.ToAsyncEnumerable(), connection);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
             transaction.Commit();
         }
@@ -94,25 +114,36 @@ public class ProviderBulkTestsBase
     }
 
     internal static async Task TestCities(
-        ILynxProvider provider, bool useAsync, Func<string, ITestHarness> createHarness)
+        ILynxProvider provider, ProviderTestType type, Func<string, ITestHarness> createHarness)
     {
         var cities = Enumerable.Range(0, 5).Select(City).ToList();
 
-        ILynxDatabaseServiceBulk<City> citySvc;
+        ILynxEntityServiceBulk<City> citySvc;
         using var lynxHarness = createHarness("lynx");
         using (var context = lynxHarness.CreateContext())
         {
             citySvc = provider.CreateService<City>(context.Model)
-                .ShouldBeAssignableTo<ILynxDatabaseServiceBulk<City>>();
+                .ShouldBeAssignableTo<ILynxEntityServiceBulk<City>>();
 
             context.Database.EnsureCreated();
-
             context.Database.OpenConnection();
-            using var transaction = context.Database.GetDbConnection().BeginTransaction();
-            if (useAsync)
-                await citySvc.BulkInsertAsync(cities, context.Database.GetDbConnection());
-            else
-                citySvc.BulkInsert(cities, context.Database.GetDbConnection());
+
+            var connection = context.Database.GetDbConnection();
+            using var transaction = connection.BeginTransaction();
+            switch (type)
+            {
+                case ProviderTestType.Sync:
+                    citySvc.BulkInsert(cities, connection);
+                    break;
+                case ProviderTestType.Async:
+                    await citySvc.BulkInsertAsync(cities, connection);
+                    break;
+                case ProviderTestType.AsyncEnumerable:
+                    await citySvc.BulkInsertAsync(cities.ToAsyncEnumerable(), connection);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
+            }
             transaction.Commit();
         }
 
@@ -123,11 +154,24 @@ public class ProviderBulkTestsBase
         using (var context = lynxHarness.CreateContext())
         {
             context.Database.OpenConnection();
-            using var transaction = context.Database.GetDbConnection().BeginTransaction();
-            if (useAsync)
-                await citySvc.BulkUpsertAsync(cities, context.Database.GetDbConnection());
-            else
-                citySvc.BulkUpsert(cities, context.Database.GetDbConnection());
+            using var transaction = context.Database.BeginTransaction();
+            var connection = transaction.GetDbTransaction().Connection.ShouldNotBeNull();
+
+            switch (type)
+            {
+                case ProviderTestType.Sync:
+                    citySvc.BulkUpsert(cities, connection);
+                    break;
+                case ProviderTestType.Async:
+                    await citySvc.BulkUpsertAsync(cities, connection);
+                    break;
+                case ProviderTestType.AsyncEnumerable:
+                    await citySvc.BulkUpsertAsync(cities.ToAsyncEnumerable(), connection);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
+            }
+
             transaction.Commit();
         }
 
@@ -148,25 +192,37 @@ public class ProviderBulkTestsBase
     }
 
     internal static async Task TestConverterEntities(
-        ILynxProvider provider, bool useAsync, Func<string, ITestHarness> createHarness)
+        ILynxProvider provider, ProviderTestType type, Func<string, ITestHarness> createHarness)
     {
         var entities = Enumerable.Range(0, 10).Select(ConverterEntity).ToList();
 
         using var lynxHarness = createHarness("lynx");
 
-        ILynxDatabaseServiceBulk<ConverterEntity> entitySvc;
+        ILynxEntityServiceBulk<ConverterEntity> entitySvc;
         using (var context = lynxHarness.CreateContext())
         {
             entitySvc = provider.CreateService<ConverterEntity>(context.Model)
-                .ShouldBeAssignableTo<ILynxDatabaseServiceBulk<ConverterEntity>>();
+                .ShouldBeAssignableTo<ILynxEntityServiceBulk<ConverterEntity>>();
 
             context.Database.EnsureCreated();
-
             using var transaction = context.Database.BeginTransaction();
-            if (useAsync)
-                await entitySvc.BulkInsertAsync(entities, context.Database.GetDbConnection());
-            else
-                entitySvc.BulkInsert(entities, context.Database.GetDbConnection());
+            var connection = transaction.GetDbTransaction().Connection.ShouldNotBeNull();
+
+            switch (type)
+            {
+                case ProviderTestType.Sync:
+                    entitySvc.BulkInsert(entities, connection);
+                    break;
+                case ProviderTestType.Async:
+                    await entitySvc.BulkInsertAsync(entities, connection);
+                    break;
+                case ProviderTestType.AsyncEnumerable:
+                    await entitySvc.BulkInsertAsync(entities.ToAsyncEnumerable(), connection);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
+            }
+
             transaction.Commit();
         }
 
@@ -178,11 +234,22 @@ public class ProviderBulkTestsBase
         using (var context = lynxHarness.CreateContext())
         {
             context.Database.OpenConnection();
-            using var transaction = context.Database.GetDbConnection().BeginTransaction();
-            if (useAsync)
-                await entitySvc.BulkUpsertAsync(entities, context.Database.GetDbConnection());
-            else
-                entitySvc.BulkUpsert(entities, context.Database.GetDbConnection());
+            var connection = context.Database.GetDbConnection();
+            using var transaction = context.Database.BeginTransaction();
+            switch (type)
+            {
+                case ProviderTestType.Sync:
+                    entitySvc.BulkUpsert(entities, connection);
+                    break;
+                case ProviderTestType.Async:
+                    await entitySvc.BulkUpsertAsync(entities, connection);
+                    break;
+                case ProviderTestType.AsyncEnumerable:
+                    await entitySvc.BulkUpsertAsync(entities.ToAsyncEnumerable(), connection);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
+            }
             transaction.Commit();
         }
 
@@ -203,25 +270,36 @@ public class ProviderBulkTestsBase
     }
     
     internal static async Task TestIdOnly(
-        ILynxProvider provider, bool useAsync, Func<string, ITestHarness> createHarness)
+        ILynxProvider provider, ProviderTestType type, Func<string, ITestHarness> createHarness)
     {
         var entities = Enumerable.Range(10, 10).Select(IdOnly).ToList();
         
         using var lynxHarness = createHarness("lynx");
 
-        ILynxDatabaseServiceBulk<IdOnly> entitySvc;
+        ILynxEntityServiceBulk<IdOnly> entitySvc;
         using (var context = lynxHarness.CreateContext())
         {
             entitySvc = provider.CreateService<IdOnly>(context.Model)
-                .ShouldBeAssignableTo<ILynxDatabaseServiceBulk<IdOnly>>();
+                .ShouldBeAssignableTo<ILynxEntityServiceBulk<IdOnly>>();
 
             context.Database.EnsureCreated();
 
             using var transaction = context.Database.BeginTransaction();
-            if (useAsync)
-                await entitySvc.BulkInsertAsync(entities, context.Database.GetDbConnection());
-            else
-                entitySvc.BulkInsert(entities, context.Database.GetDbConnection());
+            var connection = context.Database.GetDbConnection();
+            switch (type)
+            {
+                case ProviderTestType.Sync:
+                    entitySvc.BulkInsert(entities, connection);
+                    break;
+                case ProviderTestType.Async:
+                    await entitySvc.BulkInsertAsync(entities, connection);
+                    break;
+                case ProviderTestType.AsyncEnumerable:
+                    await entitySvc.BulkInsertAsync(entities.ToAsyncEnumerable(), connection);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
+            }
             transaction.Commit();
         }
 
@@ -232,10 +310,21 @@ public class ProviderBulkTestsBase
         using (var context = lynxHarness.CreateContext())
         {
             using var transaction = context.Database.BeginTransaction();
-            if (useAsync)
-                await entitySvc.BulkUpsertAsync(entities, context.Database.GetDbConnection());
-            else
-                entitySvc.BulkUpsert(entities, context.Database.GetDbConnection());
+            var connection = transaction.GetDbTransaction().Connection.ShouldNotBeNull();
+            switch (type)
+            {
+                case ProviderTestType.Sync:
+                    entitySvc.BulkUpsert(entities, connection);
+                    break;
+                case ProviderTestType.Async:
+                    await entitySvc.BulkUpsertAsync(entities, connection);
+                    break;
+                case ProviderTestType.AsyncEnumerable:
+                    await entitySvc.BulkUpsertAsync(entities.ToAsyncEnumerable(), connection);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
+            }
             transaction.Commit();
         }
 

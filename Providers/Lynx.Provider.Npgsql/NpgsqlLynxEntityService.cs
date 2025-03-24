@@ -6,14 +6,11 @@ using Npgsql;
 
 namespace Lynx.Provider.Npgsql;
 
-internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseServiceBulk<T>
+internal class NpgsqlLynxEntityService<T> : ILynxEntityServiceBulk<T>
     where T : class
 {
-    public NpgsqlLynxDatabaseService(RootEntityInfo entity)
+    public NpgsqlLynxEntityService(RootEntityInfo<T> entity)
     {
-        if (entity.Type.ClrType != typeof(T))
-            throw new ArgumentException("Entity type mismatch", nameof(entity));
-
         _addParameters = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder>.Build(entity);
         _setParameterValues = SetParameterValueDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder, T>.Build(entity);
 
@@ -58,7 +55,7 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseServiceBulk<T>
     private void ExecuteNonQuery(
         DbConnection connection,
         string commandText,
-        IEnumerable<T> values,
+        IEnumerable<T> entities,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
@@ -66,19 +63,19 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseServiceBulk<T>
 
         using var _ = OpenConnection.Open(connection);
         var npgsqlConnection = ConvertOrThrow(connection);
-        using var command = npgsqlConnection.CreateCommand();
 
+        using var command = npgsqlConnection.CreateCommand();
         command.CommandText = commandText;
         _addParameters(command);
         command.Prepare();
 
-        foreach (var v in values)
+        foreach (var entity in entities)
         {
-            if (v == null)
-                throw new ArgumentException("Entity cannot be null", nameof(values));
+            if (entity == null)
+                throw new ArgumentException("Entity cannot be null", nameof(entities));
 
             cancellationToken.ThrowIfCancellationRequested();
-            _setParameterValues(command, v);
+            _setParameterValues(command, entity);
             command.ExecuteNonQuery();
         }
     }
@@ -89,7 +86,38 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseServiceBulk<T>
     private async Task ExecuteNonQueryAsync(
         DbConnection connection,
         string commandText,
-        IEnumerable<T> values,
+        IEnumerable<T> entities,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(commandText);
+
+        await using var _ = await OpenConnection.OpenAsync(connection, cancellationToken);
+        var npgsqlConnection = ConvertOrThrow(connection);
+
+        await using var command = npgsqlConnection.CreateCommand();
+        command.CommandText = commandText;
+        _addParameters(command);
+        await command.PrepareAsync(cancellationToken); //Prepare command with parameters
+
+        foreach (var entity in entities)
+        {
+            if (entity == null)
+                throw new ArgumentException("Entity cannot be null", nameof(entities));
+
+            cancellationToken.ThrowIfCancellationRequested();
+            _setParameterValues(command, entity);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Executes a non-query command for a collection of entities
+    /// </summary>
+    private async Task ExecuteNonQueryAsync(
+        DbConnection connection,
+        string commandText,
+        IAsyncEnumerable<T> entities,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
@@ -103,33 +131,46 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseServiceBulk<T>
         _addParameters(command);
         await command.PrepareAsync(cancellationToken); //Prepare command with parameters
 
-        foreach (var v in values)
+        await foreach (var entity in entities.WithCancellation(cancellationToken))
         {
+            if (entity == null)
+                throw new ArgumentException("Entity cannot be null", nameof(entities));
+
             cancellationToken.ThrowIfCancellationRequested();
-            _setParameterValues(command, v);
+            _setParameterValues(command, entity);
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
     }
 
-    public void Insert(IEnumerable<T> values,
+    public void Insert(IEnumerable<T> entities,
         DbConnection connection,
         CancellationToken cancellationToken = default) =>
-        ExecuteNonQuery(connection, _insertWithKeyCommand, values, cancellationToken);
+        ExecuteNonQuery(connection, _insertWithKeyCommand, entities, cancellationToken);
 
-    public void Upsert(IEnumerable<T> values,
+    public void Upsert(IEnumerable<T> entities,
         DbConnection connection,
         CancellationToken cancellationToken = default) =>
-        ExecuteNonQuery(connection, _upsertCommand, values, cancellationToken);
+        ExecuteNonQuery(connection, _upsertCommand, entities, cancellationToken);
 
-    public async Task InsertAsync(IEnumerable<T> values,
+    public async Task InsertAsync(IEnumerable<T> entities,
         DbConnection connection,
         CancellationToken cancellationToken = default) =>
-        await ExecuteNonQueryAsync(connection, _insertWithKeyCommand, values, cancellationToken);
+        await ExecuteNonQueryAsync(connection, _insertWithKeyCommand, entities, cancellationToken);
 
-    public async Task UpsertAsync(IEnumerable<T> values,
+    public async Task UpsertAsync(IEnumerable<T> entities,
         DbConnection connection,
         CancellationToken cancellationToken = default) =>
-        await ExecuteNonQueryAsync(connection, _upsertCommand, values, cancellationToken);
+        await ExecuteNonQueryAsync(connection, _upsertCommand, entities, cancellationToken);
+
+    public async Task InsertAsync(IAsyncEnumerable<T> entities,
+        DbConnection connection,
+        CancellationToken cancellationToken = default) =>
+        await ExecuteNonQueryAsync(connection, _insertWithKeyCommand, entities, cancellationToken);
+
+    public async Task UpsertAsync(IAsyncEnumerable<T> entities,
+        DbConnection connection,
+        CancellationToken cancellationToken = default) =>
+        await ExecuteNonQueryAsync(connection, _upsertCommand, entities, cancellationToken);
 
     #endregion
 
@@ -172,14 +213,15 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseServiceBulk<T>
         using var _ = OpenConnection.Open(connection);
         var npgsqlConnection = ConvertOrThrow(connection);
         using var writer = npgsqlConnection.BeginBinaryImport(_insertBinaryCommand);
-        foreach (var v in entities)
+        foreach (var entity in entities)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (v == null)
+            if (entity == null)
                 throw new ArgumentException("Entity cannot be null", nameof(entities));
+
+            cancellationToken.ThrowIfCancellationRequested();
             writer.StartRow();
             foreach (var column in _columns)
-                column.Write(v, writer);
+                column.Write(entity, writer);
         }
         writer.Complete();
     }
@@ -203,14 +245,15 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseServiceBulk<T>
         //Insert into temp table
         using (var writer = npgsqlConnection.BeginBinaryImport(_insertTempTableBinaryCommand))
         {
-            foreach (var v in entities)
+            foreach (var entity in entities)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (v == null)
+                if (entity == null)
                     throw new ArgumentException("Entity cannot be null", nameof(entities));
+
+                cancellationToken.ThrowIfCancellationRequested();
                 writer.StartRow();
                 foreach (var column in _columns)
-                    column.Write(v, writer);
+                    column.Write(entity, writer);
             }
             writer.Complete();
         }
@@ -226,7 +269,8 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseServiceBulk<T>
         command.ExecuteNonQuery();
     }
 
-    public async Task BulkInsertAsync(IEnumerable<T> entities,
+    public async Task BulkInsertAsync(
+        IEnumerable<T> entities,
         DbConnection connection,
         CancellationToken cancellationToken = default)
     {
@@ -237,18 +281,20 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseServiceBulk<T>
         var npgsqlConnection = ConvertOrThrow(connection);
 
         await using var writer = await npgsqlConnection.BeginBinaryImportAsync(_insertBinaryCommand, cancellationToken);
-        foreach (var v in entities)
+        foreach (var entity in entities)
         {
-            if (v == null)
+            if (entity == null)
                 throw new ArgumentException("Entity cannot be null", nameof(entities));
+
             await writer.StartRowAsync(cancellationToken);
             foreach (var column in _columns)
-                await column.WriteAsync(v, writer, cancellationToken);
+                await column.WriteAsync(entity, writer, cancellationToken);
         }
         await writer.CompleteAsync(cancellationToken);
     }
 
-    public async Task BulkUpsertAsync(IEnumerable<T> entities,
+    public async Task BulkUpsertAsync(
+        IEnumerable<T> entities,
         DbConnection connection,
         CancellationToken cancellationToken = default)
     {
@@ -268,6 +314,70 @@ internal class NpgsqlLynxDatabaseService<T> : ILynxDatabaseServiceBulk<T>
         await using (var writer = await npgsqlConnection.BeginBinaryImportAsync(_insertTempTableBinaryCommand, cancellationToken))
         {
             foreach (var v in entities)
+            {
+                if (v == null)
+                    throw new ArgumentException("Entity cannot be null", nameof(entities));
+                await writer.StartRowAsync(cancellationToken);
+                foreach (var column in _columns)
+                    await column.WriteAsync(v, writer, cancellationToken);
+            }
+            await writer.CompleteAsync(cancellationToken);
+        }
+
+        //Upsert from temp table
+        command.CommandText = _upsertTempTableCommand;
+        await command.ExecuteNonQueryAsync(cancellationToken);
+
+        //Drop temp table
+        command.CommandText = _dropTempTableCommand;
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task BulkInsertAsync(
+        IAsyncEnumerable<T> entities,
+        DbConnection connection,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(entities);
+
+        await using var _ = await OpenConnection.OpenAsync(connection, cancellationToken);
+        var npgsqlConnection = ConvertOrThrow(connection);
+
+        await using var writer = await npgsqlConnection.BeginBinaryImportAsync(_insertBinaryCommand, cancellationToken);
+        await foreach (var entity in entities.WithCancellation(cancellationToken))
+        {
+            if (entity == null)
+                throw new ArgumentException("Entity cannot be null", nameof(entities));
+
+            await writer.StartRowAsync(cancellationToken);
+            foreach (var column in _columns)
+                await column.WriteAsync(entity, writer, cancellationToken);
+        }
+        await writer.CompleteAsync(cancellationToken);
+    }
+
+    public async Task BulkUpsertAsync(
+        IAsyncEnumerable<T> entities,
+        DbConnection connection,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(entities);
+
+        await using var _ = await OpenConnection.OpenAsync(connection, cancellationToken);
+        var npgsqlConnection = ConvertOrThrow(connection);
+
+        await using var command = npgsqlConnection.CreateCommand();
+
+        //Create temp table
+        command.CommandText = _createTempTableCommand;
+        await command.ExecuteNonQueryAsync(cancellationToken);
+
+        //Insert into temp table
+        await using (var writer = await npgsqlConnection.BeginBinaryImportAsync(_insertTempTableBinaryCommand, cancellationToken))
+        {
+            await foreach (var v in entities.WithCancellation(cancellationToken))
             {
                 if (v == null)
                     throw new ArgumentException("Entity cannot be null", nameof(entities));

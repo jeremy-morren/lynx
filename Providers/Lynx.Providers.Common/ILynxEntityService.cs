@@ -5,7 +5,7 @@ namespace Lynx.Providers.Common;
 /// <summary>
 /// A service for an entity that interacts with a database.
 /// </summary>
-internal interface ILynxDatabaseService<in T> where T : class
+internal interface ILynxEntityService<in T> where T : class
 {
     /// <summary>
     /// Inserts entities into the database.
@@ -31,34 +31,15 @@ internal interface ILynxDatabaseService<in T> where T : class
     Task UpsertAsync(
         IEnumerable<T> entities, DbConnection connection, CancellationToken cancellationToken = default);
 
-}
-
-/// <summary>
-/// A service for an entity that interacts with a database in bulk.
-/// </summary>
-internal interface ILynxDatabaseServiceBulk<in T> : ILynxDatabaseService<T> where T : class
-{
     /// <summary>
-    /// Bulk inserts entities into the database.
+    /// Inserts entities into the database asynchronously.
     /// </summary>
-    void BulkInsert(
-        IEnumerable<T> entities, DbConnection connection, CancellationToken cancellationToken = default);
+    Task InsertAsync(
+        IAsyncEnumerable<T> entities, DbConnection connection, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Bulk upserts entities into the database.
+    /// Upserts entities into the database asynchronously.
     /// </summary>
-    void BulkUpsert(
-        IEnumerable<T> entities, DbConnection connection, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Bulk inserts entities into the database.
-    /// </summary>
-    Task BulkInsertAsync(
-        IEnumerable<T> entities, DbConnection connection, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Bulk upserts entities into the database.
-    /// </summary>
-    Task BulkUpsertAsync(
-        IEnumerable<T> entities, DbConnection connection, CancellationToken cancellationToken = default);
+    Task UpsertAsync(
+        IAsyncEnumerable<T> entities, DbConnection connection, CancellationToken cancellationToken = default);
 }

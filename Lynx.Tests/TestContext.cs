@@ -2,6 +2,7 @@
 using Lynx.EfCore;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 // ReSharper disable UnusedAutoPropertyAccessor.Global
@@ -57,6 +58,11 @@ public class TestContext : DbContext
     {
         configurationBuilder.Properties<StrongId>()
             .HaveConversion<StrongId.EfCoreValueConverter>();
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.ConfigureWarnings(x => x.Ignore(CoreEventId.ManyServiceProvidersCreatedWarning));
     }
 
     /// <summary>

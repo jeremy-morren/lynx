@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NodaTime;
 using NodaTime.Text;
@@ -77,12 +78,17 @@ public class TestContext : DbContext
         configurationBuilder.Properties<ReferenceNullableIntId>()
             .HaveConversion<ReferenceNullableIntId.EfCoreValueConverter>();
         
-        // provider-specific converter
+        // Test provider-specific converter
         if (Database.ProviderName?.Contains("Sqlite") == true)
         {
             configurationBuilder.Properties<LocalDate>()
                 .HaveConversion<LocalDateConverter>();
         }
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.ConfigureWarnings(x => x.Ignore(CoreEventId.ManyServiceProvidersCreatedWarning));
     }
 }
 

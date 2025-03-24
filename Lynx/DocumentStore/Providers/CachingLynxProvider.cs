@@ -20,9 +20,9 @@ internal class CachingLynxProvider
     
     private readonly ConcurrentDictionary<Type, object> _services = new();
 
-    public ILynxDatabaseService<TEntity> GetService<TEntity>() where TEntity : class
+    public ILynxEntityService<TEntity> GetService<TEntity>() where TEntity : class
     {
         var result = _services.GetOrAdd(typeof(TEntity), _ => _provider.CreateService<TEntity>(_model));
-        return (ILynxDatabaseService<TEntity>) result;
+        return (ILynxEntityService<TEntity>) result;
     }
 }

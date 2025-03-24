@@ -7,7 +7,7 @@ namespace Lynx.DocumentStore.Operations;
 
 internal class OperationBase<T> where T : class
 {
-    protected static ILynxDatabaseService<T> GetService(DbContext context)
+    protected static ILynxEntityService<T> GetService(DbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         var provider = LynxProviderFactory.GetProvider(context);
@@ -20,11 +20,11 @@ internal class OperationBase<T> where T : class
     protected static bool ShouldUseBulkInsert(
         DocumentStoreOptions options,
         int entityCount,
-        ILynxDatabaseService<T> service,
-        [MaybeNullWhen(false)] out ILynxDatabaseServiceBulk<T> bulkService)
+        ILynxEntityService<T> service,
+        [MaybeNullWhen(false)] out ILynxEntityServiceBulk<T> bulkService)
     {
         if (entityCount >= options.BulkOperationThreshold &&
-            service is ILynxDatabaseServiceBulk<T> bulk)
+            service is ILynxEntityServiceBulk<T> bulk)
         {
             bulkService = bulk;
             return true;
@@ -39,8 +39,8 @@ internal class OperationBase<T> where T : class
     protected static bool ShouldUseBulkUpsert(
         DocumentStoreOptions options,
         int entityCount,
-        ILynxDatabaseService<T> service,
-        [MaybeNullWhen(false)] out ILynxDatabaseServiceBulk<T> bulkService)
+        ILynxEntityService<T> service,
+        [MaybeNullWhen(false)] out ILynxEntityServiceBulk<T> bulkService)
     {
         if (options.UseBulkOperationsForUpsert)
             return ShouldUseBulkInsert(options, entityCount, service, out bulkService);

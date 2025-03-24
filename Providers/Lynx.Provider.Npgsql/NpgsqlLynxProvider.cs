@@ -6,9 +6,9 @@ namespace Lynx.Provider.Npgsql;
 
 internal class NpgsqlLynxProvider : ILynxProvider
 {
-    public ILynxDatabaseService<TEntity> CreateService<TEntity>(IModel model) where TEntity : class
+    public ILynxEntityService<TEntity> CreateService<TEntity>(IModel model) where TEntity : class
     {
-        var entity = EntityInfoFactory.Create(typeof(TEntity), model);
-        return new NpgsqlLynxDatabaseService<TEntity>(entity);
+        var entity = RootEntityInfoFactory.Create<TEntity>(model);
+        return new NpgsqlLynxEntityService<TEntity>(entity);
     }
 }

@@ -31,9 +31,9 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
         method.MakeGenericMethod(entityType).Invoke(null, [context]);
     }
 
-    private static void CommandBuilderTestsGeneric<T>(TestContext context)
+    private static void CommandBuilderTestsGeneric<T>(TestContext context) where T : class
     {
-        var entity = EntityInfoFactory.Create(typeof(T), context.Model);
+        var entity = RootEntityInfoFactory.Create<T>(context.Model);
         var expected = entity.Keys.Concat(entity.GetAllScalarColumns()).ToList();
 
         var columns = NpgsqlEntityColumnBuilder<T, NpgsqlBinaryImporter>.GetColumnInfo(entity);
@@ -64,7 +64,7 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
         using var harness = new NpgsqlTestHarness([nameof(BuildCitySetParametersDelegate)]);
         using var context = harness.CreateContext();
 
-        var entity = EntityInfoFactory.Create(typeof(City), context.Model);
+        var entity = RootEntityInfoFactory.Create<City>(context.Model);
         var columns = NpgsqlEntityColumnBuilder<City, ITestWriter>.GetColumnInfo(entity);
         columns.Should().HaveCount(entity.GetAllScalarColumns().Count() + entity.Keys.Count);
 
@@ -99,7 +99,7 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
         using var harness = new NpgsqlTestHarness([nameof(BuildCustomerSetParametersDelegate)]);
         using var context = harness.CreateContext();
 
-        var entity = EntityInfoFactory.Create(typeof(Customer), context.Model);
+        var entity = RootEntityInfoFactory.Create<Customer>(context.Model);
 
         var columns = NpgsqlEntityColumnBuilder<Customer, ITestWriter>.GetColumnInfo(entity);
         columns.Should().HaveCount(entity.GetAllScalarColumns().Count() + entity.Keys.Count);
@@ -131,7 +131,7 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
         using var harness = new NpgsqlTestHarness([nameof(BuildConverterEntitySetParametersDelegate)]);
         using var context = harness.CreateContext();
 
-        var entity = EntityInfoFactory.Create(typeof(ConverterEntity), context.Model);
+        var entity = RootEntityInfoFactory.Create<ConverterEntity>(context.Model);
 
         var columns = NpgsqlEntityColumnBuilder<ConverterEntity, ITestWriter>.GetColumnInfo(entity);
         columns.Should().HaveCount(entity.GetAllScalarColumns().Count() + entity.Keys.Count);

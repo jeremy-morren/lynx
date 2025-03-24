@@ -12,8 +12,20 @@ using NodaTime;
 
 namespace Lynx.Providers.Tests;
 
-public class EntityInfoFactoryTests
+public class RootEntityInfoFactoryTests
 {
+    internal static RootEntityInfo CreateRootEntity(Type type, IModel model)
+    {
+        type.IsValueType.ShouldBeFalse();
+
+        var method = typeof(RootEntityInfoFactory)
+            .GetMethod(nameof(RootEntityInfoFactory.Create), BindingFlags.Static | BindingFlags.Public)
+            .ShouldNotBeNull();
+
+        method = method.MakeGenericMethod(type);
+        return method.Invoke(null, [model]).ShouldNotBeNull().ShouldBeAssignableTo<RootEntityInfo>();
+    }
+
     [Theory]
     [InlineData(typeof(Customer), nameof(Customer.Id))]
     [InlineData(typeof(City), nameof(City.Id))]
@@ -30,7 +42,7 @@ public class EntityInfoFactoryTests
         };
         foreach (var context in contexts)
         {
-            var info = EntityInfoFactory.Create(entityType, context.Model);
+            var info = CreateRootEntity(entityType, context.Model);
 
             info.Keys.Should().AllSatisfy(k => k.ColumnName.Should().HaveCount(1));
             info.Keys.Select(k => k.ColumnName.SqlColumnName).Should().BeEquivalentTo(keys);

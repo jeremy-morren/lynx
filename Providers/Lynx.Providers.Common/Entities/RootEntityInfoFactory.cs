@@ -7,15 +7,16 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Lynx.Providers.Common.Entities;
 
-internal static class EntityInfoFactory
+internal static class RootEntityInfoFactory
 {
-    public static RootEntityInfo Create(Type type, IModel model)
+    public static RootEntityInfo<T> Create<T>(IModel model) where T : class
     {
+        var type = typeof(T);
         var entityType = model.FindEntityType(type)
-            ?? throw new InvalidOperationException($"Entity type {type} not found in model.");
+            ?? throw new InvalidOperationException($"Entity type '{type}' not found in model.");
 
         var info = CreateEntityInternal(entityType, null, null);
-        var root = new RootEntityInfo
+        var root = new RootEntityInfo<T>
         {
             Type = info.Type,
             ScalarProps = info.ScalarProps,
