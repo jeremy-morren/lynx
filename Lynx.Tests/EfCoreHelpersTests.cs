@@ -107,10 +107,10 @@ public class EfCoreHelpersTests
         IncludeRelatedEntities.GetIncludeProperties(model, typeof(EntityStrongId))
             .ShouldBeEmpty($"Should not include properties marked with {nameof(LynxDoNotIncludeReferencedAttribute)}");
 
-        var entity2Parent = typeof(Entity2).GetProperty(nameof(Entity2.Parent)).ShouldNotBeNull();
-        IncludeRelatedEntities.GetIncludeProperties(model, typeof(Entity2), typeof(Entity2), entity2Parent)
+        var entity1Entity2 = typeof(Entity1).GetProperty(nameof(Entity1.Entity2)).ShouldNotBeNull();
+        IncludeRelatedEntities.GetIncludeProperties(model, typeof(Entity1), [entity1Entity2])
             .Should().BeEquivalentTo(
-                new [] { nameof(Entity2.Entity3) }.Concat(entity3.Select(x => $"{nameof(Entity2.Entity3)}.{x}")),
+                new[] { nameof(Entity2.Entity3) }.Concat(entity3.Select(x => $"{nameof(Entity2.Entity3)}.{x}")),
                 "Should exclude cyclic reference to parent");
     }
 

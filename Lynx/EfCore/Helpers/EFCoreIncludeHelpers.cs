@@ -12,57 +12,36 @@ internal static class EfCoreIncludeHelpers
     /// </summary>
     public static string GetMembers<TEntity, TProperty>(this Expression<Func<TEntity, TProperty>> selector)
     {
-        var properties = GetMembers(selector.Body)
-            .Reverse() // Reverse to get order from root to leaf
-            .Select(m => m.Name);
+        var properties = GetMembers(selector.Body).Select(m => m.Name);
         return string.Join(".", properties);
-    }
-
-    private static IEnumerable<MemberInfo> GetMembers(Expression expression)
-    {
-        while (true)
-        {
-            switch (expression)
-            {
-                case ParameterExpression:
-                    yield break; //Reached the end
-                case MemberExpression { Member: { } m } member:
-                    yield return m;
-                    expression = member.Expression ?? throw new InvalidOperationException("Member expression is null");
-                    break;
-                default:
-                    throw new InvalidOperationException($"Unknown expression type {expression.NodeType}");
-            }
-        }
     }
 
     /// <summary>
     /// Gets include members from the root of the query.
     /// </summary>
-    public static IEnumerable<PropertyInfo> GetFullIncludeMembers<TEntity, TProperty>(
-        this IIncludableQueryable<TEntity, TProperty?> query)
-        where TEntity : class
-        where TProperty : class
-    {
-        return GetIncludeLambdas(query.Expression)
-            .Reverse() // Reverse to get order from root to leaf
-            .Select(l => (PropertyInfo)l.GetMember()!);
-    }
+    public static IEnumerable<PropertyInfo> GetFullIncludeMembers(this IQueryable query) =>
+        GetIncludeLambdas(query.Expression)
+            .SelectMany(l => l.GetMembers().Cast<PropertyInfo>());
 
     /// <summary>
     /// Gets include path from the root of the query.
     /// </summary>
-    public static string GetFullIncludePath<TEntity, TProperty>(
-        this IIncludableQueryable<TEntity, TProperty?> query)
-        where TEntity : class
-        where TProperty : class
+    public static string GetFullIncludePath(this IQueryable query)
     {
         var members = GetFullIncludeMembers(query);
         return string.Join(".", members.Select(m => m.Name));
     }
 
-    private static IEnumerable<LambdaExpression> GetIncludeLambdas(Expression expression)
+    /// <summary>
+    /// Gets the include lambdas from the query expression i.e. calls to .Include(x => x.Property)
+    /// </summary>
+    /// <param name="expression"></param>
+    /// <returns></returns>
+    private static List<LambdaExpression> GetIncludeLambdas(Expression expression)
     {
+        //TODO: Handle string includes
+
+        var result = new List<LambdaExpression>();
         while (true)
         {
             const string include = nameof(EntityFrameworkQueryableExtensions.Include);
@@ -76,33 +55,64 @@ internal static class EfCoreIncludeHelpers
                         UnaryExpression { Operand: LambdaExpression lambda }
                     ]
                 })
-                yield break;
+                break;
 
-            yield return lambda;
+            result.Add(lambda);
 
             //Check if we have reached the root include
             if (method.Name == include)
-                yield break;
+                break;
 
             expression = previous;
         }
+
+        result.Reverse(); // Reverse to get order from root to leaf
+        return result;
     }
 
-    private static MemberInfo? GetMember(this LambdaExpression lambda)
+    /// <summary>
+    /// Gets the members from a MemberExpression (e.g. x => x.Property.SubProperty)
+    /// </summary>
+    private static List<MemberInfo> GetMembers(Expression expression)
+    {
+        var result = new List<MemberInfo>();
+        while (true)
+        {
+            if (expression is ParameterExpression)
+                break; //Reached the end
+            if (expression is MemberExpression { Member: { } m } member)
+            {
+                result.Add(m);
+                expression = member.Expression ?? throw new InvalidOperationException("Member expression is null");
+            }
+            else
+            {
+                throw new NotImplementedException($"Unknown expression type {expression.NodeType}");
+            }
+        }
+        result.Reverse();
+        return result;
+    }
+
+    /// <summary>
+    /// Gets the members from a lamba expression (e.g. x => x.Property.SubProperty)
+    /// </summary>
+    /// <param name="lambda"></param>
+    /// <returns></returns>
+    private static IEnumerable<MemberInfo> GetMembers(this LambdaExpression lambda)
     {
         var expression = lambda.Body;
         while (true)
         {
             switch (expression)
             {
-                case MemberExpression { Member: { } member }:
-                    return member;
+                case MemberExpression member:
+                    return GetMembers(member);
                 case MethodCallExpression { Arguments.Count: > 0 } method:
                     expression = method.Arguments[0];
                     break;
                 default:
-                    //Unknown expression
-                    return null;
+                    throw new NotImplementedException($"Unknown expression type {expression.NodeType}");
             }
         }
     }

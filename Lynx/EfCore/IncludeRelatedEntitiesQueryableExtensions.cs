@@ -61,28 +61,27 @@ public static class IncludeRelatedEntitiesQueryableExtensions
         var members = query.GetFullIncludeMembers().ToList();
         Debug.Assert(members.Count > 0);
 
-        var properties = GetIncludeProperties(
-            query.GetDbContext(),
-            typeof(TProperty),
-            members.Count > 1 ? members[^2].PropertyType : typeof(TEntity),
-            members[^1]);
+        var properties = GetThenIncludeProperties(query.GetDbContext(), typeof(TEntity), members);
 
         var rootPath = string.Join(".", members.Select(m => m.Name));
         return properties.Aggregate<string, IQueryable<TEntity>>(query,
             (current, property) => current.Include($"{rootPath}.{property}"));
     }
 
-    private static readonly ConcurrentDictionary<(IModel, PropertyInfo?, Type), string[]> Cache = new();
+    private static readonly ConcurrentDictionary<(IModel Model, Type EntityType), string[]> IncludeCache = new();
 
     private static string[] GetIncludeProperties(DbContext context, Type entityType)
     {
-        return Cache.GetOrAdd((context.Model, null, entityType), _ =>
+        return IncludeCache.GetOrAdd((context.Model, entityType), _ =>
             IncludeRelatedEntities.GetIncludeProperties(context.Model, entityType).ToArray());
     }
 
-    private static string[] GetIncludeProperties(DbContext context, Type entityType, Type parentEntityType, PropertyInfo parent)
+    private static readonly ConcurrentDictionary<(IModel Model, Type RootEntityType, string PropertyChain), string[]> ThenIncludeCache = new();
+
+    private static string[] GetThenIncludeProperties(DbContext context, Type rootEntityType, IReadOnlyList<PropertyInfo> includeChain)
     {
-        return Cache.GetOrAdd((context.Model, parent, entityType), _ =>
-            IncludeRelatedEntities.GetIncludeProperties(context.Model, entityType, parentEntityType, parent).ToArray());
+        var chain = string.Join(".", includeChain.Select(p => p.Name));
+        return ThenIncludeCache.GetOrAdd((context.Model, rootEntityType, chain), _ =>
+            IncludeRelatedEntities.GetIncludeProperties(context.Model, rootEntityType, includeChain).ToArray());
     }
 }
