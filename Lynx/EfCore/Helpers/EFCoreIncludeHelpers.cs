@@ -1,7 +1,6 @@
 ﻿using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query;
 
 namespace Lynx.EfCore.Helpers;
 

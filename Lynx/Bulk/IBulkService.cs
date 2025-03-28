@@ -1,8 +1,6 @@
 ﻿using JetBrains.Annotations;
-using Lynx.DocumentStore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Lynx.Bulk;
 
