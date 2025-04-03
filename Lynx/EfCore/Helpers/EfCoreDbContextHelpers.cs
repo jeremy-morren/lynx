@@ -10,7 +10,10 @@ namespace Lynx.EfCore.Helpers;
 
 internal static class EfCoreDbContextHelpers
 {
-    public static DbContext GetDbContext<T>(this IQueryable<T> query) where T : class
+    /// <summary>
+    /// Gets the DbContext from the queryable
+    /// </summary>
+    public static DbContext GetDbContext<T>(this IQueryable<T> query)
     {
         if (query is IInfrastructure<IServiceProvider> infrastructure)
             return infrastructure.Instance.GetRequiredService<ICurrentDbContext>().Context;
