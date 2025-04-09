@@ -94,6 +94,9 @@ public class TestContext : DbContext
 public class EntityBase
 {
     public required int Id { get; set; }
+
+    public string? Property1 { get; set; }
+    public decimal? Property2 { get; set; }
 }
 
 /// <summary>
