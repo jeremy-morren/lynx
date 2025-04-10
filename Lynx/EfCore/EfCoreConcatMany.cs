@@ -16,7 +16,7 @@ public static class EfCoreConcatMany
     /// </summary>
     /// <remarks>
     /// Using EF Core's built in Concat method is brittle
-    /// because it throws a <see cref="StackOverflowException"/> with enough queries(presumably recursion is used somewhere)
+    /// because it throws a <see cref="StackOverflowException"/> with enough queries (presumably recursion is used somewhere)
     /// </remarks>
     public static IQueryable<T> ConcatMany<T>(this IEnumerable<IQueryable<T>> queries)
     {
@@ -24,6 +24,7 @@ public static class EfCoreConcatMany
 
         var list = queries.ToList();
         if (list.Count == 0)
+            //No queries, return empty
             return Enumerable.Empty<T>().AsQueryable();
 
         //Collapse queries in batches, looping until we have one query left
