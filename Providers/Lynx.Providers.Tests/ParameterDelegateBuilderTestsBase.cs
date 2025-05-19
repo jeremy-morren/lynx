@@ -8,7 +8,6 @@ namespace Lynx.Providers.Tests;
 
 public class ParameterDelegateBuilderTestsBase
 {
-
     /// <summary>
     /// Gets the entity types to test
     /// </summary>
@@ -163,7 +162,8 @@ public class ParameterDelegateBuilderTestsBase
             InvoiceContact = new CustomerContactInfo()
             {
                 ContactId = 9
-            }
+            },
+            Cats = []
         },
 
         new Customer
@@ -184,7 +184,13 @@ public class ParameterDelegateBuilderTestsBase
                 ContactId = 7,
                 LastContact = DateTime.UnixEpoch
             },
-            OrderContact = null!
+            OrderContact = null!,
+            Cats = Enumerable.Range(100, 3)
+                .Select(i => new Cat()
+                {
+                    Name = $"Cat {i}",
+                })
+                .ToList()
         }
     ];
 

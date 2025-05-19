@@ -19,7 +19,8 @@ public class ProviderTestsBase
         [
             Customer(1),
             Customer(2) with { Tags = null },
-            Customer(3)
+            Customer(3),
+            Customer(4) with { Cats = null},
         ];
 
         ILynxEntityService<Customer> customerSvc;
@@ -42,7 +43,6 @@ public class ProviderTestsBase
             switch (type)
             {
                 case ProviderTestType.Sync:
-
                     contactSvc.Insert(contacts, connection);
                     customerSvc.Insert(customers, connection);
                     break;
@@ -63,7 +63,7 @@ public class ProviderTestsBase
 
         foreach (var c in customers)
             c.Name = "New name";
-        customers.AddRange([Customer(4), Customer(5)]);
+        customers.AddRange([Customer(10), Customer(11)]);
 
         using (var context = lynxHarness.CreateContext())
         {
@@ -106,6 +106,10 @@ public class ProviderTestsBase
         {
             lynxContext.Customers.AsNoTracking().ToList()
                 .Should().BeEquivalentTo(manualContext.Customers.AsNoTracking().ToList());
+
+            lynxContext.Customers.AsNoTracking()
+                .Where(c => c.Cats!.Count > 0)
+                .ShouldNotBeEmpty();
         }
     }
 
@@ -349,7 +353,13 @@ public class ProviderTestsBase
         {
             Street = $"Shipping street {id}",
             City = $"Shipping city {id}"
-        }
+        },
+        Cats = Enumerable.Range(10,5)
+            .Select(i => new Cat()
+            {
+                Name = $"Cat {i}"
+            })
+            .ToList(),
     };
 
 

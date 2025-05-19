@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Data;
+using System.Text.Json;
 using Lynx.Providers.Common.Entities;
 using Lynx.Providers.Common.Reflection;
 using Lynx.Provider.Npgsql;
@@ -101,6 +102,7 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
             Verify([nameof(Customer.OrderContact), nameof(CustomerContactInfo.LastContact)], customer.OrderContact?.LastContact);
             Verify([nameof(Customer.InvoiceContact), nameof(CustomerContactInfo.ContactId)], customer.InvoiceContact?.ContactId);
             Verify([nameof(Customer.InvoiceContact), nameof(CustomerContactInfo.LastContact)], customer.InvoiceContact?.LastContact);
+            Verify([nameof(Customer.Cats)], customer.Cats);
 
             command.Parameters.Count.ShouldBe(entity.Keys.Count + entity.GetAllScalarColumns().Count());
 
@@ -181,4 +183,8 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
     {
         NpgsqlProviderDelegateBuilder.GetDbType(dbType).ShouldBe(npgsqlDbType);
     }
+
+
+    private static string? SerializeJson<T>(T? value) =>
+        value == null ? null : JsonSerializer.Serialize(value, JsonSerializerOptions.Default);
 }

@@ -101,6 +101,7 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
             Verify([nameof(Customer.OrderContact), nameof(CustomerContactInfo.LastContact)], customer.OrderContact?.LastContact);
             Verify([nameof(Customer.InvoiceContact), nameof(CustomerContactInfo.ContactId)], customer.InvoiceContact?.ContactId);
             Verify([nameof(Customer.InvoiceContact), nameof(CustomerContactInfo.LastContact)], customer.InvoiceContact?.LastContact);
+            Verify([nameof(Customer.Cats)], SerializeJson(customer.Cats));
 
             command.Parameters.Count.ShouldBe(entity.Keys.Count + entity.GetAllScalarColumns().Count());
 

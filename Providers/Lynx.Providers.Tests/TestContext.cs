@@ -45,7 +45,10 @@ public class TestContext : DbContext
 
         modelBuilder.Entity<Contact>();
 
-        modelBuilder.Entity<Customer>();
+        modelBuilder.Entity<Customer>(c =>
+        {
+            c.OwnsMany(x => x.Cats).ToJson();
+        });
 
         modelBuilder.Entity<ConverterEntity>(b =>
         {
@@ -177,6 +180,11 @@ public record Customer
     public required CustomerContactInfo OrderContact { get; set; }
 
     public CustomerContactInfo? InvoiceContact { get; set; }
+
+    /// <summary>
+    /// Owns many, mapped to JSON
+    /// </summary>
+    public required List<Cat>? Cats { get; set; }
 }
 
 public record Contact
@@ -202,6 +210,12 @@ public record CustomerContactInfo
     public required int ContactId { get; set; }
 
     public Contact Contact { get; set; } = null!;
+}
+
+[Owned]
+public record Cat
+{
+    public required string Name { get; init; }
 }
 
 /// <summary>
