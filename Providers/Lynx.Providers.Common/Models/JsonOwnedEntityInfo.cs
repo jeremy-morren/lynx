@@ -17,9 +17,9 @@ internal class JsonOwnedEntityInfo : OwnedEntityInfo, IColumnPropertyInfo
         Type = source.Type,
         Navigation = source.Navigation,
         EntityType = source.EntityType,
+        PropertyInfo = source.PropertyInfo,
         ScalarProps = source.ScalarProps,
         ComplexProps = source.ComplexProps,
-        PropertyInfo = source.PropertyInfo,
         Owned = source.Owned,
         ColumnName = source.ColumnName
     };

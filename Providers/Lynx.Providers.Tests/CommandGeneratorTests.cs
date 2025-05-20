@@ -13,7 +13,7 @@ public class CommandGeneratorTests
         using var harness = new SqliteTestHarness();
         using var context = harness.CreateContext();
 
-        var entity = RootEntityInfoFactoryTests.CreateRootEntity(entityType, context.Model);
+        var entity = EntityInfoFactoryTests.CreateRootEntity(entityType, context.Model);
         var generator = new CommandGenerator(entity);
         generator.GetInsertWithKeyCommand().ShouldEndWith(")");
 

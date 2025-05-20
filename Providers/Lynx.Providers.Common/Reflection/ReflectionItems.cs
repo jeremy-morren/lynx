@@ -1,6 +1,7 @@
 ﻿using System.Data.Common;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text.Json;
 
 namespace Lynx.Providers.Common.Reflection;
 
@@ -70,4 +71,54 @@ internal static class ReflectionItems
         Expression.Convert(
             Expression.Field(null, typeof(DBNull).GetField(nameof(DBNull.Value), StaticFlags)!),
             typeof(object));
+
+    /// <summary>
+    /// <see cref="IDisposable.Dispose"/>
+    /// </summary>
+    public static readonly MethodInfo DisposeMethod =
+        typeof(IDisposable).GetMethod(nameof(IDisposable.Dispose), InstanceFlags)!;
+
+    /// <summary>
+    /// <see cref="Utf8JsonWriter.Flush"/>
+    /// </summary>
+    public static readonly MethodInfo Utf8JsonWriterFlushMethod =
+        typeof(Utf8JsonWriter).GetMethod(nameof(Utf8JsonWriter.Flush), InstanceFlags)!;
+
+    /// <summary>
+    /// <see cref="Utf8JsonWriter.WritePropertyName(JsonEncodedText)"/>
+    /// </summary>
+    public static readonly MethodInfo Utf8JsonWriterWritePropertyNameMethod =
+        typeof(Utf8JsonWriter).GetMethod(nameof(Utf8JsonWriter.WritePropertyName), InstanceFlags, [typeof(JsonEncodedText)])!;
+
+    /// <summary>
+    /// <see cref="Utf8JsonWriter.WriteNullValue()"/>
+    /// </summary>
+    public static readonly MethodInfo Utf8JsonWriterWriteNullValueMethod =
+        typeof(Utf8JsonWriter).GetMethod(nameof(Utf8JsonWriter.WriteNullValue), InstanceFlags)!;
+
+    /// <summary>
+    /// <see cref="Utf8JsonWriter.WriteStartObject()"/>
+    /// </summary>
+    public static readonly MethodInfo Utf8JsonWriterWriteStartObjectMethod =
+        typeof(Utf8JsonWriter).GetMethod(nameof(Utf8JsonWriter.WriteStartObject), InstanceFlags, [])!;
+
+    /// <summary>
+    /// <see cref="Utf8JsonWriter.WriteEndObject()"/>
+    /// </summary>
+    public static readonly MethodInfo Utf8JsonWriterWriteEndObjectMethod =
+        typeof(Utf8JsonWriter).GetMethod(nameof(Utf8JsonWriter.WriteEndObject), InstanceFlags, [])!;
+
+    /// <summary>
+    /// <see cref="Utf8JsonWriter.WriteStartArray()"/>
+    /// </summary>
+    public static readonly MethodInfo Utf8JsonWriterWriteStartArrayMethod =
+        typeof(Utf8JsonWriter).GetMethod(nameof(Utf8JsonWriter.WriteStartArray), InstanceFlags, [])!;
+
+    /// <summary>
+    /// <see cref="Utf8JsonWriter.WriteEndArray()"/>
+    /// </summary>
+    public static readonly MethodInfo Utf8JsonWriterWriteEndArrayMethod =
+        typeof(Utf8JsonWriter).GetMethod(nameof(Utf8JsonWriter.WriteEndArray), InstanceFlags, [])!;
+    
+    
 }

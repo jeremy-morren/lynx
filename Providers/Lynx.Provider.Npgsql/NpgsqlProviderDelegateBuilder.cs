@@ -93,12 +93,6 @@ internal abstract class NpgsqlProviderDelegateBuilder : IProviderDelegateBuilder
             Expression.Constant(NpgsqlDbType.Jsonb, typeof(NpgsqlDbType)));
     }
 
-    public static Expression SerializeJson(Expression value)
-    {
-        //We use dynamic POCO mapping, so we don't need to serialize the object
-        return value;
-    }
-
     private static readonly PropertyInfo NpgsqlDbTypeProperty =
         typeof(NpgsqlParameter).GetProperty(nameof(NpgsqlParameter.NpgsqlDbType), ReflectionItems.InstanceFlags)!;
 

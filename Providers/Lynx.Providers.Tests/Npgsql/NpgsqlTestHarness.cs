@@ -17,7 +17,6 @@ public sealed class NpgsqlTestHarness : ITestHarness
         DeleteDatabase(_database);
 
         var builder = new NpgsqlDataSourceBuilder($"{ConnString};Database={_database}");
-        builder.EnableDynamicJson();
         if (enableNodaTimeOnDataSource)
             builder.UseNodaTime();
         _dataSource = builder.Build();

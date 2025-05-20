@@ -127,10 +127,9 @@ internal static class SetParameterValueDelegateBuilder<TCommand, TMapper, TEntit
             //Inside a null check, set to null
             return [SetParameterValue(json.ColumnIndex, null)];
 
-        //Get the value of the property and convert it to JSON
-        Expression value = Expression.Property(entity, json.PropertyInfo);
-        value = TMapper.SerializeJson(value);
-        return [SetParameterValue(json.ColumnIndex, value)];
+        var value = Expression.Property(entity, json.PropertyInfo);
+        var serialized = EntityJsonSerializer.Serialize(json, value);
+        return [SetParameterValue(json.ColumnIndex, value, serialized)];
     }
 
     /// <summary>
@@ -152,7 +151,7 @@ internal static class SetParameterValueDelegateBuilder<TCommand, TMapper, TEntit
             //Input is null, set to DBNull
             return Expression.Assign(parameterValue, ReflectionItems.DBNullValue);
 
-        Debug.Assert(value.Type != typeof(void));
+        Debug.Assert(value.Type != typeof(void), "Value is not void");
 
         var isNullable = ExpressionHelpers.IsNullable(parameterValue);
 
@@ -164,5 +163,39 @@ internal static class SetParameterValueDelegateBuilder<TCommand, TMapper, TEntit
             value = Expression.Coalesce(value, ReflectionItems.DBNullValue);
 
         return Expression.Assign(parameterValue, value);
+    }
+
+    /// <summary>
+    /// Builds expression to set parameter value at the given column index.
+    /// </summary>
+    /// <param name="columnIndex"></param>
+    /// <param name="input">Input value (to check for null)</param>
+    /// <param name="value">Value to set parameter to</param>
+    /// <returns></returns>
+    private static Expression SetParameterValue(int columnIndex, Expression input, Expression value)
+    {
+        Debug.Assert(columnIndex >= 0);
+        var parameterValue = Expression.Property(
+            Expression.Call(
+                Expression.Property(Command, ReflectionItems.CommandParametersProperty),
+                ReflectionItems.ParameterGetItemMethod,
+                Expression.Constant(columnIndex)),
+            ReflectionItems.ParameterValueProperty);
+
+        Debug.Assert(value.Type != typeof(void), "Value is not void");
+
+        if (value.Type != typeof(object))
+            value = Expression.Convert(value, typeof(object));
+
+        var ifNotNull = ExpressionHelpers.GetIfNotNull(input);
+        var assign = Expression.Assign(parameterValue, value);
+        if (ifNotNull == null)
+            //Input is not nullable, ignore null check
+            return assign;
+
+        // Input is nullable, set to DBNull if null
+        return Expression.IfThenElse(ifNotNull,
+            assign,
+            Expression.Assign(parameterValue, ReflectionItems.DBNullValue));
     }
 }

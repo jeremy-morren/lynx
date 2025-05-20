@@ -50,16 +50,17 @@ internal static class NpgsqlEntityColumnBuilder<TEntity, TWriter>
         return scalarProps.Concat(complexProps).Concat(owned);
     }
 
+    private const NpgsqlDbType JsonDbType = NpgsqlDbType.Jsonb;
+
     private static IEnumerable<NpgsqlEntityColumn<TEntity, TWriter>> GetOwned(OwnedEntityInfo owned, ImmutableList<IEntityPropertyInfo> path)
     {
         if (owned is not JsonOwnedEntityInfo json)
             return GetColumns(owned, path);
 
-        // Json column, get raw value (Npgsql will handle serialization)
-        const NpgsqlDbType dbType = NpgsqlDbType.Jsonb;
-        var write = BuildWrite(path, dbType);
-        var writeAsync = BuildWriteAsync(path, dbType);
-        return [new NpgsqlEntityColumn<TEntity, TWriter>(json, dbType, write, writeAsync)];
+        // Json column
+        var write = BuildJsonWrite(owned, path);
+        var writeAsync = BuildJsonWriteAsync(owned, path);
+        return [new NpgsqlEntityColumn<TEntity, TWriter>(json, JsonDbType, write, writeAsync)];
     }
 
     private static IEnumerable<NpgsqlEntityColumn<TEntity, TWriter>> GetKeys(RootEntityInfo entity) =>
@@ -125,6 +126,53 @@ internal static class NpgsqlEntityColumnBuilder<TEntity, TWriter>
             var writeNull = Expression.Call(writer, WriteNullAsyncMethod, cancellationToken);
             expression = Expression.Condition(ifNotNull, expression, writeNull);
         }
+        return Expression.Lambda<Func<TEntity, TWriter, CancellationToken, Task>>(expression, entity, writer, cancellationToken).Compile();
+    }
+
+    private static Action<TEntity, TWriter> BuildJsonWrite(OwnedEntityInfo owned, ImmutableList<IEntityPropertyInfo> path)
+    {
+        var entity = Expression.Parameter(typeof(TEntity), typeof(TEntity).Name.ToLowerInvariant());
+        var writer = Expression.Parameter(typeof(TWriter), "writer");
+
+        var (getValue, ifNotNull) = GetProperty(entity, path);
+
+        // Serialize the value to JSON
+        var value = EntityJsonSerializer.Serialize(owned, getValue);
+
+        var method = WriteWithTypeMethod.MakeGenericMethod(typeof(string));
+        Expression expression = Expression.Call(writer, method, value, Expression.Constant(JsonDbType));
+
+        if (ifNotNull != null)
+        {
+            //Call WriteNull if null
+            var writeNull = Expression.Call(writer, WriteNullMethod);
+            expression = Expression.IfThenElse(ifNotNull, expression, writeNull);
+        }
+
+        return Expression.Lambda<Action<TEntity, TWriter>>(expression, entity, writer).Compile();
+    }
+
+    private static Func<TEntity, TWriter, CancellationToken, Task> BuildJsonWriteAsync(OwnedEntityInfo owned, ImmutableList<IEntityPropertyInfo> path)
+    {
+        var entity = Expression.Parameter(typeof(TEntity), typeof(TEntity).Name.ToLowerInvariant());
+        var writer = Expression.Parameter(typeof(TWriter), "writer");
+        var cancellationToken = Expression.Parameter(typeof(CancellationToken), "cancellationToken");
+
+        var (getValue, ifNotNull) = GetProperty(entity, path);
+
+        // Serialize the value to JSON
+        var value = EntityJsonSerializer.Serialize(owned, getValue);
+
+        var method = WriteAsyncWithTypeMethod.MakeGenericMethod(typeof(string));
+        Expression expression = Expression.Call(writer, method, value, Expression.Constant(JsonDbType), cancellationToken);
+
+        if (ifNotNull != null)
+        {
+            //Call WriteNull if null
+            var writeNull = Expression.Call(writer, WriteNullAsyncMethod, cancellationToken);
+            expression = Expression.Condition(ifNotNull, expression, writeNull);
+        }
+
         return Expression.Lambda<Func<TEntity, TWriter, CancellationToken, Task>>(expression, entity, writer, cancellationToken).Compile();
     }
 

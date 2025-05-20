@@ -1,7 +1,11 @@
 ﻿using System.Collections.Immutable;
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Lynx.Providers.Common.Entities;
 using Lynx.Providers.Common.Models;
+using Newtonsoft.Json.Linq;
 using NodaTime;
 
 namespace Lynx.Providers.Tests;
@@ -51,11 +55,35 @@ public class ParameterDelegateBuilderTestsBase
         {
             parameter.Value.ShouldBe(DBNull.Value, $"{name} should be DBNull.Value");
         }
+        else if (IsJson(value, out var json))
+        {
+            var paramValue = parameter.Value.ShouldBeOfType<string>();
+            JToken.Parse(paramValue).Should().BeEquivalentTo(json);
+        }
         else
         {
             if (value.GetType().IsEnum)
                 value = Convert.ToInt32(value);
             parameter.Value.ShouldBe(value, $"Invalid value for {name}");
+        }
+    }
+
+    private static bool IsJson(object? value, [MaybeNullWhen(false)] out JToken json)
+    {
+        if (value is not string str)
+        {
+            json = null;
+            return false;
+        }
+        try
+        {
+            json = JToken.Parse(str);
+            return true;
+        }
+        catch (Newtonsoft.Json.JsonException)
+        {
+            json = null;
+            return false;
         }
     }
 
@@ -81,7 +109,7 @@ public class ParameterDelegateBuilderTestsBase
                 Owner = new BuildingOwner()
                 {
                     Company = "Ralph Gonsalves",
-                    Since = new LocalDate(2001, 3, 28)
+                    Since = new LocalDate(2001, 3, 28).At(LocalTime.Noon)
                 }
             }
         },
@@ -132,7 +160,7 @@ public class ParameterDelegateBuilderTestsBase
         }
     ];
 
-    protected static Customer[] GetTestCustomers() =>
+    public static Customer[] GetTestCustomers() =>
     [
         new Customer()
         {
@@ -163,6 +191,10 @@ public class ParameterDelegateBuilderTestsBase
             {
                 ContactId = 9
             },
+            Cat = new Cat()
+            {
+                Name = "Cat 1"
+            },
             Cats = []
         },
 
@@ -185,6 +217,7 @@ public class ParameterDelegateBuilderTestsBase
                 LastContact = DateTime.UnixEpoch
             },
             OrderContact = null!,
+            Cat = null,
             Cats = Enumerable.Range(100, 3)
                 .Select(i => new Cat()
                 {

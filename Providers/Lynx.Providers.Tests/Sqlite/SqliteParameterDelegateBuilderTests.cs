@@ -18,7 +18,7 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
         using var harness = new SqliteTestHarness();
         using var context = harness.CreateContext();
 
-        var entity = RootEntityInfoFactoryTests.CreateRootEntity(entityType, context.Model);
+        var entity = EntityInfoFactoryTests.CreateRootEntity(entityType, context.Model);
         var action = AddParameterDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder>.Build(entity);
         var command = new SqliteCommand();
         action(command);
@@ -32,7 +32,7 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
         using var harness = new SqliteTestHarness();
         using var context = harness.CreateContext();
 
-        var entity = RootEntityInfoFactory.Create<City>(context.Model);
+        var entity = EntityInfoFactory.CreateRoot<City>(context.Model);
 
         var addParameters = AddParameterDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder>.Build(entity);
 
@@ -59,7 +59,7 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
             Verify([nameof(City.FamousBuilding), nameof(Building.Purpose)], city.FamousBuilding?.Purpose);
             Verify([nameof(City.FamousBuilding), nameof(Building.Owner), nameof(BuildingOwner.Company)], city.FamousBuilding?.Owner?.Company);
             Verify([nameof(City.FamousBuilding), nameof(Building.Owner), nameof(BuildingOwner.Since)], 
-                city.FamousBuilding?.Owner?.Since?.ToString("yyyy-MM-dd", null));
+                city.FamousBuilding?.Owner?.Since?.ToString("yyyy-MM-ddTHH:mm:ss", null));
             Verify([nameof(City.Buildings)], SerializeJson(city.Buildings));
 
             command.Parameters.Count.ShouldBe(entity.GetAllScalarColumns().Count() + entity.Keys.Count);
@@ -77,7 +77,7 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
         using var harness = new SqliteTestHarness();
         using var context = harness.CreateContext();
 
-        var entity = RootEntityInfoFactory.Create<Customer>(context.Model);
+        var entity = EntityInfoFactory.CreateRoot<Customer>(context.Model);
 
         var addParameters = AddParameterDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder>.Build(entity);
 
@@ -101,6 +101,7 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
             Verify([nameof(Customer.OrderContact), nameof(CustomerContactInfo.LastContact)], customer.OrderContact?.LastContact);
             Verify([nameof(Customer.InvoiceContact), nameof(CustomerContactInfo.ContactId)], customer.InvoiceContact?.ContactId);
             Verify([nameof(Customer.InvoiceContact), nameof(CustomerContactInfo.LastContact)], customer.InvoiceContact?.LastContact);
+            Verify([nameof(Customer.Cat)], SerializeJson(customer.Cat));
             Verify([nameof(Customer.Cats)], SerializeJson(customer.Cats));
 
             command.Parameters.Count.ShouldBe(entity.Keys.Count + entity.GetAllScalarColumns().Count());
@@ -118,7 +119,7 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
         using var harness = new SqliteTestHarness();
         using var context = harness.CreateContext();
 
-        var entity = RootEntityInfoFactory.Create<ConverterEntity>(context.Model);
+        var entity = EntityInfoFactory.CreateRoot<ConverterEntity>(context.Model);
 
         var addParameters = AddParameterDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder>.Build(entity);
 
@@ -152,6 +153,5 @@ public class SqliteParameterDelegateBuilderTests : ParameterDelegateBuilderTests
         });
     }
 
-    private static string? SerializeJson<T>(T? value) =>
-        value == null ? null : JsonSerializer.Serialize(value, JsonSerializerOptions.Default);
+    public static string? SerializeJson(object? value) => JsonHelpers.SerializeJson(value);
 }

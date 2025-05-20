@@ -35,4 +35,9 @@ internal class OwnedEntityInfo : EntityInfo, IStructurePropertyInfo
     public required PropertyChain ColumnName { get; init; }
 
     IPropertyBase IEntityPropertyInfo.Property => Navigation;
+
+    /// <summary>
+    /// Gets a value indicating whether this property is a collection of owned entities.
+    /// </summary>
+    public bool IsCollection => Navigation.IsCollection;
 }

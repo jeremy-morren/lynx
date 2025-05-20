@@ -14,5 +14,4 @@ internal interface IStructureEntity
     /// Complex properties
     /// </summary>
     IReadOnlyList<ComplexEntityPropertyInfo> ComplexProps { get; init; }
-
 }

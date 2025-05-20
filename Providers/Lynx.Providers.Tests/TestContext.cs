@@ -1,10 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NodaTime;
 using NodaTime.Text;
+// ReSharper disable UnusedMember.Global
 
 // ReSharper disable ClassNeverInstantiated.Local
 // ReSharper disable PropertyCanBeMadeInitOnly.Global
@@ -47,7 +50,8 @@ public class TestContext : DbContext
 
         modelBuilder.Entity<Customer>(c =>
         {
-            c.OwnsMany(x => x.Cats).ToJson();
+            c.OwnsOne(x => x.Cat, Cat.Configure);
+            c.OwnsMany(x => x.Cats, Cat.Configure);
         });
 
         modelBuilder.Entity<ConverterEntity>(b =>
@@ -84,8 +88,11 @@ public class TestContext : DbContext
         // Test provider-specific converter
         if (Database.ProviderName?.Contains("Sqlite") == true)
         {
-            configurationBuilder.Properties<LocalDate>()
-                .HaveConversion<LocalDateConverter>();
+            configurationBuilder.Properties<LocalDateTime>()
+                .HaveConversion<LocalDateTimeConverter>();
+
+            configurationBuilder.Properties<Instant>()
+                .HaveConversion<InstantConverter>();
         }
     }
 
@@ -155,7 +162,7 @@ public record BuildingOwner
 {
     public string? Company { get; set; }
 
-    public LocalDate? Since { get; set; }
+    public LocalDateTime? Since { get; set; }
 }
 
 public enum BuildingPurpose
@@ -165,6 +172,16 @@ public enum BuildingPurpose
     Governmental
 }
 
+public record Contact
+{
+    public required int Id { get; set; }
+
+    public string? Name { get; set; }
+}
+
+/// <summary>
+/// Customer, for testing owned and complex types.
+/// </summary>
 public record Customer
 {
     public required int Id { get; set; }
@@ -182,16 +199,14 @@ public record Customer
     public CustomerContactInfo? InvoiceContact { get; set; }
 
     /// <summary>
+    /// Owns one, mapped to JSON
+    /// </summary>
+    public required Cat? Cat { get; set; }
+
+    /// <summary>
     /// Owns many, mapped to JSON
     /// </summary>
     public required List<Cat>? Cats { get; set; }
-}
-
-public record Contact
-{
-    public required int Id { get; set; }
-
-    public string? Name { get; set; }
 }
 
 [ComplexType]
@@ -200,6 +215,8 @@ public record Address
     public required string Street { get; set; }
 
     public required string City { get; set; }
+
+    public LocalDateTime LastUpdated { get; set; } = MillisecondClock.LocalNow;
 }
 
 [Owned]
@@ -212,10 +229,61 @@ public record CustomerContactInfo
     public Contact Contact { get; set; } = null!;
 }
 
+/// <summary>
+/// Owned type, testing JSON serialization.
+/// </summary>
 [Owned]
 public record Cat
 {
     public required string Name { get; init; }
+
+    public Instant BirthDate { get; init; } = MillisecondClock.Now;
+
+    /// <summary>
+    /// Owns one, mapped to JSON
+    /// </summary>
+    [JsonPropertyName("FirstKitten_Json")]
+    public Kitten? FirstKitten { get; set; } = new()
+    {
+        Name = "Kitten 1",
+        DeathDate = MillisecondClock.LocalNow
+    };
+
+    /// <summary>
+    /// Owns many, mapped to JSON
+    /// </summary>
+    public List<Kitten>? Kittens { get; set; } =
+    [
+        new Kitten() { Name = "Kitten 2" },
+        new Kitten() { Name = "Kitten 3" }
+    ];
+
+    // Apparently EF Core doesn't support complex types in owned types mapped to JSON
+
+    // public Address Address { get; set; } = new()
+    // {
+    //     Street = "Street 1",
+    //     City = "City 1"
+    // };
+
+    public static void Configure<TOwner>(OwnedNavigationBuilder<TOwner, Cat> builder)
+        where TOwner : class
+    {
+        builder.ToJson();
+        builder.OwnsOne(x => x.FirstKitten).ToJson("FirstKitten_Json");
+        builder.OwnsMany(x => x.Kittens).ToJson();
+    }
+}
+
+/// <summary>
+/// Owned type. Testing nested JSON serialization.
+/// </summary>
+[Owned]
+public record Kitten
+{
+    public required string Name { get; init; }
+
+    public LocalDateTime DeathDate { get; init; } = MillisecondClock.LocalNow;
 }
 
 /// <summary>
@@ -333,12 +401,24 @@ public record ReferenceNullableIntId(int? Value) : IStrongId
     }
 }
 
-    
-public class LocalDateConverter : ValueConverter<LocalDate, string>
+#region Converters
+
+public class LocalDateTimeConverter : ValueConverter<LocalDateTime, string>
 {
-    public LocalDateConverter() : base(
-        v => LocalDatePattern.Iso.Format(v),
-        v => LocalDatePattern.Iso.Parse(v).Value) 
+    public LocalDateTimeConverter() : base(
+        v => LocalDateTimePattern.GeneralIso.Format(v),
+        v => LocalDateTimePattern.GeneralIso.Parse(v).Value) 
     {
     }
 }
+
+public class InstantConverter : ValueConverter<Instant, string>
+{
+    public InstantConverter() : base(
+        v => InstantPattern.General.Format(v),
+        v => InstantPattern.General.Parse(v).Value)
+    {
+    }
+}
+
+#endregion

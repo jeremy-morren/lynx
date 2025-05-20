@@ -12,14 +12,14 @@ using NodaTime;
 
 namespace Lynx.Providers.Tests;
 
-public class RootEntityInfoFactoryTests
+public class EntityInfoFactoryTests
 {
     internal static RootEntityInfo CreateRootEntity(Type type, IModel model)
     {
         type.IsValueType.ShouldBeFalse();
 
-        var method = typeof(RootEntityInfoFactory)
-            .GetMethod(nameof(RootEntityInfoFactory.Create), BindingFlags.Static | BindingFlags.Public)
+        var method = typeof(EntityInfoFactory)
+            .GetMethod(nameof(EntityInfoFactory.CreateRoot), BindingFlags.Static | BindingFlags.Public)
             .ShouldNotBeNull();
 
         method = method.MakeGenericMethod(type);

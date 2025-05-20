@@ -13,4 +13,10 @@
     <PropertyGroup>
         <StrongNamePublicKey>0024000004800000940000000602000000240000525341310004000001000100816cf63a11ec1795b847558b3c3bbfdbacdcd17cec6bff17fbdd05670b7a058a8b3decedf832ee48177206003d313099a7dda9322bf97355641244410604af385425bb5e47796b107aeb6bad2e6a1370fe0ba7626b2141bb0d10cf699e3aa10ab341adaa2737d93f350ee3d52ca6b1002e5922f254ba303bb094a186ea90ebb8</StrongNamePublicKey>
     </PropertyGroup>
+
+    <PropertyGroup>
+        <EfCoreVersion>8.0.13</EfCoreVersion>
+        <NpgsqlVersion>8.0.5</NpgsqlVersion>
+        <NpgsqlEfCoreVersion>8.0.11</NpgsqlEfCoreVersion>
+    </PropertyGroup>
 </Project>

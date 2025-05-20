@@ -75,7 +75,6 @@ public class ProviderTestsBase
             switch (type)
             {
                 case ProviderTestType.Sync:
-                    
                     contactSvc.Upsert(contacts, connection);
                     customerSvc.Upsert(customers, connection);
                     break;
@@ -353,6 +352,10 @@ public class ProviderTestsBase
         {
             Street = $"Shipping street {id}",
             City = $"Shipping city {id}"
+        },
+        Cat = new Cat()
+        {
+            Name = $"Cat {id}",
         },
         Cats = Enumerable.Range(10,5)
             .Select(i => new Cat()

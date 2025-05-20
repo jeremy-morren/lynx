@@ -22,7 +22,7 @@ public class FullTextSearchTests
         
         using var context = new FullTextSearchContext(options);
         
-        var entity = RootEntityInfoFactory.Create<Product>(context.Model);
+        var entity = EntityInfoFactory.CreateRoot<Product>(context.Model);
         entity.GetAllScalarColumns()
             .ShouldNotContain(c => ((IProperty)c.Property).ValueGenerated != ValueGenerated.Never);
     }

@@ -7,9 +7,9 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Lynx.Providers.Common.Entities;
 
-internal static class RootEntityInfoFactory
+internal static class EntityInfoFactory
 {
-    public static RootEntityInfo<T> Create<T>(IModel model) where T : class
+    public static RootEntityInfo<T> CreateRoot<T>(IModel model) where T : class
     {
         var type = typeof(T);
         var entityType = model.FindEntityType(type)
@@ -112,7 +112,7 @@ internal static class RootEntityInfoFactory
         var columnName = GetColumnName(ownedType, navigation, parentColumn);
         var result = CreateEntityInternal(ownedType, name, columnName);
 
-        Debug.Assert(navigation.PropertyInfo != null);
+        Debug.Assert(navigation.PropertyInfo != null, "navigation.PropertyInfo != null");
         var owned = new OwnedEntityInfo
         {
             Name = name,

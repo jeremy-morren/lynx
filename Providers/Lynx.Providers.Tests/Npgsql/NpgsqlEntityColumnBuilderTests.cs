@@ -33,7 +33,7 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
 
     private static void CommandBuilderTestsGeneric<T>(TestContext context) where T : class
     {
-        var entity = RootEntityInfoFactory.Create<T>(context.Model);
+        var entity = EntityInfoFactory.CreateRoot<T>(context.Model);
         var expected = entity.Keys.Concat(entity.GetAllScalarColumns()).ToList();
 
         var columns = NpgsqlEntityColumnBuilder<T, NpgsqlBinaryImporter>.GetColumnInfo(entity);
@@ -64,7 +64,7 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
         using var harness = new NpgsqlTestHarness([nameof(BuildCitySetParametersDelegate)]);
         using var context = harness.CreateContext();
 
-        var entity = RootEntityInfoFactory.Create<City>(context.Model);
+        var entity = EntityInfoFactory.CreateRoot<City>(context.Model);
         var columns = NpgsqlEntityColumnBuilder<City, ITestWriter>.GetColumnInfo(entity);
         columns.Should().HaveCount(entity.GetAllScalarColumns().Count() + entity.Keys.Count);
 
@@ -84,7 +84,7 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
             Verify([nameof(City.FamousBuilding), nameof(Building.Purpose)], (int?)city.FamousBuilding?.Purpose);
             Verify([nameof(City.FamousBuilding), nameof(Building.Owner), nameof(BuildingOwner.Company)], city.FamousBuilding?.Owner?.Company);
             Verify([nameof(City.FamousBuilding), nameof(Building.Owner), nameof(BuildingOwner.Since)], city.FamousBuilding?.Owner?.Since);
-            Verify([nameof(City.Buildings)], city.Buildings);
+            Verify([nameof(City.Buildings)], SerializeJson(city.Buildings));
 
             return;
 
@@ -99,7 +99,7 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
         using var harness = new NpgsqlTestHarness([nameof(BuildCustomerSetParametersDelegate)]);
         using var context = harness.CreateContext();
 
-        var entity = RootEntityInfoFactory.Create<Customer>(context.Model);
+        var entity = EntityInfoFactory.CreateRoot<Customer>(context.Model);
 
         var columns = NpgsqlEntityColumnBuilder<Customer, ITestWriter>.GetColumnInfo(entity);
         columns.Should().HaveCount(entity.GetAllScalarColumns().Count() + entity.Keys.Count);
@@ -131,7 +131,7 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
         using var harness = new NpgsqlTestHarness([nameof(BuildConverterEntitySetParametersDelegate)]);
         using var context = harness.CreateContext();
 
-        var entity = RootEntityInfoFactory.Create<ConverterEntity>(context.Model);
+        var entity = EntityInfoFactory.CreateRoot<ConverterEntity>(context.Model);
 
         var columns = NpgsqlEntityColumnBuilder<ConverterEntity, ITestWriter>.GetColumnInfo(entity);
         columns.Should().HaveCount(entity.GetAllScalarColumns().Count() + entity.Keys.Count);
@@ -213,4 +213,6 @@ public class NpgsqlEntityColumnBuilderTests : ParameterDelegateBuilderTestsBase
 
         Task WriteNullAsync(CancellationToken ct);
     }
+
+    public static string? SerializeJson(object? value) => JsonHelpers.SerializeJson(value);
 }

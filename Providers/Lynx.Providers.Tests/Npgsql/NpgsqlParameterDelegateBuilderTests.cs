@@ -4,6 +4,8 @@ using System.Text.Json;
 using Lynx.Providers.Common.Entities;
 using Lynx.Providers.Common.Reflection;
 using Lynx.Provider.Npgsql;
+using NodaTime;
+using NodaTime.Serialization.SystemTextJson;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -20,7 +22,7 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
         using var harness = new NpgsqlTestHarness([nameof(BuildAddDelegate), entityType.Name]);
         using var context = harness.CreateContext();
 
-        var entity = RootEntityInfoFactoryTests.CreateRootEntity(entityType, context.Model);
+        var entity = EntityInfoFactoryTests.CreateRootEntity(entityType, context.Model);
         var action = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder>.Build(entity);
         var command = new NpgsqlCommand();
         action(command);
@@ -34,7 +36,7 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
         using var harness = new NpgsqlTestHarness([nameof(BuildCitySetParametersDelegate)]);
         using var context = harness.CreateContext();
 
-        var entity = RootEntityInfoFactory.Create<City>(context.Model);
+        var entity = EntityInfoFactory.CreateRoot<City>(context.Model);
 
         var addParameters = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder>.Build(entity);
 
@@ -61,7 +63,7 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
             Verify([nameof(City.FamousBuilding), nameof(Building.Purpose)], city.FamousBuilding?.Purpose);
             Verify([nameof(City.FamousBuilding), nameof(Building.Owner), nameof(BuildingOwner.Company)], city.FamousBuilding?.Owner?.Company);
             Verify([nameof(City.FamousBuilding), nameof(Building.Owner), nameof(BuildingOwner.Since)], city.FamousBuilding?.Owner?.Since);
-            Verify([nameof(City.Buildings)], city.Buildings);
+            Verify([nameof(City.Buildings)], SerializeJson(city.Buildings));
 
             command.Parameters.Count.ShouldBe(entity.GetAllScalarColumns().Count() + entity.Keys.Count);
 
@@ -78,7 +80,7 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
         using var harness = new NpgsqlTestHarness([nameof(BuildCustomerSetParametersDelegate)]);
         using var context = harness.CreateContext();
 
-        var entity = RootEntityInfoFactory.Create<Customer>(context.Model);
+        var entity = EntityInfoFactory.CreateRoot<Customer>(context.Model);
 
         var addParameters = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder>.Build(entity);
 
@@ -102,7 +104,8 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
             Verify([nameof(Customer.OrderContact), nameof(CustomerContactInfo.LastContact)], customer.OrderContact?.LastContact);
             Verify([nameof(Customer.InvoiceContact), nameof(CustomerContactInfo.ContactId)], customer.InvoiceContact?.ContactId);
             Verify([nameof(Customer.InvoiceContact), nameof(CustomerContactInfo.LastContact)], customer.InvoiceContact?.LastContact);
-            Verify([nameof(Customer.Cats)], customer.Cats);
+            Verify([nameof(Customer.Cat)], SerializeJson(customer.Cat));
+            Verify([nameof(Customer.Cats)], SerializeJson(customer.Cats));
 
             command.Parameters.Count.ShouldBe(entity.Keys.Count + entity.GetAllScalarColumns().Count());
 
@@ -119,7 +122,7 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
         using var harness = new NpgsqlTestHarness([nameof(BuildConverterEntitySetParametersDelegate)]);
         using var context = harness.CreateContext();
 
-        var entity = RootEntityInfoFactory.Create<ConverterEntity>(context.Model);
+        var entity = EntityInfoFactory.CreateRoot<ConverterEntity>(context.Model);
 
         var addParameters = AddParameterDelegateBuilder<NpgsqlCommand, NpgsqlProviderDelegateBuilder>.Build(entity);
 
@@ -184,7 +187,5 @@ public class NpgsqlParameterDelegateBuilderTests : ParameterDelegateBuilderTests
         NpgsqlProviderDelegateBuilder.GetDbType(dbType).ShouldBe(npgsqlDbType);
     }
 
-
-    private static string? SerializeJson<T>(T? value) =>
-        value == null ? null : JsonSerializer.Serialize(value, JsonSerializerOptions.Default);
+    public static string? SerializeJson(object? value) => JsonHelpers.SerializeJson(value);
 }

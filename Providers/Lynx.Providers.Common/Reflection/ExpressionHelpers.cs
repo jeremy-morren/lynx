@@ -19,7 +19,7 @@ internal static class ExpressionHelpers
     }
 
     /// <summary>
-    /// Returns an expression that checks if the given expression is not null null, or null if the expression is not nullable.
+    /// Returns an expression that checks if the given expression is not null, or null if the expression is not nullable.
     /// </summary>
     public static Expression? GetIfNotNull(Expression expression)
     {
@@ -61,5 +61,71 @@ internal static class ExpressionHelpers
             "Input is not a Func<,>");
 
         return expression.Type.GetGenericArguments()[0];
+    }
+
+    /// <summary>
+    /// Wraps an action in a TryFinally block with dispose logic.
+    /// </summary>
+    public static Expression UsingExpression(
+        ParameterExpression value,
+        Expression @new,
+        Func<Expression> action)
+    {
+        var assign = Expression.Assign(value, @new);
+        var nullCheck = GetIfNotNull(value);
+        Expression dispose = Expression.Call(value, ReflectionItems.DisposeMethod);
+        if (nullCheck != null)
+            dispose = Expression.IfThen(nullCheck, dispose);
+        return Expression.Block(
+            [value],
+            assign,
+            Expression.TryFinally(action(), dispose));
+    }
+
+    /// <summary>
+    /// Creates a for loop that iterates over a collection of type IReadOnlyList{T}
+    /// </summary>
+    public static Expression ForLoop(Expression list, ParameterExpression item, Expression body)
+    {
+        var @interface = IsIReadOnlyList(list.Type)
+            ? list.Type
+            : list.Type.GetInterfaces().SingleOrDefault(IsIReadOnlyList);
+        Debug.Assert(@interface != null, "Collection must implement IReadOnlyList<T>");
+
+        var readOnlyListType = typeof(IReadOnlyList<>).MakeGenericType(@interface.GetGenericArguments());
+        var readOnlyCollectionType = typeof(IReadOnlyCollection<>).MakeGenericType(@interface.GetGenericArguments());
+
+        var getItem = readOnlyListType.GetMethod("get_Item", [typeof(int)])!;
+        Debug.Assert(getItem != null, "getItem != null");
+
+        var readOnlyList = Expression.Parameter(readOnlyListType, "list");
+        var count = Expression.Variable(typeof(int), "count");
+        var i = Expression.Variable(typeof(int), "i");
+
+        var label = Expression.Label();
+
+        return Expression.Block(
+            [i, count, readOnlyList, item],
+            Expression.Assign(i, Expression.Constant(0)),
+            Expression.Assign(readOnlyList, Expression.Convert(list, readOnlyListType)),
+            Expression.Assign(count,
+                Expression.Property(
+                    Expression.Convert(list, readOnlyCollectionType),
+                    "Count")),
+            Expression.Loop(
+                Expression.IfThenElse(
+                    Expression.LessThan(i, count),
+                    Expression.Block(
+                        Expression.Assign(item,
+                            Expression.Call(readOnlyList, getItem, i)),
+                        body,
+                        Expression.PreIncrementAssign(i)),
+                    Expression.Break(label)
+                ),
+                label)
+        );
+
+        static bool IsIReadOnlyList(Type type) =>
+            type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IReadOnlyList<>);
     }
 }
