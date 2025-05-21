@@ -1,11 +1,8 @@
 ﻿using System.Collections.Immutable;
 using System.Data;
-using System.Text.Json;
 using Lynx.Providers.Common.Entities;
 using Lynx.Providers.Common.Reflection;
 using Lynx.Provider.Npgsql;
-using NodaTime;
-using NodaTime.Serialization.SystemTextJson;
 using Npgsql;
 using NpgsqlTypes;
 

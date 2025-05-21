@@ -6,7 +6,6 @@ using System.Text;
 using System.Text.Json;
 using Lynx.Providers.Common.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.Json;
 
 namespace Lynx.Providers.Common.Reflection;
@@ -109,7 +108,8 @@ internal static class EntityJsonSerializer
         result.Add(Expression.Call(writer, ReflectionItems.Utf8JsonWriterWriteEndObjectMethod));
 
         var write = Expression.Block(result);
-        if (ignoreNull) return write;
+        if (ignoreNull)
+            return write;
 
         var ifNotNull = ExpressionHelpers.GetIfNotNull(value);
         if (ifNotNull == null)

@@ -1,8 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Lynx.Providers.Common.Entities;
 using Lynx.Providers.Common.Models;
 using Newtonsoft.Json.Linq;
