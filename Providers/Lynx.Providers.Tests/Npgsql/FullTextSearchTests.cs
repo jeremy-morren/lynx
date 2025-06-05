@@ -12,7 +12,7 @@ namespace Lynx.Providers.Tests.Npgsql;
 public class FullTextSearchTests
 {
     [Fact]
-    public void DoInsert()
+    public void ValueGeneratedColumnsShouldBeIgnored()
     {
         const string connString = $"{NpgsqlTestHarness.ConnString};Database={nameof(FullTextSearchTests)}";
         var options = new DbContextOptionsBuilder<FullTextSearchContext>()

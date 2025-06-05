@@ -11,14 +11,13 @@ public sealed class NpgsqlTestHarness : ITestHarness
 
     private readonly NpgsqlDataSource _dataSource;
 
-    public NpgsqlTestHarness(object[] database, bool enableNodaTimeOnDataSource = false)
+    public NpgsqlTestHarness(object[] database)
     {
         _database = string.Join('_', database).ToLowerInvariant();
         DeleteDatabase(_database);
 
         var builder = new NpgsqlDataSourceBuilder($"{ConnString};Database={_database}");
-        if (enableNodaTimeOnDataSource)
-            builder.UseNodaTime();
+        builder.UseNodaTime();
         _dataSource = builder.Build();
     }
 

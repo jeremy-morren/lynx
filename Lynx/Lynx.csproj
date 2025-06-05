@@ -13,7 +13,7 @@
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="$(EfCoreVersion)" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="$(EfCoreVersion)" />
 
-        <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="9.0.3" />
+        <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="9.0.5" />
     </ItemGroup>
     
     <ItemGroup>
