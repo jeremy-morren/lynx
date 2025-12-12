@@ -1,19 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
 
         <NoWarn>$(NoWarn);EF1001;</NoWarn>
     </PropertyGroup>
+
     <ItemGroup>
-        <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
+        <PackageReference Include="JetBrains.Annotations"  />
 
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="$(EfCoreVersion)" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="$(EfCoreVersion)" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
 
-        <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="9.0.3" />
+        <PackageReference Include="System.Diagnostics.DiagnosticSource"
+                          Condition="'$(TargetFramework)' == 'net8.0'"
+                          Version="9.0.3"/>
     </ItemGroup>
     
     <ItemGroup>

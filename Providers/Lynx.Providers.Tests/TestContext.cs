@@ -270,8 +270,8 @@ public record Cat
         where TOwner : class
     {
         builder.ToJson();
-        builder.OwnsOne(x => x.FirstKitten).ToJson("FirstKitten_Json");
-        builder.OwnsMany(x => x.Kittens).ToJson();
+        builder.OwnsOne(x => x.FirstKitten).HasJsonPropertyName("FirstKitten_Json");
+        builder.OwnsMany(x => x.Kittens);
     }
 }
 

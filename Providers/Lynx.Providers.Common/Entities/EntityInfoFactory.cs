@@ -112,7 +112,7 @@ internal static class EntityInfoFactory
         var columnName = GetColumnName(ownedType, navigation, parentColumn);
         var result = CreateEntityInternal(ownedType, name, columnName);
 
-        Debug.Assert(navigation.PropertyInfo != null, "navigation.PropertyInfo != null");
+        Debug.Assert(navigation.PropertyInfo != null);
         var owned = new OwnedEntityInfo
         {
             Name = name,

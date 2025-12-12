@@ -26,21 +26,17 @@ public static class ForeignKeyHelpers
     /// </summary>
     public static void ExecuteSetConstraintsDeferrable(DbContext context)
     {
-        using var transaction = context.Database.BeginTransaction();
-        foreach (var command in GetConstraintsDeferrableCommands(context.Model))
-            context.Database.ExecuteSqlRaw(command);
-        transaction.Commit();
+        var sql = context.Model.GenerateSetConstraintsDeferrableScript();
+        context.Database.ExecuteSqlRaw(sql);
     }
 
     /// <summary>
     /// Sets all foreign key constraints in the database to be deferrable.
     /// </summary>
-    public static async Task ExecuteSetConstraintsDeferrableAsync(DbContext context, CancellationToken cancellationToken = default)
+    public static Task ExecuteSetConstraintsDeferrableAsync(DbContext context, CancellationToken cancellationToken = default)
     {
-        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-        foreach (var command in GetConstraintsDeferrableCommands(context.Model))
-            await context.Database.ExecuteSqlRawAsync(command, cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        var sql = context.Model.GenerateSetConstraintsDeferrableScript();
+        return context.Database.ExecuteSqlRawAsync(sql, cancellationToken);
     }
 
     /// <summary>
@@ -51,9 +47,11 @@ public static class ForeignKeyHelpers
     public static string GenerateSetConstraintsDeferrableScript(this IModel model)
     {
         var sb = new StringBuilder();
+        sb.AppendLine("-- Set all foreign key constraints to be deferrable");
+        sb.AppendLine("BEGIN TRANSACTION;");
         foreach (var cmd in GetConstraintsDeferrableCommands(model))
             sb.AppendLine(cmd);
-
+        sb.AppendLine("COMMIT;");
         return sb.ToString();
     }
 

@@ -130,7 +130,7 @@ internal static class EntityJsonSerializer
         ParameterExpression writer)
     {
         var jsonPropertyName = entity.EntityType.GetJsonPropertyName();
-        Debug.Assert(jsonPropertyName != null, "jsonPropertyName != null");
+        Debug.Assert(jsonPropertyName != null);
         var value = Expression.Property(parent, entity.PropertyInfo);
         return
         [
@@ -178,10 +178,10 @@ internal static class EntityJsonSerializer
         ParameterExpression writer)
     {
         var jsonPropertyName = scalar.Property.GetJsonPropertyName();
-        Debug.Assert(jsonPropertyName != null, "jsonPropertyName != null");
+        Debug.Assert(jsonPropertyName != null);
 
         var jsonConverter = scalar.Property.GetJsonValueReaderWriter() ?? scalar.Property.GetTypeMapping().JsonValueReaderWriter;
-        Debug.Assert(jsonConverter != null, "jsonConverter != null");
+        Debug.Assert(jsonConverter != null);
 
         var writePropertyName = WritePropertyName(jsonPropertyName, writer);
         var value = Expression.Property(parent, scalar.PropertyInfo);

@@ -4,6 +4,7 @@ using Lynx.EfCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Moq;
+// ReSharper disable PossibleUnintendedQueryableAsEnumerable
 
 // ReSharper disable MethodHasAsyncOverload
 // ReSharper disable UseAwaitUsing

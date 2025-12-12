@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
 
@@ -15,11 +15,12 @@
         <ProjectReference Include="..\Lynx\Lynx.csproj" />
         <ProjectReference Include="..\Providers\Lynx.Provider.Npgsql\Lynx.Provider.Npgsql.csproj" />
         <ProjectReference Include="..\Providers\Lynx.Provider.Sqlite\Lynx.Provider.Sqlite.csproj" />
+
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="$(EfCoreVersion)" />
-        <PackageReference Include="System.Linq.Async" Version="6.0.1" />
+        <PackageReference Include="System.Linq.AsyncEnumerable"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
     </ItemGroup>
 
     <ItemGroup>

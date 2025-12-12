@@ -1,6 +1,8 @@
 ﻿using Lynx.Bulk;
+
 // ReSharper disable MethodHasAsyncOverload
 // ReSharper disable UseAwaitUsing
+// ReSharper disable PossibleUnintendedQueryableAsEnumerable
 
 namespace Lynx.Tests;
 

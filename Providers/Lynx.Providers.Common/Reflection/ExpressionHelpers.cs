@@ -96,7 +96,7 @@ internal static class ExpressionHelpers
         var readOnlyCollectionType = typeof(IReadOnlyCollection<>).MakeGenericType(@interface.GetGenericArguments());
 
         var getItem = readOnlyListType.GetMethod("get_Item", [typeof(int)])!;
-        Debug.Assert(getItem != null, "getItem != null");
+        Debug.Assert(getItem != null);
 
         var readOnlyList = Expression.Parameter(readOnlyListType, "list");
         var count = Expression.Variable(typeof(int), "count");
