@@ -27,7 +27,7 @@ internal static class LynxProviderFactory
     /// <summary>
     /// Creates a new <see cref="ILynxProvider"/> based on the EF Core provider.
     /// </summary>
-    private static ILynxProvider CreateProvider(string efCoreProvider)
+    public static ILynxProvider CreateProvider(string efCoreProvider)
     {
         ArgumentNullException.ThrowIfNull(efCoreProvider);
 
@@ -37,6 +37,8 @@ internal static class LynxProviderFactory
                 ("Lynx.Provider.Sqlite", "Lynx.Provider.Sqlite.SqliteLynxProvider"),
             "Npgsql.EntityFrameworkCore.PostgreSQL" => 
                 ("Lynx.Provider.Npgsql", "Lynx.Provider.Npgsql.NpgsqlLynxProvider"),
+            "Microsoft.EntityFrameworkCore.SqlServer" =>
+                ("Lynx.Provider.SqlServer", "Lynx.Provider.SqlServer.SqlServerLynxProvider"),
             _ => throw new NotSupportedException($"EF Core provider {efCoreProvider} is not supported.")
         };
         var type = Type.GetType($"{typeName.Type}, {typeName.Assembly}")

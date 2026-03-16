@@ -20,10 +20,11 @@
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-        <PackageReference Update="Microsoft.EntityFrameworkCore" Version="8.0.22" />
-        <PackageReference Update="Microsoft.EntityFrameworkCore.Relational" Version="8.0.22" />
-        <PackageReference Update="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.22" />
-        <PackageReference Update="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.22" />
+        <PackageReference Update="Microsoft.EntityFrameworkCore" Version="8.0.25" />
+        <PackageReference Update="Microsoft.EntityFrameworkCore.Relational" Version="8.0.25" />
+        <PackageReference Update="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.25" />
+        <PackageReference Update="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.25" />
+        <PackageReference Update="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.25" />
         <PackageReference Update="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
         <PackageReference Update="Npgsql.EntityFrameworkCore.PostgreSQL.NodaTime" Version="8.0.11" />
         <PackageReference Update="Npgsql" Version="8.0.8" />
@@ -36,6 +37,7 @@
         <PackageReference Update="Microsoft.EntityFrameworkCore.Relational" Version="9.0.11" />
         <PackageReference Update="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.11" />
         <PackageReference Update="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.11" />
+        <PackageReference Update="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.11" />
         <PackageReference Update="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.1" />
         <PackageReference Update="Npgsql.EntityFrameworkCore.PostgreSQL.NodaTime" Version="9.0.1" />
         <PackageReference Update="Npgsql" Version="9.0.4" />
@@ -44,10 +46,11 @@
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-        <PackageReference Update="Microsoft.EntityFrameworkCore" Version="10.0.1" />
-        <PackageReference Update="Microsoft.EntityFrameworkCore.Relational" Version="10.0.1" />
-        <PackageReference Update="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.1" />
-        <PackageReference Update="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
+        <PackageReference Update="Microsoft.EntityFrameworkCore" Version="10.0.5" />
+        <PackageReference Update="Microsoft.EntityFrameworkCore.Relational" Version="10.0.5" />
+        <PackageReference Update="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.5" />
+        <PackageReference Update="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.5" />
+        <PackageReference Update="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.5" />
         <PackageReference Update="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
         <PackageReference Update="Npgsql.EntityFrameworkCore.PostgreSQL.NodaTime" Version="10.0.0" />
         <PackageReference Update="Npgsql" Version="10.0.0" />

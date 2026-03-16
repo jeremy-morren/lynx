@@ -131,29 +131,28 @@ internal static class AddParameterDelegateBuilder<TCommand, TDelegateBuilder>
 
         if (size != null)
         {
-            //Set size
+            // Set size
             result.Add(
                 Expression.Assign(
                     Expression.Property(Parameter, ReflectionItems.DbParameterSizeProperty),
                     Expression.Constant(size.Value)));
         }
         
-        
         if (scale != null)
         {
-            //Set scale
+            // Set scale
             result.Add(
                 Expression.Assign(
                     Expression.Property(Parameter, ReflectionItems.DbParameterScaleProperty),
-                    Expression.Constant(scale.Value)));
+                    Expression.Constant((byte)scale.Value)));
         }
         if (precision != null)
         {
-            //Set precision
+            // Set precision
             result.Add(
                 Expression.Assign(
                     Expression.Property(Parameter, ReflectionItems.DbParameterPrecisionProperty),
-                    Expression.Constant(precision.Value)));
+                    Expression.Constant((byte)precision.Value)));
         }
 
         //Add the parameter to the command

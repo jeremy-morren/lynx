@@ -11,12 +11,12 @@ internal interface IDocumentSessionOperation
     /// <summary>
     /// Saves the changes to the database.
     /// </summary>
-    void SaveChanges(DbContext context, DbConnection connection);
+    void SaveChanges(DbContext context, DbTransaction transaction);
     
     /// <summary>
     /// Saves the changes to the database asynchronously.
     /// </summary>
-    Task SaveChangesAsync(DbContext context, DbConnection connection, CancellationToken cancellationToken);
+    Task SaveChangesAsync(DbContext context, DbTransaction transaction, CancellationToken cancellationToken);
 
     /// <summary>
     /// Documents that will be inserted or updated

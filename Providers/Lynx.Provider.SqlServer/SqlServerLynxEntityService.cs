@@ -3,21 +3,26 @@ using System.Diagnostics;
 using Lynx.Providers.Common;
 using Lynx.Providers.Common.Models;
 using Lynx.Providers.Common.Reflection;
-using Microsoft.Data.Sqlite;
+using Microsoft.Data.SqlClient;
+// ReSharper disable InvertIf
 
-namespace Lynx.Provider.Sqlite;
+namespace Lynx.Provider.SqlServer;
 
-internal class SqliteLynxEntityService<T> : ILynxEntityService<T>
+internal class SqlServerLynxEntityService<T> : ILynxEntityService<T>
     where T : class
 {
-    public SqliteLynxEntityService(RootEntityInfo<T> entity)
+    public SqlServerLynxEntityService(RootEntityInfo<T> entity)
     {
-        var generator = new CommandGenerator(entity);
+        var generator = new SqlServerCommandGenerator(entity);
+
         _insertWithKeyCommand = generator.GetInsertWithKeyCommand();
         _upsertCommand = generator.GetUpsertCommand();
 
-        _addParameters = AddParameterDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder>.Build(entity);
-        _setParameterValues = SetParameterValueDelegateBuilder<SqliteCommand, SqliteProviderDelegateBuilder, T>.Build(entity);
+        _setIdentityInsertOnCommand = generator.GetSetIdentityInsertCommand(true);
+        _setIdentityInsertOffCommand = generator.GetSetIdentityInsertCommand(false);
+
+        _addParameters = AddParameterDelegateBuilder<SqlCommand, SqlServerProviderDelegateBuilder>.Build(entity);
+        _setParameterValues = SetParameterValueDelegateBuilder<SqlCommand, SqlServerProviderDelegateBuilder, T>.Build(entity);
     }
 
     /// <summary>
@@ -31,19 +36,29 @@ internal class SqliteLynxEntityService<T> : ILynxEntityService<T>
     private readonly string _upsertCommand;
 
     /// <summary>
+    /// SQL to set identity insert ON, if necessary
+    /// </summary>
+    private readonly string? _setIdentityInsertOnCommand;
+
+    /// <summary>
+    /// SQL to set identity insert OFF, if necessary
+    /// </summary>
+    private readonly string? _setIdentityInsertOffCommand;
+
+    /// <summary>
     /// Action to add parameters to a command
     /// </summary>
-    private readonly Action<SqliteCommand> _addParameters;
+    private readonly Action<SqlCommand> _addParameters;
 
     /// <summary>
     /// Action to set parameter values for an entity
     /// </summary>
-    private readonly Action<SqliteCommand, T> _setParameterValues;
+    private readonly Action<SqlCommand, T> _setParameterValues;
 
-    private static SqliteConnection GetSqliteConnection(DbTransaction transaction)
+    private static SqlConnection GetSqlConnection(DbTransaction transaction)
     {
-        Debug.Assert(transaction.Connection is SqliteConnection, "connection must be a SqliteConnection");
-        return (SqliteConnection)transaction.Connection;
+        Debug.Assert(transaction.Connection is SqlConnection, "connection must be a SqlConnection");
+        return (SqlConnection)transaction.Connection;
     }
 
     /// <summary>
@@ -55,16 +70,20 @@ internal class SqliteLynxEntityService<T> : ILynxEntityService<T>
         DbTransaction transaction,
         CancellationToken cancellationToken = default)
     {
-        Debug.Assert(transaction is SqliteTransaction);
-        var sqliteConnection = GetSqliteConnection(transaction);
+        Debug.Assert(transaction is SqlTransaction);
+        var sqlConnection = GetSqlConnection(transaction);
 
-        using var command = sqliteConnection.CreateCommand();
-        command.Transaction = (SqliteTransaction)transaction;
+        using var command = sqlConnection.CreateCommand();
+        command.Transaction = (SqlTransaction)transaction;
+
+        if (_setIdentityInsertOnCommand != null)
+        {
+            command.CommandText = _setIdentityInsertOnCommand;
+            command.ExecuteNonQuery();
+        }
 
         command.CommandText = commandText;
         _addParameters(command);
-
-        command.Prepare();
 
         foreach (var entity in entities)
         {
@@ -73,6 +92,13 @@ internal class SqliteLynxEntityService<T> : ILynxEntityService<T>
 
             cancellationToken.ThrowIfCancellationRequested();
             _setParameterValues(command, entity);
+            command.ExecuteNonQuery();
+        }
+
+        if (_setIdentityInsertOffCommand != null)
+        {
+            command.Parameters.Clear();
+            command.CommandText = _setIdentityInsertOffCommand;
             command.ExecuteNonQuery();
         }
     }
@@ -86,16 +112,20 @@ internal class SqliteLynxEntityService<T> : ILynxEntityService<T>
         DbTransaction transaction,
         CancellationToken cancellationToken = default)
     {
-        Debug.Assert(transaction is SqliteTransaction);
-        var sqliteConnection = GetSqliteConnection(transaction);
+        Debug.Assert(transaction is SqlTransaction);
+        var sqlConnection = GetSqlConnection(transaction);
 
-        await using var command = sqliteConnection.CreateCommand();
-        command.Transaction = (SqliteTransaction)transaction;
+        await using var command = sqlConnection.CreateCommand();
+        command.Transaction = (SqlTransaction)transaction;
+
+        if (_setIdentityInsertOnCommand != null)
+        {
+            command.CommandText = _setIdentityInsertOnCommand;
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
 
         command.CommandText = commandText;
         _addParameters(command);
-
-        await command.PrepareAsync(cancellationToken);
 
         foreach (var entity in entities)
         {
@@ -104,6 +134,13 @@ internal class SqliteLynxEntityService<T> : ILynxEntityService<T>
 
             cancellationToken.ThrowIfCancellationRequested();
             _setParameterValues(command, entity);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        if (_setIdentityInsertOffCommand != null)
+        {
+            command.Parameters.Clear();
+            command.CommandText = _setIdentityInsertOffCommand;
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
     }
@@ -117,16 +154,20 @@ internal class SqliteLynxEntityService<T> : ILynxEntityService<T>
         DbTransaction transaction,
         CancellationToken cancellationToken = default)
     {
-        Debug.Assert(transaction is SqliteTransaction);
-        var sqliteConnection = GetSqliteConnection(transaction);
+        Debug.Assert(transaction is SqlTransaction);
+        var sqlConnection = GetSqlConnection(transaction);
 
-        await using var command = sqliteConnection.CreateCommand();
-        command.Transaction = (SqliteTransaction)transaction;
+        await using var command = sqlConnection.CreateCommand();
+        command.Transaction = (SqlTransaction)transaction;
+
+        if (_setIdentityInsertOnCommand != null)
+        {
+            command.CommandText = _setIdentityInsertOnCommand;
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
 
         command.CommandText = commandText;
         _addParameters(command);
-
-        await command.PrepareAsync(cancellationToken);
 
         await foreach (var entity in entities.WithCancellation(cancellationToken))
         {
@@ -137,8 +178,14 @@ internal class SqliteLynxEntityService<T> : ILynxEntityService<T>
             _setParameterValues(command, entity);
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
-    }
 
+        if (_setIdentityInsertOffCommand != null)
+        {
+            command.Parameters.Clear();
+            command.CommandText = _setIdentityInsertOffCommand;
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+    }
 
     public void Insert(
         IEnumerable<T> entities,

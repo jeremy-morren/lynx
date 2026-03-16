@@ -15,7 +15,8 @@
         <InternalsVisibleTo Include="Lynx, PublicKey=$(StrongNamePublicKey)"/>
         <InternalsVisibleTo Include="Lynx.Provider.Sqlite, PublicKey=$(StrongNamePublicKey)"/>
         <InternalsVisibleTo Include="Lynx.Provider.Npgsql, PublicKey=$(StrongNamePublicKey)"/>
-        
+        <InternalsVisibleTo Include="Lynx.Provider.SqlServer, PublicKey=$(StrongNamePublicKey)"/>
+
         <InternalsVisibleTo Include="Lynx.Providers.Tests, PublicKey=$(StrongNamePublicKey)"/>
     </ItemGroup>
 

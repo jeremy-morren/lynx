@@ -24,7 +24,7 @@ internal class ReplaceOperation<T> : OperationBase<T>, IDocumentSessionOperation
         _options = options;
     }
     
-    public void SaveChanges(DbContext context, DbConnection connection)
+    public void SaveChanges(DbContext context, DbTransaction transaction)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -34,12 +34,12 @@ internal class ReplaceOperation<T> : OperationBase<T>, IDocumentSessionOperation
         //Insert the new entities
         var service = GetService(context);
         if (ShouldUseBulkInsert(_options, _entities.Count, service, out var bulk))
-            bulk.BulkInsert(_entities, connection);
+            bulk.BulkInsert(_entities, transaction);
         else
-            service.Insert(_entities, connection);
+            service.Insert(_entities, transaction);
     }
 
-    public async Task SaveChangesAsync(DbContext context, DbConnection connection, CancellationToken cancellationToken)
+    public async Task SaveChangesAsync(DbContext context, DbTransaction transaction, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -49,9 +49,9 @@ internal class ReplaceOperation<T> : OperationBase<T>, IDocumentSessionOperation
         //Insert the new entities
         var service = GetService(context);
         if (ShouldUseBulkInsert(_options, _entities.Count, service, out var bulk))
-            await bulk.BulkInsertAsync(_entities, connection, cancellationToken);
+            await bulk.BulkInsertAsync(_entities, transaction, cancellationToken);
         else
-            await service.InsertAsync(_entities, connection, cancellationToken);
+            await service.InsertAsync(_entities, transaction, cancellationToken);
     }
 
     public IEnumerable<object> InsertedOrUpdatedDocuments => _entities;

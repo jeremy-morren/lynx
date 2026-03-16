@@ -46,12 +46,21 @@ public class TestContext : DbContext
             b.ComplexProperty(x => x.LegalSystem);
         });
 
-        modelBuilder.Entity<Contact>();
+        modelBuilder.Entity<Contact>(b =>
+        {
+            b.Property(x => x.Id).ValueGeneratedNever();
+        });
 
         modelBuilder.Entity<Customer>(c =>
         {
+            c.Property(x => x.Id).ValueGeneratedNever();
+
             c.OwnsOne(x => x.Cat, Cat.Configure);
             c.OwnsMany(x => x.Cats, Cat.Configure);
+            c.OwnsOne(x => x.OrderContact)
+                .HasOne(x => x.Contact)
+                .WithMany()
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<ConverterEntity>(b =>
@@ -86,7 +95,7 @@ public class TestContext : DbContext
             .HaveConversion<ReferenceNullableIntId.EfCoreValueConverter>();
         
         // Test provider-specific converter
-        if (Database.ProviderName?.Contains("Sqlite") == true)
+        if (Database.ProviderName?.Contains("Npgsql") != true)
         {
             configurationBuilder.Properties<LocalDateTime>()
                 .HaveConversion<LocalDateTimeConverter>();
@@ -223,6 +232,8 @@ public record Address
 public record CustomerContactInfo
 {
     public DateTime? LastContact { get; set; }
+    public DateTimeOffset? LastContactUtc { get; set; }
+    public DateOnly? LastContactDate { get; set; }
 
     public required int ContactId { get; set; }
 
@@ -299,9 +310,11 @@ public record IdOnly
 /// </summary>
 public interface IStrongId {}
 
-public readonly record struct CityId(int Value) : IStrongId
+public readonly record struct CityId(string Value) : IStrongId
 {
-    public class EfCoreValueConverter : ValueConverter<CityId, int>
+    public CityId(int value) : this(value.ToString()) {}
+
+    public class EfCoreValueConverter : ValueConverter<CityId, string>
     {
         public EfCoreValueConverter() : base(
             v => v.Value,

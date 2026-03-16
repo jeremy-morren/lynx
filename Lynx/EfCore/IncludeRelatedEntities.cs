@@ -29,14 +29,21 @@ internal static class IncludeRelatedEntities
 
     private static IEnumerable<string> GetIncludePropertiesInternal(IEntityType entityType, IForeignKey? parentKey) =>
         GetNavigations(entityType, parentKey)
-            .SelectMany(nav =>
+            .SelectMany(IEnumerable<string> (nav) =>
             {
                 //Recursively get all children, except for this navigation
-                var children = GetIncludePropertiesInternal(nav.TargetEntityType, nav.ForeignKey).Select(n => $"{nav.Name}.{n}");
+                var children = GetIncludePropertiesInternal(nav.TargetEntityType, nav.ForeignKey)
+                    .Select(n => $"{nav.Name}.{n}")
+                    .ToList();
 
-                return nav.ForeignKey.IsOwnership
-                    ? children // For owned properties, return only the children
-                    : children.Prepend(nav.Name); // For non-owned properties, return the navigation itself and its children
+                if (nav.ForeignKey.IsOwnership)
+                    return children; // Owned properties: return only the children
+
+                return children.Count == 0
+                    ? [nav.Name]  // No children, return the navigation itself
+                    // There are children, so we don't need to include the navigation itself
+                    // i.e. just return Navigation.Child (which will implicitly include 'Navigation')
+                    : children;
             });
 
     /// <summary>

@@ -181,7 +181,7 @@ internal static class EntityJsonSerializer
         Debug.Assert(jsonPropertyName != null);
 
         var jsonConverter = scalar.Property.GetJsonValueReaderWriter() ?? scalar.Property.GetTypeMapping().JsonValueReaderWriter;
-        Debug.Assert(jsonConverter != null);
+        Debug.Assert(jsonConverter != null, "jsonConverter != null");
 
         var writePropertyName = WritePropertyName(jsonPropertyName, writer);
         var value = Expression.Property(parent, scalar.PropertyInfo);

@@ -19,25 +19,25 @@ internal class UpsertOperation<T> : OperationBase<T>, IDocumentSessionOperation
         _options = options;
     }
     
-    public void SaveChanges(DbContext context, DbConnection connection)
+    public void SaveChanges(DbContext context, DbTransaction transaction)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         var service = GetService(context);
         if (ShouldUseBulkUpsert(_options, _entities.Count, service, out var bulk))
-            bulk.BulkUpsert(_entities, connection);
+            bulk.BulkUpsert(_entities, transaction);
         else
-            service.Upsert(_entities, connection);
+            service.Upsert(_entities, transaction);
     }
 
-    public Task SaveChangesAsync(DbContext context, DbConnection connection, CancellationToken cancellationToken)
+    public Task SaveChangesAsync(DbContext context, DbTransaction transaction, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         var service = GetService(context);
         return ShouldUseBulkUpsert(_options, _entities.Count, service, out var bulk)
-            ? bulk.BulkUpsertAsync(_entities, connection, cancellationToken)
-            : service.UpsertAsync(_entities, connection, cancellationToken);
+            ? bulk.BulkUpsertAsync(_entities, transaction, cancellationToken)
+            : service.UpsertAsync(_entities, transaction, cancellationToken);
     }
 
     public IEnumerable<object> InsertedOrUpdatedDocuments => _entities;

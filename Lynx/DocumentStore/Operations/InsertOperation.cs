@@ -19,25 +19,25 @@ internal class InsertOperation<T> : OperationBase<T>, IDocumentSessionOperation
         _options = options;
     }
 
-    public void SaveChanges(DbContext context, DbConnection connection)
+    public void SaveChanges(DbContext context, DbTransaction transaction)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         var service = GetService(context);
         if (ShouldUseBulkInsert(_options, _entities.Count, service, out var bulk))
-            bulk.BulkInsert(_entities, connection);
+            bulk.BulkInsert(_entities, transaction);
         else
-            service.Insert(_entities, connection);
+            service.Insert(_entities, transaction);
     }
 
-    public Task SaveChangesAsync(DbContext context, DbConnection connection, CancellationToken cancellationToken)
+    public Task SaveChangesAsync(DbContext context, DbTransaction transaction, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         var service = GetService(context);
         return ShouldUseBulkInsert(_options, _entities.Count, service, out var bulk)
-            ? bulk.BulkInsertAsync(_entities, connection, cancellationToken)
-            : service.InsertAsync(_entities, connection, cancellationToken);
+            ? bulk.BulkInsertAsync(_entities, transaction, cancellationToken)
+            : service.InsertAsync(_entities, transaction, cancellationToken);
     }
 
     public IEnumerable<object> InsertedOrUpdatedDocuments => _entities;

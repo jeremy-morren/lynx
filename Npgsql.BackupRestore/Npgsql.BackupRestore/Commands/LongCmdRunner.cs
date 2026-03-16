@@ -1,9 +1,25 @@
 ﻿using System.Diagnostics;
+using System.Text;
 
 namespace Npgsql.BackupRestore.Commands;
 
 internal static class LongCmdRunner
 {
+    /// <summary>
+    /// Runs a command with arguments and returns stdout as string, optionally providing standard input
+    /// </summary>
+    public static async Task<string> RunAsync(
+        string cmd,
+        IEnumerable<string> args,
+        Dictionary<string, string?> envVars,
+        Stream? stdIn,
+        CancellationToken stopToken)
+    {
+        await using var stdOut = new MemoryStream();
+        await RunAsync(cmd, args, envVars, stdIn, stdOut, stopToken);
+        return Encoding.UTF8.GetString(stdOut.GetBuffer().AsSpan(0, (int)stdOut.Length));
+    }
+
     /// <summary>
     /// Runs a command with arguments, optionally providing standard input and capturing standard output.
     /// </summary>

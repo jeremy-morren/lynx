@@ -11,35 +11,47 @@ internal interface ILynxEntityService<in T> where T : class
     /// Inserts entities into the database.
     /// </summary>
     void Insert(
-        IEnumerable<T> entities, DbConnection connection, CancellationToken cancellationToken = default);
+        IEnumerable<T> entities,
+        DbTransaction transaction,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Upserts entities into the database.
     /// </summary>
     void Upsert(
-        IEnumerable<T> entities, DbConnection connection, CancellationToken cancellationToken = default);
+        IEnumerable<T> entities,
+        DbTransaction transaction,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Inserts entities into the database asynchronously.
     /// </summary>
     Task InsertAsync(
-        IEnumerable<T> entities, DbConnection connection, CancellationToken cancellationToken = default);
+        IEnumerable<T> entities,
+        DbTransaction transaction,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Upserts entities into the database asynchronously.
     /// </summary>
     Task UpsertAsync(
-        IEnumerable<T> entities, DbConnection connection, CancellationToken cancellationToken = default);
+        IEnumerable<T> entities,
+        DbTransaction transaction,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Inserts entities into the database asynchronously.
     /// </summary>
     Task InsertAsync(
-        IAsyncEnumerable<T> entities, DbConnection connection, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<T> entities,
+        DbTransaction transaction,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Upserts entities into the database asynchronously.
     /// </summary>
     Task UpsertAsync(
-        IAsyncEnumerable<T> entities, DbConnection connection, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<T> entities,
+        DbTransaction transaction,
+        CancellationToken cancellationToken = default);
 }

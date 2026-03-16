@@ -25,6 +25,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="Lynx.Tests, PublicKey=$(StrongNamePublicKey)" />
+        <InternalsVisibleTo Include="Lynx.Providers.Tests, PublicKey=$(StrongNamePublicKey)" />
     </ItemGroup>
 
 </Project>

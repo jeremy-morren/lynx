@@ -16,7 +16,8 @@ public static class PgRestore
     /// <param name="options">Restore options</param>
     /// <param name="filename">Source filename</param>
     /// <param name="cancellationToken"></param>
-    public static async Task RestoreAsync(
+    /// <returns>The standard output of the pg_restore command</returns>
+    public static async Task<string> RestoreAsync(
         string connectionString, 
         PgRestoreOptions options, 
         string filename,
@@ -29,7 +30,7 @@ public static class PgRestore
         connectionString = PgBackup.PersistSecurityInfo(connectionString);
 
         await using var connection = new NpgsqlConnection(connectionString);
-        await RestoreAsync(connection, options, filename, cancellationToken);
+        return await RestoreAsync(connection, options, filename, cancellationToken);
     }
     
     /// <summary>
@@ -39,7 +40,8 @@ public static class PgRestore
     /// <param name="options">Restore options</param>
     /// <param name="filename">Source filename</param>
     /// <param name="cancellationToken"></param>
-    public static async Task RestoreAsync(
+    /// <returns>The standard output of the pg_restore command</returns>
+    public static async Task<string> RestoreAsync(
         NpgsqlConnection connection, 
         PgRestoreOptions options, 
         string filename,
@@ -53,7 +55,7 @@ public static class PgRestore
         var tool = PgToolFinder.FindPgTool(ToolName, version);
         var args = CommandHelpers.GetArgs(options, OptionNames).Append(filename);
         var env = CommandHelpers.GetEnvVariables(connection.ConnectionString);
-        await LongCmdRunner.RunAsync(tool, args, env, null, null, cancellationToken);
+        return await LongCmdRunner.RunAsync(tool, args, env, null, cancellationToken);
     }
 
     /// <summary>
@@ -63,7 +65,8 @@ public static class PgRestore
     /// <param name="options">Restore options</param>
     /// <param name="source">Source stream</param>
     /// <param name="cancellationToken"></param>
-    public static async Task RestoreAsync(
+    /// <returns>The standard output of the pg_restore command</returns>
+    public static async Task<string> RestoreAsync(
         string connectionString,
         PgRestoreOptions options,
         Stream source,
@@ -75,17 +78,18 @@ public static class PgRestore
         
         connectionString = PgBackup.PersistSecurityInfo(connectionString);
         await using var connection = new NpgsqlConnection(connectionString);
-        await RestoreAsync(connection, options, source, cancellationToken);
+        return await RestoreAsync(connection, options, source, cancellationToken);
     }
 
     /// <summary>
-    /// Restores a PostgreSQL database from a file (using <c>pg_restore</c>)
+    /// Restores a PostgreSQL database from a stream (using <c>pg_restore</c>)
     /// </summary>
     /// <param name="connection">Connection</param>
     /// <param name="options">Restore options</param>
     /// <param name="source">Source stream</param>
     /// <param name="cancellationToken"></param>
-    public static async Task RestoreAsync(
+    /// <returns>The standard output of the pg_restore command</returns>
+    public static async Task<string> RestoreAsync(
         NpgsqlConnection connection, 
         PgRestoreOptions options, 
         Stream source,
@@ -103,7 +107,7 @@ public static class PgRestore
         var tool = PgToolFinder.FindPgTool(ToolName, version);
         var args = CommandHelpers.GetArgs(options, OptionNames);
         var env = CommandHelpers.GetEnvVariables(connection.ConnectionString);
-        await LongCmdRunner.RunAsync(tool, args, env, source, null, cancellationToken);
+        return await LongCmdRunner.RunAsync(tool, args, env, source, cancellationToken);
     }
     
     internal const string ToolName = "pg_restore";

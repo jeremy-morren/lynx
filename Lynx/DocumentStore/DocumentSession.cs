@@ -61,7 +61,7 @@ internal class DocumentSession : IDocumentSession
                     using var conn = DocumentStoreConnection.OpenConnection(DbContext);
                     using var transaction = conn.BeginTransaction();
                     foreach (var o in unitOfWork)
-                        o.SaveChanges(DbContext, conn);
+                        o.SaveChanges(DbContext, transaction);
                     transaction.Commit();
                 });
 
@@ -94,7 +94,7 @@ internal class DocumentSession : IDocumentSession
                     await using var conn = await DocumentStoreConnection.OpenConnectionAsync(DbContext, cancellationToken);
                     await using var transaction = await conn.BeginTransactionAsync(cancellationToken);
                     foreach (var o in unitOfWork)
-                        await o.SaveChangesAsync(DbContext, conn, cancellationToken);
+                        await o.SaveChangesAsync(DbContext, transaction, cancellationToken);
                     await transaction.CommitAsync(cancellationToken);
                 });
 

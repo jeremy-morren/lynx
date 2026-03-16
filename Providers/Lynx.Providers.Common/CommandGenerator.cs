@@ -42,25 +42,19 @@ internal class CommandGenerator
     /// </summary>
     private StringBuilder GetInsertCommand(IEnumerable<IEntityPropertyInfo> properties)
     {
-        var list = properties.ToList();
-        if (list.Count == 0)
-            throw new NotImplementedException("No properties selected");
+        properties = properties.ToList();
 
         var sb = new StringBuilder();
         sb.Append("INSERT INTO ");
         if (_entity.Schema != null)
             sb.Append($"\"{_entity.Schema}\".");
         sb.Append($"\"{_entity.TableName}\" (");
-        foreach (var p in list)
-        {
+        foreach (var p in properties)
             sb.Append($"\"{p.ColumnName.SqlColumnName}\", ");
-        }
         sb.Length -= 2; // Remove trailing comma
         sb.Append(") VALUES (");
-        foreach (var p in list)
-        {
+        foreach (var p in properties)
             sb.Append($"{p.ColumnName.SqlParamName}, ");
-        }
         sb.Length -= 2; // Remove trailing comma
         sb.Append(')');
         return sb;
@@ -80,9 +74,9 @@ internal class CommandGenerator
             sb.Append($"\"{p.ColumnName.SqlColumnName}\", ");
         sb.Length -= 2; // Remove trailing comma
         sb.AppendLine(")");
-        if (!_entity.GetAllScalarColumns().Any())
+        if (properties.Count == 0)
         {
-            //No columns to update
+            // No columns to update
             sb.Append("DO NOTHING");
             return sb.ToString();
         }
