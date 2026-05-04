@@ -16,9 +16,9 @@ public static class ForeignKeyHelpers
     /// <param name="deleteBehavior"></param>
     public static void SetForeignKeyCascadeMode(ModelBuilder builder, DeleteBehavior deleteBehavior)
     {
-        foreach (var t in builder.Model.GetEntityTypes())
-            foreach (var n in t.GetNavigations())
-                n.ForeignKey.DeleteBehavior = deleteBehavior;
+        foreach (var entity in builder.Model.GetEntityTypes())
+            foreach (var foreignKey in entity.GetForeignKeys())
+                foreignKey.DeleteBehavior = deleteBehavior;
     }
 
     /// <summary>
