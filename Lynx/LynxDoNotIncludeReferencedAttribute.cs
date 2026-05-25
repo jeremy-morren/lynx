@@ -1,4 +1,5 @@
 ﻿using Lynx.EfCore;
+using Lynx.EfCore.Chains;
 
 namespace Lynx;
 
@@ -8,7 +9,7 @@ namespace Lynx;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This attribute does not affect <see cref="ReferencingEntitiesIModelExtensions.GetReferencingEntities"/>
+/// This attribute does not affect <see cref="EntityChainModelExtensions.GetReferencingForeignKeys"/>
 /// </para>
 /// <para>
 /// This attribute can be used to stop Lynx from including a large object graph when querying entities.

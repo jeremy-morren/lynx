@@ -1,10 +1,12 @@
 ﻿using System.Collections;
+using System.Diagnostics;
 
 namespace Lynx.DocumentStore;
 
 /// <summary>
 /// Represents a unit of work (a collection of operations to be applied to the database).
 /// </summary>
+[DebuggerDisplay("Count = {Count}")]
 internal class UnitOfWork : IReadOnlyList<IDocumentSessionOperation>
 {
     private readonly List<IDocumentSessionOperation> _operations = [];

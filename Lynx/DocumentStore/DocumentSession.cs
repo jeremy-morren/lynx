@@ -190,7 +190,7 @@ internal class DocumentSession : IDocumentSession
     {
         ArgumentNullException.ThrowIfNull(id);
 
-        //Ensure the filter operation is valid
+        // Ensure the filter operation is valid
         EnsureEntityType<T>().FilterByKey(id);
         _unitOfWork.Add(new DeleteByIdOperation<T>(id));
     }

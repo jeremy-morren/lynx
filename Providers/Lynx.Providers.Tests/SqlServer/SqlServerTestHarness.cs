@@ -1,5 +1,4 @@
 ﻿using System.Data;
-using Microsoft.Data.Sql;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;

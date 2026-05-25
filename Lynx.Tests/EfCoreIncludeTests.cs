@@ -1,6 +1,7 @@
 ﻿using Lynx.EfCore;
 using Lynx.EfCore.Helpers;
 using Microsoft.EntityFrameworkCore;
+
 // ReSharper disable InconsistentNaming
 // ReSharper disable CollectionNeverUpdated.Local
 
@@ -54,9 +55,8 @@ public class EfCoreIncludeTests
 
         using var context = new Context(options);
 
-        var entity2Include =IncludeRelatedEntities.GetIncludeProperties(context.Model, typeof(Entity2))
-            .Select(p => $"{nameof(E2.Entity2)}.{p}")
-            .Prepend(nameof(E2.Entity2));
+        var entity2Include = IncludeRelatedEntities.GetIncludeProperties(context.Model, typeof(Entity2))
+            .Select(p => $"{nameof(E2.Entity2)}.{p}");
 
         var includeMembers = context.Set<E0>()
             .AsNoTracking()
@@ -66,8 +66,8 @@ public class EfCoreIncludeTests
 
         // Nested includes should exclude cyclic references
         includeMembers.Select(m => m.Name).Should().BeEquivalentTo(nameof(E0.E1), nameof(E1.E2s));
-        IncludeRelatedEntities.GetIncludeProperties(context.Model, typeof(E0), includeMembers).Should().BeEquivalentTo(entity2Include,
-            "Nested includes should exclude cyclic references");
+        IncludeRelatedEntities.GetIncludeProperties(context.Model, typeof(E0), includeMembers)
+            .Should().BeEquivalentTo(entity2Include, "Nested includes should exclude cyclic references");
 
         context.Set<E0>()
             .AsNoTracking()
@@ -120,6 +120,13 @@ public class EfCoreIncludeTests
             modelBuilder.Entity<E2>();
             modelBuilder.Entity<E3>();
             modelBuilder.Entity<E4>();
+
+            modelBuilder.Entity<Entity2>(b =>
+            {
+                b.HasOne(x => x.Parent)
+                    .WithOne(x => x.Entity2)
+                    .HasForeignKey<Entity2>(x => x.ParentIdValue);
+            });
         }
     }
 

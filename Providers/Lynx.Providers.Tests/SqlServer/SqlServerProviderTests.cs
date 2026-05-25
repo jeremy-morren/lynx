@@ -2,7 +2,6 @@
 using Lynx.Provider.SqlServer;
 using Lynx.Providers.Common;
 using Lynx.Providers.Common.Entities;
-using Lynx.Providers.Common.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lynx.Providers.Tests.SqlServer;

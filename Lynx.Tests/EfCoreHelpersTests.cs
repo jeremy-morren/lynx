@@ -83,24 +83,23 @@ public class EfCoreHelpersTests
         using var context = new TestContext(options);
         var model = context.Model;
 
-        //Properties included by Entity3
+        // Properties included by Entity3
         var entity3 = new[]
         {
             $"{nameof(Entity3.Owned1)}.{nameof(Owned.Child)}",
-            nameof(Entity3.Other), $"{nameof(Entity3.Other)}.{nameof(Entity3.Owned1)}.{nameof(Entity3.Owned1.Child)}"
+            $"{nameof(Entity3.Other)}.{nameof(Entity3.Owned1)}.{nameof(Entity3.Owned1.Child)}"
         };
 
         IncludeRelatedEntities.GetIncludeProperties(model, typeof(Entity3)).Should().BeEquivalentTo(entity3);
 
         IncludeRelatedEntities.GetIncludeProperties(model, typeof(Entity2))
             .Should().BeEquivalentTo(
-                new [] {nameof(Entity2.Parent), nameof(Entity2.Entity3) }
+                new [] {nameof(Entity2.Parent) }
                     .Concat(entity3.Select(x => $"{nameof(Entity2.Entity3)}.{x}")));
 
         IncludeRelatedEntities.GetIncludeProperties(model, typeof(Entity1))
             .Should().BeEquivalentTo(
-                new[] { nameof(Entity1.Entity2), $"{nameof(Entity1.Entity2)}.{nameof(Entity2.Entity3)}" }
-                    .Concat(entity3.Select(x => $"{nameof(Entity1.Entity2)}.{nameof(Entity2.Entity3)}.{x}")));
+                entity3.Select(x => $"{nameof(Entity1.Entity2)}.{nameof(Entity2.Entity3)}.{x}"));
 
         IncludeRelatedEntities.GetIncludeProperties(model, typeof(Alone)).ShouldBeEmpty();
 
@@ -110,50 +109,8 @@ public class EfCoreHelpersTests
         var entity1Entity2 = typeof(Entity1).GetProperty(nameof(Entity1.Entity2)).ShouldNotBeNull();
         IncludeRelatedEntities.GetIncludeProperties(model, typeof(Entity1), [entity1Entity2])
             .Should().BeEquivalentTo(
-                new[] { nameof(Entity2.Entity3) }.Concat(entity3.Select(x => $"{nameof(Entity2.Entity3)}.{x}")),
+                entity3.Select(x => $"{nameof(Entity2.Entity3)}.{x}"),
                 "Should exclude cyclic reference to parent");
-    }
-
-    [Fact]
-    public void GetReferencingEntities()
-    {
-        var options = new DbContextOptionsBuilder()
-            .UseInMemoryDatabase(nameof(GetReferencingEntities))
-            .Options;
-
-        using var context = new TestContext(options);
-        var model = context.Model;
-
-        //Entity1: referenced by Entity2
-        model.GetReferencingEntities(typeof(Entity1))
-            .Select(e => e.ClrType)
-            .Should().BeEquivalentTo([typeof(Entity2)]);
-        
-        //Entity2: referenced by Entity1
-        model.GetReferencingEntities(typeof(Entity2))
-            .Select(e => e.ClrType)
-            .Should().BeEquivalentTo([typeof(Entity1)]);
-        
-        //Entity3 and Child: referenced by Entity1 and Entity2 and itself
-        model.GetReferencingEntities(typeof(Entity3))
-            .Select(e => e.ClrType)
-            .Should().BeEquivalentTo([typeof(Entity1), typeof(Entity2), typeof(Entity3)]);
-        
-        //Alone: not referenced by any entity
-        model.GetReferencingEntities(typeof(Alone)).ShouldBeEmpty();
-
-        //Child: Referenced as a collection by Entity2
-        model.GetReferencingEntities(typeof(Child))
-            .Select(e => e.ClrType)
-            .Distinct()
-            .Should().BeEquivalentTo([typeof(ParentEntity), typeof(Entity1), typeof(Entity2)]);
-
-        //Foreign: referenced by Owned, which is owned by Entity3
-        //NB: Owned itself is not an entity, so it should not be included
-        //NB: EntityStrongId.Foreign is decorated with LynxDoNotIncludeReferenced, but it should still be regarded as a reference (just not loaded)
-        model.GetReferencingEntities(typeof(Foreign))
-            .Select(e => e.ClrType)
-            .Should().BeEquivalentTo([typeof(Child), typeof(Entity1), typeof(Entity2), typeof(Entity3), typeof(ParentEntity), typeof(EntityStrongId)]);
     }
 
     [Fact]

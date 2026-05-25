@@ -1,5 +1,4 @@
-﻿using System.Data;
-using System.Text;
+﻿using System.Text;
 using Lynx.Providers.Common.Entities;
 using Lynx.Providers.Common.Models;
 using Microsoft.EntityFrameworkCore.Metadata;

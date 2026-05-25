@@ -83,8 +83,9 @@ public interface IDocumentSession
 
     /// <summary>
     /// Deletes the entity with the specified id from the database.
+    /// If the entity does not exist, no exception is thrown.
     /// </summary>
-    /// <param name="id">Id to delete</param>
+    /// <param name="id">ID to delete</param>
     /// <typeparam name="T"></typeparam>
     void Delete<T>(object id) where T : class;
 

@@ -32,13 +32,16 @@ public class ForeignKeyTests
 
         await using (var context = new TestContext(options))
         {
+            context.Model.GenerateSetConstraintsDeferrableScript()
+                .Should().Contain($"{nameof(ManuallyDefinedReference)}_{nameof(Entity2)}_Entity2Key")
+                .And.Contain($"_{nameof(Entity1)}_{nameof(Entity2.ParentIdValue)}");
+
             context.Database.EnsureCreated();
 
             if (async)
                 await ForeignKeyHelpers.ExecuteSetConstraintsDeferrableAsync(context);
             else
                 ForeignKeyHelpers.ExecuteSetConstraintsDeferrable(context);
-
         }
 
         using (var transaction = conn.BeginTransaction())

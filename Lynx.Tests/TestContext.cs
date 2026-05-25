@@ -25,12 +25,13 @@ public class TestContext : DbContext
             b.HasKey(x => x.Id);
             b.Property(x => x.Id).ValueGeneratedNever();
             b.OwnsOne(x => x.Owned);
+            b.ToTable("Parent Entity Table");
         });
 
         modelBuilder.Entity<Entity1>()
             .HasOne(e => e.Entity2)
             .WithOne(e => e.Parent)
-            .HasForeignKey((Entity2 e) => e.ParentId);
+            .HasForeignKey((Entity2 e) => e.ParentIdValue);
 
         modelBuilder.Entity<Entity3>(b =>
         {
@@ -50,6 +51,21 @@ public class TestContext : DbContext
 
         modelBuilder.Entity<EntityStrongIdComposite>()
             .HasKey(x => new { x.Id1, x.Id2 });
+
+        modelBuilder.Entity<ManuallyDefinedReference>(b =>
+        {
+            b.HasOne<Entity1>()
+                .WithMany()
+                .HasForeignKey(x => x.Entity1Key);
+
+            b.HasOne<Entity2>()
+                .WithOne()
+                .HasForeignKey<ManuallyDefinedReference>("Entity2Key");
+
+            // b.HasMany<Entity3>()
+            //     .WithOne()
+            //     .HasForeignKey("ManuallyDefinedRefKey");
+        });
 
         ForeignKeyHelpers.SetForeignKeyCascadeMode(modelBuilder, DeleteBehavior.NoAction);
     }
@@ -161,7 +177,7 @@ public class Entity2 : EntityBase
 
     public ICollection<Child>? Children { get; set; }
 
-    public int ParentId { get; set; }
+    public int ParentIdValue { get; set; }
     public required Entity1 Parent { get; set; }
 }
 
@@ -188,9 +204,20 @@ public class Child : EntityBase
 }
 
 /// <summary>
-/// Entity referenced by an owned type
+/// Entity referenced by another entity
 /// </summary>
 public class Foreign : EntityBase;
+
+/// <summary>
+/// Entity with foreign keys to <see cref="Entity1" /> and <see cref="Entity2" /> but not navigation properties
+/// </summary>
+public class ManuallyDefinedReference : EntityBase
+{
+    /// <summary>
+    /// A foreign key without a navigation property.
+    /// </summary>
+    public int? Entity1Key { get; set; }
+}
 
 /// <summary>
 /// Not reference by any other entity. Has composite key. Has shadow property Deleted.

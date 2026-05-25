@@ -1,6 +1,5 @@
 ﻿using System.Data.Common;
 using Lynx.Providers.Common;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
