@@ -5,6 +5,9 @@
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)key.snk</AssemblyOriginatorKeyFile>
 
+        <!-- Make all builds reproducible -->
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+        
         <NoWarn>$(NoWarn);CA2264</NoWarn>
     </PropertyGroup>
     
