@@ -13,7 +13,8 @@ public class EfCoreConcatManyTests
     [InlineData(1005)]
     public void ConcatManyQueriesShouldSucceed(int count)
     {
-        var connString = $"Host=localhost;Database={nameof(ConcatManyQueriesShouldSucceed)}_{count};Username=postgres;Password=postgres;";
+        var databaseName = DatabaseNameHelpers.GetDatabaseName([count]);
+        var connString = $"Host=localhost;Database={databaseName};Username=postgres;Password=postgres;";
 
         var options = new DbContextOptionsBuilder<TestContext>()
             .UseNpgsql(connString)

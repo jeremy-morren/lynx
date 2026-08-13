@@ -19,7 +19,7 @@ public class ForeignKeyTests
     [InlineData(true)]
     public async Task SetConstraintsDeferrable(bool async)
     {
-        var database = $"{nameof(SetConstraintsDeferrable)}_{async}";
+        var database = DatabaseNameHelpers.GetDatabaseName([async]);
         CleanPostgresDb(database);
 
         await using var conn = new NpgsqlConnection($"{ConnString};Database={database}");
@@ -46,7 +46,7 @@ public class ForeignKeyTests
 
         using (var transaction = conn.BeginTransaction())
         {
-            //Save changes in a way that violates the foreign key constraint
+            // Save changes in a way that violates the foreign key constraint
 
             await using (var context = new TestContext(options))
             {
@@ -59,7 +59,7 @@ public class ForeignKeyTests
             }
             await using (var context = new TestContext(options))
             {
-                //Insert a row that violates the foreign key constraint
+                // Insert a row that violates the foreign key constraint
                 context.Add(new Foreign()
                 {
                     Id = 1
@@ -94,7 +94,7 @@ public class ForeignKeyTests
             BulkOperationThreshold = 1
         };
 
-        var database = $"{nameof(DeleteOutOfOrder)}_{useAsync}_{useBulk}";
+        var database = DatabaseNameHelpers.GetDatabaseName([useAsync, useBulk]);
         CleanPostgresDb(database);
 
         using var conn = new NpgsqlConnection($"{ConnString};Database={database}");
@@ -140,7 +140,6 @@ public class ForeignKeyTests
 
     private const string ConnString = "Host=localhost;Username=postgres;Password=postgres;Include Error Detail=true";
 
-
     [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
@@ -154,7 +153,7 @@ public class ForeignKeyTests
             BulkOperationThreshold = 1
         };
 
-        var database = $"{nameof(Replace)}_{useAsync}_{useBulk}";
+        var database = DatabaseNameHelpers.GetDatabaseName([useAsync, useBulk]);
         CleanPostgresDb(database);
 
         using var conn = new NpgsqlConnection($"{ConnString};Database={database}");

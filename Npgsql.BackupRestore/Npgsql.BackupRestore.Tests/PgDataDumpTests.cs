@@ -42,7 +42,7 @@ public class PgDataDumpTests : PgToolTestsBase
                 PgDataDump.Backup(ConnString, ms, segmentSize);
             ms.Length.ShouldBePositive();
 
-            var outDatabase = $"{nameof(RoundTrip)}_{async}_{segmentSize}_{bufferSize}";
+            var outDatabase = DatabaseNameHelpers.GetDatabaseName([async,segmentSize,bufferSize]);
             try
             {
                 CleanDatabase(outDatabase);

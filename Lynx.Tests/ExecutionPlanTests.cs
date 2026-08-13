@@ -37,7 +37,7 @@ public class ExecutionPlanTests(ITestOutputHelper output)
     public void GetExecutionPlanNpgsql()
     {
         const string connStr = "Host=localhost;Username=postgres;Password=postgres";
-        const string dbName = "lynx_execution_plan_tests";
+        var dbName = DatabaseNameHelpers.GetDatabaseName();
 
         DropDatabase();
 
