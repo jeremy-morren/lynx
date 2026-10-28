@@ -138,7 +138,7 @@ public class ForeignKeyTests
         }
     }
 
-    private const string ConnString = "Host=localhost;Username=postgres;Password=postgres;Include Error Detail=true";
+    internal const string ConnString = "Host=localhost;Username=postgres;Password=postgres;Include Error Detail=true";
 
     [Theory]
     [InlineData(false, false)]
