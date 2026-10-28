@@ -28,6 +28,18 @@ public class SqlServerProviderTests : ProviderTestsBase
             db => new SqlServerTestHarness(GetDatabase(nameof(WriteCities), db, type)));
     }
 
+#if NET10_0_OR_GREATER
+    [Theory]
+    [MemberData(nameof(GetFlags))]
+    public Task WriteOrders(ProviderTestType type)
+    {
+        return TestOrders(
+            new SqlServerLynxProvider(),
+            type,
+            db => new SqlServerTestHarness(GetDatabase(nameof(WriteOrders), db, type)));
+    }
+#endif
+
     [Theory]
     [MemberData(nameof(GetFlags))]
     public Task WriteConverterEntities(ProviderTestType type)

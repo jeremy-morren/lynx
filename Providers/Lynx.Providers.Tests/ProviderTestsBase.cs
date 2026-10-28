@@ -194,6 +194,133 @@ public class ProviderTestsBase
         }
     }
 
+#if NET10_0_OR_GREATER
+    internal static async Task TestOrders(
+        ILynxProvider provider, ProviderTestType type, Func<string, ITestHarness> createHarness)
+    {
+        var orders = Enumerable.Range(0, 6).Select(Order).ToList();
+
+        ILynxEntityService<Order> orderSvc;
+        using var lynxHarness = createHarness("lynx");
+        using (var context = lynxHarness.CreateContext())
+        {
+            orderSvc = provider.CreateService<Order>(context.Model);
+
+            context.Database.EnsureCreated();
+
+            using var transaction = context.Database.BeginTransaction();
+            await Write(orderSvc, orders, false, transaction.GetDbTransaction());
+            transaction.Commit();
+        }
+
+        // Change the orders (including setting/clearing optional complex types) and add new ones
+        foreach (var o in orders)
+        {
+            o.ShippingAddress = o.ShippingAddress == null ? Address(o.Id + 100) : null;
+            o.ExtraDetails = o.ExtraDetails == null ? OrderDetails(o.Id + 100) : null;
+            o.Lines.Add(OrderLine(o.Id + 100));
+        }
+        orders.AddRange(Enumerable.Range(6, 3).Select(Order));
+
+        using (var context = lynxHarness.CreateContext())
+        {
+            using var transaction = context.Database.BeginTransaction();
+            await Write(orderSvc, orders, true, transaction.GetDbTransaction());
+            transaction.Commit();
+        }
+
+        using var manualHarness = createHarness("manual");
+        using (var context = manualHarness.CreateContext())
+        {
+            context.Database.EnsureCreated();
+            context.Orders.AddRange(orders);
+            context.SaveChanges();
+        }
+
+        using (var lynxContext = lynxHarness.CreateContext())
+        using (var manualContext = manualHarness.CreateContext())
+        {
+            var lynxOrders = lynxContext.Orders.AsNoTracking().OrderBy(o => o.Id).ToList();
+            lynxOrders.Should().BeEquivalentTo(manualContext.Orders.AsNoTracking().OrderBy(o => o.Id).ToList());
+
+            // Query inside JSON and optional complex types
+            lynxContext.Orders.Count(o => o.ShippingAddress != null)
+                .ShouldBe(orders.Count(o => o.ShippingAddress != null));
+            lynxContext.Orders.Count(o => o.ExtraDetails != null)
+                .ShouldBe(orders.Count(o => o.ExtraDetails != null));
+            // NB: EF Core 10 SQLite doesn't translate a custom JSON property name (Notes_Json) in queries, so compare with EF Core
+            lynxContext.Orders.Count(o => o.Details.Notes == "Notes 1")
+                .ShouldBe(manualContext.Orders.Count(o => o.Details.Notes == "Notes 1"));
+            lynxContext.Orders.Count(o => o.Details.Delivery != null && o.Details.Delivery.Street == "Street 1002").ShouldBe(1);
+            lynxContext.Orders.Count(o => o.Lines.Any(l => l.Product == "Product 101")).ShouldBe(1);
+        }
+
+        return;
+
+        async Task Write(ILynxEntityService<Order> svc, List<Order> items, bool upsert, DbTransaction transaction)
+        {
+            switch (type)
+            {
+                case ProviderTestType.Sync when upsert:
+                    svc.Upsert(items, transaction);
+                    break;
+                case ProviderTestType.Sync:
+                    svc.Insert(items, transaction);
+                    break;
+                case ProviderTestType.Async when upsert:
+                    await svc.UpsertAsync(items, transaction);
+                    break;
+                case ProviderTestType.Async:
+                    await svc.InsertAsync(items, transaction);
+                    break;
+                case ProviderTestType.AsyncEnumerable when upsert:
+                    await svc.UpsertAsync(items.ToAsyncEnumerable(), transaction);
+                    break;
+                case ProviderTestType.AsyncEnumerable:
+                    await svc.InsertAsync(items.ToAsyncEnumerable(), transaction);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
+            }
+        }
+    }
+
+    public static Order Order(int id) => new()
+    {
+        Id = id,
+        BillingAddress = Address(id),
+        ShippingAddress = id % 2 == 0 ? Address(id + 50) : null,
+        LegalSystem = id % 3 == 0 ? null : new LegalSystem(id % 2 == 0, true),
+        Details = OrderDetails(id),
+        ExtraDetails = id % 2 == 1 ? OrderDetails(id + 50) : null,
+        Lines = Enumerable.Range(0, id % 3).Select(i => OrderLine(id * 10 + i)).ToList()
+    };
+
+    private static Address Address(int id) => new()
+    {
+        Street = $"Street {id}",
+        City = $"City {id}"
+    };
+
+    private static OrderDetails OrderDetails(int id) => new()
+    {
+        Notes = $"Notes {id}",
+        City = id % 2 == 0 ? new CityId(id) : null,
+        PlacedAt = id % 3 == 0 ? null : MillisecondClock.Now,
+        Tags = Enumerable.Range(0, id % 4).Select(i => $"Tag {i}").ToArray(),
+        Delivery = id % 2 == 0 ? Address(id + 1000) : null,
+        Lines = Enumerable.Range(0, id % 3).Select(i => OrderLine(id * 10 + i)).ToList()
+    };
+
+    private static OrderLine OrderLine(int id) => new()
+    {
+        Product = $"Product {id}",
+        Quantity = id * 1.5m,
+        Due = id % 2 == 0 ? MillisecondClock.LocalNow : null,
+        Destination = id % 3 == 0 ? Address(id + 2000) : null
+    };
+#endif
+
     internal static async Task TestConverterEntities(
         ILynxProvider provider, ProviderTestType type, Func<string, ITestHarness> createHarness)
     {

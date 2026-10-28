@@ -24,6 +24,18 @@ public class NpgsqlProviderTests : ProviderTestsBase
             db => new NpgsqlTestHarness(GetDatabase(nameof(WriteCities), db, type)));
     }
 
+#if NET10_0_OR_GREATER
+    [Theory]
+    [MemberData(nameof(GetFlags))]
+    public Task WriteOrders(ProviderTestType type)
+    {
+        return TestOrders(
+            new NpgsqlLynxProvider(),
+            type,
+            db => new NpgsqlTestHarness(GetDatabase(nameof(WriteOrders), db, type)));
+    }
+#endif
+
     [Theory]
     [MemberData(nameof(GetFlags))]
     public Task WriteConverterEntities(ProviderTestType type)

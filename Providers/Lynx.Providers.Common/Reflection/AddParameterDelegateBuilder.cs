@@ -50,7 +50,9 @@ internal static class AddParameterDelegateBuilder<TCommand, TDelegateBuilder>
 
         var addComplex =
             from complex in entity.ComplexProps
-            from e in AddParameters(complex)
+            from e in complex is JsonComplexEntityPropertyInfo json
+                ? AddJsonParameter(json)
+                : AddParameters(complex)
             select e;
 
         var addOwned =
@@ -67,6 +69,11 @@ internal static class AddParameterDelegateBuilder<TCommand, TDelegateBuilder>
             // Not a JSON column, recurse
             return AddParameters(owned);
 
+        return AddJsonParameter(json);
+    }
+
+    private static IEnumerable<Expression> AddJsonParameter(IColumnPropertyInfo json)
+    {
         // JSON columns are scalar
         // Create parameter and setup
         return

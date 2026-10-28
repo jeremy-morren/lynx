@@ -39,7 +39,9 @@ internal static class NpgsqlEntityColumnBuilder<TEntity, TWriter>
 
         var complexProps =
             from property in entity.ComplexProps
-            from column in GetColumns(property, parent.Add(property))
+            from column in property is JsonComplexEntityPropertyInfo json
+                ? [GetJsonColumn(json, json, parent.Add(property))]
+                : GetColumns(property, parent.Add(property))
             select column;
 
         var owned =
@@ -57,10 +59,18 @@ internal static class NpgsqlEntityColumnBuilder<TEntity, TWriter>
         if (owned is not JsonOwnedEntityInfo json)
             return GetColumns(owned, path);
 
+        return [GetJsonColumn(json, json, path)];
+    }
+
+    private static NpgsqlEntityColumn<TEntity, TWriter> GetJsonColumn(
+        IStructurePropertyInfo structure,
+        IColumnPropertyInfo column,
+        ImmutableList<IEntityPropertyInfo> path)
+    {
         // Json column
-        var write = BuildJsonWrite(owned, path);
-        var writeAsync = BuildJsonWriteAsync(owned, path);
-        return [new NpgsqlEntityColumn<TEntity, TWriter>(json, JsonDbType, write, writeAsync)];
+        var write = BuildJsonWrite(structure, path);
+        var writeAsync = BuildJsonWriteAsync(structure, path);
+        return new NpgsqlEntityColumn<TEntity, TWriter>(column, JsonDbType, write, writeAsync);
     }
 
     private static IEnumerable<NpgsqlEntityColumn<TEntity, TWriter>> GetKeys(RootEntityInfo entity) =>
@@ -129,7 +139,7 @@ internal static class NpgsqlEntityColumnBuilder<TEntity, TWriter>
         return Expression.Lambda<Func<TEntity, TWriter, CancellationToken, Task>>(expression, entity, writer, cancellationToken).Compile();
     }
 
-    private static Action<TEntity, TWriter> BuildJsonWrite(OwnedEntityInfo owned, ImmutableList<IEntityPropertyInfo> path)
+    private static Action<TEntity, TWriter> BuildJsonWrite(IStructurePropertyInfo owned, ImmutableList<IEntityPropertyInfo> path)
     {
         var entity = Expression.Parameter(typeof(TEntity), typeof(TEntity).Name.ToLowerInvariant());
         var writer = Expression.Parameter(typeof(TWriter), "writer");
@@ -152,7 +162,7 @@ internal static class NpgsqlEntityColumnBuilder<TEntity, TWriter>
         return Expression.Lambda<Action<TEntity, TWriter>>(expression, entity, writer).Compile();
     }
 
-    private static Func<TEntity, TWriter, CancellationToken, Task> BuildJsonWriteAsync(OwnedEntityInfo owned, ImmutableList<IEntityPropertyInfo> path)
+    private static Func<TEntity, TWriter, CancellationToken, Task> BuildJsonWriteAsync(IStructurePropertyInfo owned, ImmutableList<IEntityPropertyInfo> path)
     {
         var entity = Expression.Parameter(typeof(TEntity), typeof(TEntity).Name.ToLowerInvariant());
         var writer = Expression.Parameter(typeof(TWriter), "writer");

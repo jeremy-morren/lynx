@@ -16,7 +16,12 @@ internal static class EntityJsonSerializer
     private static string StreamToJson(MemoryStream stream) =>
         Encoding.UTF8.GetString(stream.GetBuffer(), 0, (int)stream.Length);
 
-    public static Expression Serialize(OwnedEntityInfo entity, Expression value)
+    /// <summary>
+    /// Serializes a structure (owned entity or complex type) mapped to a JSON column.
+    /// </summary>
+    /// <param name="entity">Owned entity (<see cref="JsonOwnedEntityInfo"/>) or complex property (<see cref="JsonComplexEntityPropertyInfo"/>)</param>
+    /// <param name="value">Property value</param>
+    public static Expression Serialize(IStructurePropertyInfo entity, Expression value)
     {
         var ms = Expression.Variable(typeof(MemoryStream), "ms");
 
@@ -34,43 +39,73 @@ internal static class EntityJsonSerializer
     }
 
     private static Expression SerializeJson(
-        OwnedEntityInfo entity,
+        IStructurePropertyInfo entity,
         Expression value,
         ParameterExpression ms,
         ParameterExpression writer)
     {
         return Expression.Block(
-            WriteOwned(entity, value, writer),
+            WriteStructure(entity, value, writer),
             Expression.Call(writer, ReflectionItems.Utf8JsonWriterFlushMethod), // writer.Flush()
             Expression.Call(StreamToJsonMethod, ms) // return ToJson(ms)
         );
     }
 
     /// <summary>
-    /// Writes an owned entity property value. Does not write the property name.
+    /// Whether the structure is a collection (owned collection or complex collection)
     /// </summary>
-    /// <param name="entity"></param>
-    /// <param name="value"></param>
-    /// <param name="writer"></param>
-    /// <returns></returns>
-    private static Expression WriteOwned(OwnedEntityInfo entity, Expression value, ParameterExpression writer)
+    private static bool IsCollection(IStructurePropertyInfo entity) => entity switch
+    {
+        OwnedEntityInfo owned => owned.IsCollection,
+        ComplexEntityPropertyInfo complex => complex.Property.IsCollection,
+        _ => throw new NotSupportedException($"Unsupported structure type {entity.GetType()}")
+    };
+
+    /// <summary>
+    /// CLR type of the structure (the element type for collections)
+    /// </summary>
+    private static Type GetClrType(IStructurePropertyInfo entity) => entity switch
+    {
+        OwnedEntityInfo owned => owned.Type.ClrType,
+        ComplexEntityPropertyInfo complex => complex.Property.ComplexType.ClrType,
+        _ => throw new NotSupportedException($"Unsupported structure type {entity.GetType()}")
+    };
+
+    /// <summary>
+    /// JSON property name of the structure, when nested inside another JSON document
+    /// </summary>
+    private static string GetJsonPropertyName(IStructurePropertyInfo entity)
+    {
+        var name = entity switch
+        {
+            OwnedEntityInfo owned => owned.EntityType.GetJsonPropertyName(),
+            ComplexEntityPropertyInfo complex => complex.Property.ComplexType.GetJsonPropertyName(),
+            _ => throw new NotSupportedException($"Unsupported structure type {entity.GetType()}")
+        };
+        return name ?? entity.PropertyInfo.Name;
+    }
+
+    /// <summary>
+    /// Writes a structure property value (object, array or null). Does not write the property name.
+    /// </summary>
+    private static Expression WriteStructure(IStructurePropertyInfo entity, Expression value, ParameterExpression writer)
     {
         var writeBlock = new List<Expression>();
-        if (entity.IsCollection)
+        if (IsCollection(entity))
         {
             // Collection property. write array
             writeBlock.Add(Expression.Call(writer, ReflectionItems.Utf8JsonWriterWriteStartArrayMethod));
-            var item = Expression.Variable(entity.Type.ClrType, "item");
+            var item = Expression.Variable(GetClrType(entity), "item");
             writeBlock.Add(ExpressionHelpers.ForLoop(
                 value,
                 item,
-                WriteOwnedObject(entity, item, writer, false)));
+                WriteObject(entity, item, writer, false)));
             writeBlock.Add(Expression.Call(writer, ReflectionItems.Utf8JsonWriterWriteEndArrayMethod));
         }
         else
         {
             // Structure property, write object. Ignore null (because we have our own check below)
-            writeBlock.Add(WriteOwnedObject(entity, value, writer, true));
+            writeBlock.Add(WriteObject(entity, ExpressionHelpers.GetNullableValue(value), writer, true));
         }
 
         var write = Expression.Block(writeBlock);
@@ -85,10 +120,10 @@ internal static class EntityJsonSerializer
     }
 
     /// <summary>
-    /// Writes an owned entity object value to the writer. Does not write the property name.
+    /// Writes a structure object value to the writer. Does not write the property name.
     /// </summary>
-    private static Expression WriteOwnedObject(
-        OwnedEntityInfo entity,
+    private static Expression WriteObject(
+        IStructurePropertyInfo entity,
         Expression value,
         ParameterExpression writer,
         bool ignoreNull)
@@ -101,9 +136,9 @@ internal static class EntityJsonSerializer
         foreach (var scalar in entity.ScalarProps)
             result.AddRange(WriteScalar(scalar, value, writer));
         foreach (var complex in entity.ComplexProps)
-            result.AddRange(WriteComplex(complex, value, writer));
-        foreach (var owned in entity.Owned)
-            result.AddRange(WriteOwnedProperty(owned, value, writer));
+            result.AddRange(WriteStructureProperty(complex, value, writer));
+        foreach (var owned in (entity as OwnedEntityInfo)?.Owned ?? [])
+            result.AddRange(WriteStructureProperty(owned, value, writer));
 
         result.Add(Expression.Call(writer, ReflectionItems.Utf8JsonWriterWriteEndObjectMethod));
 
@@ -122,53 +157,18 @@ internal static class EntityJsonSerializer
     }
 
     /// <summary>
-    /// Writes an owned entity value to the writer with the property name.
+    /// Writes a nested structure (owned entity or complex type) to the writer with the property name.
     /// </summary>
-    private static Expression[] WriteOwnedProperty(
-        OwnedEntityInfo entity,
+    private static Expression[] WriteStructureProperty(
+        IStructurePropertyInfo entity,
         Expression parent,
         ParameterExpression writer)
     {
-        var jsonPropertyName = entity.EntityType.GetJsonPropertyName();
-        Debug.Assert(jsonPropertyName != null);
         var value = Expression.Property(parent, entity.PropertyInfo);
         return
         [
-            WritePropertyName(jsonPropertyName, writer),
-            WriteOwned(entity, value, writer)
-        ];
-    }
-
-    private static Expression[] WriteComplex(ComplexEntityPropertyInfo entity, Expression parent, ParameterExpression writer)
-    {
-        var jsonPropertyName = entity.PropertyInfo.Name;
-        var writePropertyName = WritePropertyName(jsonPropertyName, writer);
-
-        var value = Expression.Property(parent, entity.PropertyInfo);
-
-        var writeBlock = new List<Expression>
-        {
-            Expression.Call(writer, ReflectionItems.Utf8JsonWriterWriteStartObjectMethod),
-        };
-
-        foreach (var scalar in entity.ScalarProps)
-            writeBlock.AddRange(WriteScalar(scalar, value, writer));
-        foreach (var complex in entity.ComplexProps)
-            writeBlock.AddRange(WriteComplex(complex, value, writer));
-
-        writeBlock.Add(Expression.Call(writer, ReflectionItems.Utf8JsonWriterWriteEndObjectMethod));
-
-        Expression write = Expression.Block(writeBlock);
-
-        var ifNotNull = ExpressionHelpers.GetIfNotNull(value);
-        if (ifNotNull != null)
-            write = Expression.IfThenElse(ifNotNull,
-                write,
-                Expression.Call(writer, ReflectionItems.Utf8JsonWriterWriteNullValueMethod));
-        return
-        [
-            writePropertyName,
-            write
+            WritePropertyName(GetJsonPropertyName(entity), writer),
+            WriteStructure(entity, value, writer)
         ];
     }
 

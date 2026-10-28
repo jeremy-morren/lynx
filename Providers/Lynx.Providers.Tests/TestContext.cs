@@ -31,6 +31,10 @@ public class TestContext : DbContext
     
     public DbSet<IdOnly> IdOnly => Set<IdOnly>();
 
+#if NET10_0_OR_GREATER
+    public DbSet<Order> Orders => Set<Order>();
+#endif
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<IdOnly>();
@@ -62,6 +66,10 @@ public class TestContext : DbContext
                 .WithMany()
                 .OnDelete(DeleteBehavior.NoAction);
         });
+
+#if NET10_0_OR_GREATER
+        modelBuilder.Entity<Order>(Order.Configure);
+#endif
 
         modelBuilder.Entity<ConverterEntity>(b =>
         {
@@ -296,6 +304,100 @@ public record Kitten
 
     public LocalDateTime DeathDate { get; init; } = MillisecondClock.LocalNow;
 }
+
+#if NET10_0_OR_GREATER
+
+/// <summary>
+/// Order, for testing complex types (EF Core 10+): optional complex types, complex types mapped to JSON and complex collections.
+/// </summary>
+public record Order
+{
+    public required int Id { get; set; }
+
+    /// <summary>
+    /// Required complex type (table splitting)
+    /// </summary>
+    public required Address BillingAddress { get; set; }
+
+    /// <summary>
+    /// Optional complex type (table splitting)
+    /// </summary>
+    public Address? ShippingAddress { get; set; }
+
+    /// <summary>
+    /// Optional struct complex type (table splitting)
+    /// </summary>
+    public LegalSystem? LegalSystem { get; set; }
+
+    /// <summary>
+    /// Required complex type mapped to JSON
+    /// </summary>
+    public required OrderDetails Details { get; set; }
+
+    /// <summary>
+    /// Optional complex type mapped to JSON (with a custom column name)
+    /// </summary>
+    public OrderDetails? ExtraDetails { get; set; }
+
+    /// <summary>
+    /// Complex collection mapped to JSON
+    /// </summary>
+    public required List<OrderLine> Lines { get; set; }
+
+    public static void Configure(EntityTypeBuilder<Order> builder)
+    {
+        builder.Property(x => x.Id).ValueGeneratedNever();
+
+        builder.ComplexProperty(x => x.BillingAddress);
+        builder.ComplexProperty(x => x.ShippingAddress);
+        builder.ComplexProperty(x => x.LegalSystem);
+
+        builder.ComplexProperty(x => x.Details, b =>
+        {
+            b.ToJson();
+            b.Property(x => x.Notes).HasJsonPropertyName("Notes_Json");
+        });
+        builder.ComplexProperty(x => x.ExtraDetails, b => b.ToJson("Extra_Details_Json"));
+        builder.ComplexCollection(x => x.Lines, b => b.ToJson());
+    }
+}
+
+public record OrderDetails
+{
+    public required string Notes { get; set; }
+
+    /// <summary>
+    /// Scalar with a value converter inside JSON
+    /// </summary>
+    public CityId? City { get; set; }
+
+    public Instant? PlacedAt { get; set; }
+
+    public required string[] Tags { get; set; }
+
+    /// <summary>
+    /// Nested optional complex type inside JSON
+    /// </summary>
+    public Address? Delivery { get; set; }
+
+    /// <summary>
+    /// Nested complex collection inside JSON
+    /// </summary>
+    public required List<OrderLine> Lines { get; set; }
+}
+
+public record OrderLine
+{
+    public required string Product { get; set; }
+
+    public decimal Quantity { get; set; }
+
+    public LocalDateTime? Due { get; set; }
+
+    public Address? Destination { get; set; }
+}
+
+#endif
 
 /// <summary>
 /// Entity with only an Id.

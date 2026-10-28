@@ -12,8 +12,17 @@ internal static class EntityModelExtensions
         var owned = (entity as EntityInfo)?.Owned ?? [];
 
         return entity.ScalarProps
-            .Concat(entity.ComplexProps.SelectMany(c => c.GetAllScalarColumns()))
+            .Concat(entity.ComplexProps.SelectMany(c => c.GetComplexScalarColumns()))
             .Concat(owned.SelectMany(c=> c.GetOwnedScalarColumns()));
+    }
+
+    private static IEnumerable<IColumnPropertyInfo> GetComplexScalarColumns(this ComplexEntityPropertyInfo complex)
+    {
+        if (complex is JsonComplexEntityPropertyInfo json)
+            return [json]; // JSON columns are scalar
+
+        // Not a JSON column, recurse
+        return GetAllScalarColumns(complex);
     }
 
     private static IEnumerable<IColumnPropertyInfo> GetOwnedScalarColumns(this OwnedEntityInfo owned)

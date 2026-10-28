@@ -41,7 +41,9 @@ internal static class SetParameterValueDelegateBuilder<TCommand, TMapper, TEntit
 
         var setComplex =
             from complex in entity.ComplexProps
-            from e in SetStructure(complex, entityValue)
+            from e in complex is JsonComplexEntityPropertyInfo json
+                ? SetJson(json, json, entityValue)
+                : SetStructure(complex, entityValue)
             select e;
 
         var setOwned =
@@ -92,7 +94,8 @@ internal static class SetParameterValueDelegateBuilder<TCommand, TMapper, TEntit
         var value = Expression.Property(entity, property.PropertyInfo);
 
         //Expression that sets all properties to their values
-        var setNotNull = SetParameters(property, value);
+        //(using the underlying value of a nullable struct)
+        var setNotNull = SetParameters(property, ExpressionHelpers.GetNullableValue(value));
 
         var ifNotNull = ExpressionHelpers.GetIfNotNull(value);
         if (ifNotNull == null)
@@ -121,15 +124,26 @@ internal static class SetParameterValueDelegateBuilder<TCommand, TMapper, TEntit
             return SetStructure(owned, entity);
 
         //Owned entity is mapped to JSON, handle as a scalar
-        Debug.Assert(json.ColumnIndex >= 0, $"Json owned property {json.Name} column index is not set.");
+        return SetJson(json, json, entity);
+    }
+
+    /// <summary>
+    /// Builds expressions to set the parameter for a structure (owned or complex) mapped to a JSON column.
+    /// </summary>
+    private static IEnumerable<Expression> SetJson(
+        IStructurePropertyInfo structure,
+        IColumnPropertyInfo column,
+        Expression? entity)
+    {
+        Debug.Assert(column.ColumnIndex >= 0, $"Json property {column.Name} column index is not set.");
 
         if (entity == null)
             //Inside a null check, set to null
-            return [SetParameterValue(json.ColumnIndex, null)];
+            return [SetParameterValue(column.ColumnIndex, null)];
 
-        var value = Expression.Property(entity, json.PropertyInfo);
-        var serialized = EntityJsonSerializer.Serialize(json, value);
-        return [SetParameterValue(json.ColumnIndex, value, serialized)];
+        var value = Expression.Property(entity, structure.PropertyInfo);
+        var serialized = EntityJsonSerializer.Serialize(structure, value);
+        return [SetParameterValue(column.ColumnIndex, value, serialized)];
     }
 
     /// <summary>

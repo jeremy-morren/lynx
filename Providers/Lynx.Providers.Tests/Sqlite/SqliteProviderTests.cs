@@ -18,6 +18,15 @@ public class SqliteProviderTests : ProviderTestsBase
         return TestCities(new SqliteLynxProvider(), type, _ => new SqliteTestHarness());
     }
 
+#if NET10_0_OR_GREATER
+    [Theory]
+    [MemberData(nameof(GetTypes))]
+    public Task WriteOrders(ProviderTestType type)
+    {
+        return TestOrders(new SqliteLynxProvider(), type, _ => new SqliteTestHarness());
+    }
+#endif
+
     [Theory]
     [MemberData(nameof(GetTypes))]
     public Task WriteConverterEntities(ProviderTestType type)

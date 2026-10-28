@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using Lynx.Providers.Common.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -79,21 +80,57 @@ internal static class EntityInfoFactory
             from p in parent.GetComplexProperties()
             let info = p.PropertyInfo
             where info != null // Exclude shadow properties
-            let name = parentName?.Add(p.Name) ?? PropertyChain.NewRoot(p.Name)
-            let columnName = GetColumnName(p, parentColumn)
-            let properties = GetProperties(p.ComplexType, name, columnName)
-            select new ComplexEntityPropertyInfo
-            {
-                Name = name,
-                Property = p,
-                Parent = parent,
-                PropertyInfo = info,
-                ColumnName = columnName,
-                ScalarProps = properties.Scalar,
-                ComplexProps = properties.Complex
-            };
+            select CreateComplex(parent, p, info, parentName, parentColumn);
 
         return (scalarProps.ToList(), complexProps.ToList());
+    }
+
+    private static ComplexEntityPropertyInfo CreateComplex(
+        ITypeBase parent,
+        IComplexProperty property,
+        PropertyInfo propertyInfo,
+        PropertyChain? parentName,
+        PropertyChain? parentColumn)
+    {
+        var name = parentName?.Add(property.Name) ?? PropertyChain.NewRoot(property.Name);
+
+        // A complex type mapped to JSON is stored in a single (container) column.
+        // Nested complex types inside a JSON document are written as part of their parent's document.
+        var isJsonContainer = property.ComplexType.IsMappedToJson() && !parent.IsMappedToJson();
+
+        // The container column name is the full column name
+        var columnName = isJsonContainer
+            ? PropertyChain.NewRoot(property.ComplexType.GetContainerColumnName() ?? property.Name)
+            : GetColumnName(property, parentColumn);
+
+        var (scalar, complex) = GetProperties(property.ComplexType, name, columnName);
+
+        if (isJsonContainer)
+            return new JsonComplexEntityPropertyInfo
+            {
+                Name = name,
+                Property = property,
+                Parent = parent,
+                PropertyInfo = propertyInfo,
+                ColumnName = columnName,
+                ScalarProps = scalar,
+                ComplexProps = complex
+            };
+
+        if (property.IsCollection && !parent.IsMappedToJson())
+            throw new NotSupportedException(
+                $"Complex collection {parent.DisplayName()}.{property.Name} must be mapped to JSON");
+
+        return new ComplexEntityPropertyInfo
+        {
+            Name = name,
+            Property = property,
+            Parent = parent,
+            PropertyInfo = propertyInfo,
+            ColumnName = columnName,
+            ScalarProps = scalar,
+            ComplexProps = complex
+        };
     }
 
     private static OwnedEntityInfo CreateOwned(
@@ -159,8 +196,14 @@ internal static class EntityInfoFactory
         foreach (var s in entity.ScalarProps) 
             s.ColumnIndex = startIndex++;
 
-        foreach (var c in entity.ComplexProps) 
-            startIndex = SetColumnIndex(c, startIndex);
+        foreach (var c in entity.ComplexProps)
+        {
+            if (c is JsonComplexEntityPropertyInfo json)
+                //JSON complex type, only one column in the table
+                json.ColumnIndex = startIndex++;
+            else
+                startIndex = SetColumnIndex(c, startIndex);
+        }
 
         foreach (var o in (entity as EntityInfo)?.Owned ?? [])
         {
