@@ -152,7 +152,7 @@ public static partial class FullIndexHelpers
 
         var alias = match.Groups["alias"].Value;
         var expression = match.Groups["expression"].Value.Trim();
-        expression = Regex.Replace(expression, $@"(?<![\w""\]]){Regex.Escape(alias)}\.(?=[""\[`])", "");
+        expression = Regex.Replace(expression, @"(?<![\w""\]])" + Regex.Escape(alias) + @"\.(?=[""\[`])", "");
 
         // A column is used as is, anything else is an expression index
         return PlainIdentifierRegex().IsMatch(expression) ? expression : $"({expression})";
@@ -184,10 +184,11 @@ public static partial class FullIndexHelpers
     private static readonly System.Reflection.MethodInfo SetMethod =
         typeof(DbContext).GetMethod(nameof(DbContext.Set), Type.EmptyTypes)!;
 
-    [GeneratedRegex("""^FROM [^\n]+? AS (?<alias>\w+|"\w+"|\[\w+\]|`\w+`)\s*\nORDER BY (?<expression>.+?)\s*\z""", RegexOptions.Singleline | RegexOptions.Multiline)]
+    [GeneratedRegex("""^FROM [^\n]+? AS (?<alias>\w+|"\w+"|\[\w+\]|`\w+`)\s*\nORDER BY (?<expression>.+?)\s*\z""", 
+            RegexOptions.CultureInvariant | RegexOptions.Singleline | RegexOptions.Multiline)]
     private static partial Regex OrderByRegex();
 
-    [GeneratedRegex("""^("[^"]+"|\[[^\]]+\]|`[^`]+`|\w+)$""")]
+    [GeneratedRegex("""^("[^"]+"|\[[^\]]+\]|`[^`]+`|\w+)$""", RegexOptions.CultureInvariant)]
     private static partial Regex PlainIdentifierRegex();
 
     /// <summary>
